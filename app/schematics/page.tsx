@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -30,7 +30,7 @@ const SYSTEM_CATEGORIES = [
   { id: 'navigation', label: 'Navigation', icon: Ship, color: 'text-cyan-400' },
 ];
 
-export default function SchematicsPage() {
+function SchematicsContent() {
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -208,6 +208,21 @@ export default function SchematicsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SchematicsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 text-primary-400 animate-spin mx-auto mb-4" />
+          <p className="text-white/60">Loading Schematics...</p>
+        </div>
+      </div>
+    }>
+      <SchematicsContent />
+    </Suspense>
   );
 }
 
