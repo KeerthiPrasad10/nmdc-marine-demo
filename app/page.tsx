@@ -418,7 +418,7 @@ export default function Dashboard() {
               {rightPanel === 'live' && (
                 <LiveVesselsPanel
                   fleetData={fleetVessels}
-                  fleetMeta={fleetMeta}
+                  fleetMeta={fleetMeta ?? undefined}
                   onRefresh={() => fetchFleet(true)}
                   isLoading={isLoading}
                   onVesselSelect={(vessel) => {

@@ -127,14 +127,29 @@ export default function VesselDetailPage() {
             fuel_level: nmdcVessel.fuelLevel,
             crew_count: nmdcVessel.crew?.count || nmdcVessel.nmdc?.crewCount || 15,
             project: nmdcVessel.nmdc?.project || null,
-            destination: nmdcVessel.destination ?? null,
+            destination_port: nmdcVessel.destination ?? null,
+            destination_lat: null,
+            destination_lng: null,
             eta: nmdcVessel.eta ?? null,
             emissions_co2: nmdcVessel.emissions?.co2 || 0,
             emissions_nox: nmdcVessel.emissions?.nox || 0,
             emissions_sox: nmdcVessel.emissions?.sox || 0,
-            fuel_consumption_rate: nmdcVessel.fuelConsumption || 0,
+            fuel_consumption: nmdcVessel.fuelConsumption || 0,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
+            // Additional required fields
+            breadth: null,
+            call_sign: null,
+            crew_hours_on_duty: null,
+            crew_safety_score: null,
+            deadweight: null,
+            flag: nmdcVessel.flag ?? null,
+            fuel_type: null,
+            gross_tonnage: null,
+            length_overall: null,
+            max_draught: null,
+            vessel_class: null,
+            year_built: null,
           };
           setVessel(vesselData);
           
@@ -148,22 +163,21 @@ export default function VesselDetailPage() {
           
           // Generate equipment from profile if available
           if (vesselProfile?.systems) {
-            const generatedEquipment: Equipment[] = vesselProfile.systems.map((sys, idx) => ({
+            const generatedEquipment = vesselProfile.systems.map((sys, idx) => ({
               id: `${nmdcVessel.mmsi}-${idx}`,
               vessel_id: nmdcVessel.mmsi,
               name: sys.name,
               type: sys.category,
-              status: sys.status,
-              health: sys.health,
+              health_score: 70 + Math.random() * 30,
               last_maintenance: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-              next_maintenance: new Date(Date.now() + Math.random() * 60 * 24 * 60 * 60 * 1000).toISOString(),
-              maintenance_interval_days: 90,
-              operating_hours: Math.round(Math.random() * 5000),
+              predicted_failure: null,
+              failure_confidence: null,
+              hours_operated: Math.round(Math.random() * 5000),
               temperature: 45 + Math.random() * 30,
               vibration: 0.5 + Math.random() * 2,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
-            }));
+            })) as Equipment[];
             setEquipment(generatedEquipment);
           }
           
@@ -601,14 +615,14 @@ export default function VesselDetailPage() {
                     Documentation
                   </h2>
                   <div className="space-y-2">
-                    {profile.docs.brochureUrl && (
+                    {profile.docs.fleetPageUrl && (
                       <a
-                        href={profile.docs.brochureUrl}
+                        href={profile.docs.fleetPageUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 border border-white/8 transition-colors group"
                       >
-                        <span className="text-sm text-white/70 group-hover:text-white">Fleet Brochure</span>
+                        <span className="text-sm text-white/70 group-hover:text-white">Fleet Page</span>
                         <ExternalLink className="w-4 h-4 text-white/40 group-hover:text-primary-400" />
                       </a>
                     )}

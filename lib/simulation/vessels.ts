@@ -24,6 +24,15 @@ const NMDC_TYPE_MAP: Record<NMDCVessel['type'], VesselType> = {
   survey: 'survey_vessel',
 };
 
+// Vessel names by type
+const VESSEL_NAMES: Record<VesselType, string[]> = {
+  dredger: ['Al Hamra', 'Al Khatem', 'Al Mirfa', 'Al Sadr', 'Al Yassat', 'Kattouf'],
+  tugboat: ['Gulf Pioneer', 'Al Dhafra Tug', 'Harbor Force'],
+  supply_vessel: ['Al Ain Supply', 'Gulf Supplier', 'Al Reem'],
+  crane_barge: ['NMDC Lifter I', 'NMDC Lifter II', 'Heavy Lift Alpha'],
+  survey_vessel: ['Gulf Surveyor', 'Al Dhafra Survey'],
+};
+
 // NMDC Active Projects
 const PROJECTS = [
   'Ghasha Concession Development',
