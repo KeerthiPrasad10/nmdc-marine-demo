@@ -22,10 +22,10 @@ const NMDC_TYPE_MAP: Record<NMDCVessel['type'], VesselType> = {
   supply: 'supply_vessel',
   barge: 'crane_barge',
   survey: 'survey_vessel',
-  pipelay_barge: 'crane_barge',
-  jack_up: 'crane_barge',
-  accommodation_barge: 'supply_vessel',
-  work_barge: 'crane_barge',
+  pipelay_barge: 'pipelay_barge',
+  jack_up: 'jack_up_barge',
+  accommodation_barge: 'accommodation_barge',
+  work_barge: 'work_barge',
   derrick_barge: 'crane_barge',
 };
 
@@ -36,6 +36,10 @@ const VESSEL_NAMES: Record<VesselType, string[]> = {
   supply_vessel: ['Al Ain Supply', 'Gulf Supplier', 'Al Reem'],
   crane_barge: ['NMDC Lifter I', 'NMDC Lifter II', 'Heavy Lift Alpha'],
   survey_vessel: ['Gulf Surveyor', 'Al Dhafra Survey'],
+  pipelay_barge: ['DLB 1600', 'Lay Barge Alpha', 'Pipelay Pioneer'],
+  jack_up_barge: ['Shengli 7', 'Shengli 10', 'Jack Up Pioneer'],
+  accommodation_barge: ['Floatel Alpha', 'Floatel Beta', 'Living Quarters 1'],
+  work_barge: ['Work Barge A', 'Work Barge B', 'Utility 1'],
 };
 
 // NMDC Active Projects
