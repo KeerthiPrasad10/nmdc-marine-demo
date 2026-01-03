@@ -93,6 +93,32 @@ const EQUIPMENT_TEMPLATES: Record<VesselType, { type: EquipmentType; name: strin
     { type: 'electrical', name: 'Survey Electronics' },
     { type: 'navigation', name: 'Multibeam Sonar' },
   ],
+  pipelay_barge: [
+    { type: 'engine', name: 'Power Plant' },
+    { type: 'crane', name: 'Pipe Tensioner' },
+    { type: 'hydraulics', name: 'S-Lay System' },
+    { type: 'electrical', name: 'Welding Station' },
+    { type: 'navigation', name: 'DP System' },
+  ],
+  jack_up_barge: [
+    { type: 'engine', name: 'Jacking System' },
+    { type: 'crane', name: 'Main Crane' },
+    { type: 'hydraulics', name: 'Leg Hydraulics' },
+    { type: 'electrical', name: 'Power Generation' },
+    { type: 'navigation', name: 'Positioning System' },
+  ],
+  accommodation_barge: [
+    { type: 'engine', name: 'Power Generator' },
+    { type: 'electrical', name: 'HVAC System' },
+    { type: 'hydraulics', name: 'Gangway System' },
+    { type: 'navigation', name: 'Safety Systems' },
+  ],
+  work_barge: [
+    { type: 'engine', name: 'Auxiliary Engine' },
+    { type: 'crane', name: 'Deck Crane' },
+    { type: 'hydraulics', name: 'Winch System' },
+    { type: 'electrical', name: 'Power Supply' },
+  ],
 };
 
 function randomInRange(min: number, max: number): number {
