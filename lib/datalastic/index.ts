@@ -495,7 +495,23 @@ class DatalasticAPI {
     requests_remaining: number;
     plan: string;
   }> {
-    return this.request('/stat');
+    const result = await this.request<{
+      data: {
+        user_id: string;
+        key_status: string;
+        requests_made: number;
+        requests_remaining: number;
+      };
+      meta: {
+        success: boolean;
+      };
+    }>('/stat');
+    
+    return {
+      requests_used: result.data?.requests_made || 0,
+      requests_remaining: result.data?.requests_remaining || 0,
+      plan: result.data?.key_status || 'Unknown',
+    };
   }
 }
 

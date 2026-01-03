@@ -97,8 +97,8 @@ export function TugboatModel({ healthScore, isSelected = false, bollardPull = 80
       </mesh>
 
       {/* Towing winch (stern) */}
-      <mesh position={[-0.8, 0.2, 0]} castShadow>
-        <cylinderGeometry args={[0.15, 0.15, 0.3, 12]} rotation={[Math.PI / 2, 0, 0]} />
+      <mesh position={[-0.8, 0.2, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+        <cylinderGeometry args={[0.15, 0.15, 0.3, 12]} />
         <meshStandardMaterial color="#f59e0b" metalness={0.5} roughness={0.5} />
       </mesh>
       {/* Winch drum */}
@@ -114,8 +114,8 @@ export function TugboatModel({ healthScore, isSelected = false, bollardPull = 80
       </mesh>
 
       {/* Forward towing winch */}
-      <mesh position={[0.85, 0.18, 0]} castShadow>
-        <cylinderGeometry args={[0.08, 0.08, 0.25, 8]} rotation={[Math.PI / 2, 0, 0]} />
+      <mesh position={[0.85, 0.18, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+        <cylinderGeometry args={[0.08, 0.08, 0.25, 8]} />
         <meshStandardMaterial color="#f59e0b" metalness={0.5} roughness={0.5} />
       </mesh>
 

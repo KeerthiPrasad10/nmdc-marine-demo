@@ -172,12 +172,12 @@ export function SupplyVesselModel({ healthScore, isSelected = false, hasDP = tru
       </mesh>
 
       {/* Life rafts */}
-      <mesh position={[-1.3, 0.25, 0.45]}>
-        <cylinderGeometry args={[0.1, 0.1, 0.08, 12]} rotation={[Math.PI / 2, 0, 0]} />
+      <mesh position={[-1.3, 0.25, 0.45]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.1, 0.1, 0.08, 12]} />
         <meshStandardMaterial color="#f97316" />
       </mesh>
-      <mesh position={[-1.3, 0.25, -0.45]}>
-        <cylinderGeometry args={[0.1, 0.1, 0.08, 12]} rotation={[Math.PI / 2, 0, 0]} />
+      <mesh position={[-1.3, 0.25, -0.45]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.1, 0.1, 0.08, 12]} />
         <meshStandardMaterial color="#f97316" />
       </mesh>
 
