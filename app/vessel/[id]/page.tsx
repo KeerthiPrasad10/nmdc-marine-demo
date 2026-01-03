@@ -71,7 +71,7 @@ export default function VesselDetailPage() {
   const router = useRouter();
   // Handle Next.js 16 async params - unwrap if Promise
   const params = rawParams && typeof rawParams === 'object' && 'then' in rawParams 
-    ? use(rawParams as Promise<{ id: string }>) 
+    ? use(rawParams as unknown as Promise<{ id: string }>) 
     : rawParams;
   const vesselId = (params?.id as string) || '';
 

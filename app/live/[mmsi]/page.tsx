@@ -114,7 +114,7 @@ export default function VesselTrackingPage() {
   const rawParams = useParams();
   // Handle Next.js 16 async params - unwrap if Promise
   const params = rawParams && typeof rawParams === 'object' && 'then' in rawParams 
-    ? use(rawParams as Promise<{ mmsi: string }>) 
+    ? use(rawParams as unknown as Promise<{ mmsi: string }>) 
     : rawParams;
   const mmsi = (params?.mmsi as string) || '';
 
