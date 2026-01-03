@@ -176,6 +176,10 @@ export function generateVessel(type?: VesselType): Vessel {
     crane_barge: 80,
     dredger: 400,
     survey_vessel: 120,
+    pipelay_barge: 350,
+    jack_up_barge: 200,
+    accommodation_barge: 100,
+    work_barge: 80,
   };
   
   const fuelConsumption = baseFuelConsumption[vesselType] * (0.5 + speed / 20);
@@ -244,6 +248,10 @@ export function generateFleet(count: number = 15): Vessel[] {
       crane_barge: 80,
       dredger: 400,
       survey_vessel: 120,
+      pipelay_barge: 350,
+      jack_up_barge: 200,
+      accommodation_barge: 100,
+      work_barge: 80,
     };
     
     const fuelConsumption = baseFuelConsumption[vesselType] * (0.5 + speed / 20);
