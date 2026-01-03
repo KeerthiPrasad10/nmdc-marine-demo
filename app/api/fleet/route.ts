@@ -147,9 +147,9 @@ export async function GET(request: NextRequest) {
         name: v.name,
         type: v.type,
         subType: v.subType,
-        position: { lat: 24.5 + Math.random() * 0.5, lng: 54.3 + Math.random() * 0.5 },
-        speed: Math.random() * 8,
-        heading: Math.random() * 360,
+        position: { lat: Math.round((24.5 + Math.random() * 0.5) * 1000000) / 1000000, lng: Math.round((54.3 + Math.random() * 0.5) * 1000000) / 1000000 },
+        speed: Math.round(Math.random() * 80) / 10, // 1 decimal place, 0-8 knots
+        heading: Math.round(Math.random() * 360),
         navStatus: 'Under way using engine',
         nmdc: v,
         isOnline: false,

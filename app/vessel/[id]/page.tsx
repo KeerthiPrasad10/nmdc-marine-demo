@@ -168,13 +168,13 @@ export default function VesselDetailPage() {
               vessel_id: nmdcVessel.mmsi,
               name: sys.name,
               type: sys.category,
-              health_score: 70 + Math.random() * 30,
+              health_score: Math.round(70 + Math.random() * 30),
               last_maintenance: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
               predicted_failure: null,
               failure_confidence: null,
               hours_operated: Math.round(Math.random() * 5000),
-              temperature: 45 + Math.random() * 30,
-              vibration: 0.5 + Math.random() * 2,
+              temperature: Math.round(45 + Math.random() * 30),
+              vibration: Math.round((0.5 + Math.random() * 2) * 10) / 10, // 1 decimal place
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
             })) as Equipment[];
