@@ -14,6 +14,8 @@ import {
   Leaf,
   Radio,
   Anchor,
+  Wrench,
+  FileText,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -89,6 +91,21 @@ export function Header({
             >
               <Anchor className="w-4 h-4" />
               Projects
+            </Link>
+            <div className="w-px h-4 bg-white/10 mx-1" />
+            <Link
+              href="/troubleshoot"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-amber-400/70 hover:text-amber-400 hover:bg-amber-500/10 transition-colors"
+            >
+              <Wrench className="w-4 h-4" />
+              Troubleshoot
+            </Link>
+            <Link
+              href="/schematics"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-primary-400/70 hover:text-primary-400 hover:bg-primary-500/10 transition-colors"
+            >
+              <FileText className="w-4 h-4" />
+              Schematics
             </Link>
           </nav>
         </div>

@@ -334,18 +334,34 @@ export default function VesselDetailPage() {
               </div>
 
               {/* Actions */}
-              {profile?.officialUrl && (
-                <a
-                  href={profile.officialUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-colors text-sm"
+              <div className="flex items-center gap-2">
+                <Link
+                  href={`/troubleshoot?vessel=${vesselId}&name=${encodeURIComponent(vessel.name)}&equipment=${encodeURIComponent(vessel.type || '')}&project=${encodeURIComponent(fleetVessel?.nmdc?.project || '')}&mmsi=${fleetVessel?.mmsi || ''}`}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 hover:text-amber-300 transition-colors text-sm border border-amber-500/20"
+                >
+                  <AlertTriangle className="w-4 h-4" />
+                  Report Fault
+                </Link>
+                <Link
+                  href={`/schematics?vessel=${vesselId}&name=${encodeURIComponent(vessel.name)}&type=${encodeURIComponent(vessel.type || '')}`}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-500/10 hover:bg-primary-500/20 text-primary-400 hover:text-primary-300 transition-colors text-sm border border-primary-500/20"
                 >
                   <FileText className="w-4 h-4" />
-                  Official Specs
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              )}
+                  Schematics
+                </Link>
+                {profile?.officialUrl && (
+                  <a
+                    href={profile.officialUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-colors text-sm"
+                  >
+                    <FileText className="w-4 h-4" />
+                    Official Specs
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+              </div>
             </div>
           </div>
 
