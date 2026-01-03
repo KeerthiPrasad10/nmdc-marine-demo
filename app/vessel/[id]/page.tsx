@@ -311,57 +311,53 @@ export default function VesselDetailPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-6">
-              {/* Quick Stats */}
-              <div className="flex items-center gap-6 text-sm">
-                <div className="flex items-center gap-2">
-                  <Heart className={`w-4 h-4 ${getHealthColor(vessel.health_score ?? 100)}`} />
-                  <span className="text-white/50">Health</span>
-                  <span className={`font-semibold ${getHealthColor(vessel.health_score ?? 100)}`}>
-                    {vessel.health_score ?? 100}%
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Fuel className="w-4 h-4 text-cyan-400" />
-                  <span className="text-white/50">Fuel</span>
-                  <span className="font-semibold text-white">{vessel.fuel_level?.toFixed(0) ?? 100}%</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Navigation className="w-4 h-4 text-blue-400" />
-                  <span className="text-white/50">Speed</span>
-                  <span className="font-semibold text-white">{vessel.speed?.toFixed(1) ?? 0} kn</span>
-                </div>
+            {/* Right side: Stats + Actions */}
+            <div className="hidden lg:flex items-center gap-3">
+              {/* Quick Stats - compact pills */}
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 text-sm">
+                <Heart className={`w-3.5 h-3.5 ${getHealthColor(vessel.health_score ?? 100)}`} />
+                <span className={`font-medium ${getHealthColor(vessel.health_score ?? 100)}`}>
+                  {vessel.health_score ?? 100}%
+                </span>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 text-sm">
+                <Fuel className="w-3.5 h-3.5 text-cyan-400" />
+                <span className="font-medium text-white">{vessel.fuel_level?.toFixed(0) ?? 100}%</span>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 text-sm">
+                <Navigation className="w-3.5 h-3.5 text-blue-400" />
+                <span className="font-medium text-white">{vessel.speed?.toFixed(1) ?? 0} kn</span>
               </div>
 
-              {/* Actions */}
-              <div className="flex items-center gap-2">
-                <Link
-                  href={`/troubleshoot?vessel=${vesselId}&name=${encodeURIComponent(vessel.name)}&equipment=${encodeURIComponent(vessel.type || '')}&project=${encodeURIComponent(fleetVessel?.nmdc?.project || '')}&mmsi=${fleetVessel?.mmsi || ''}`}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 hover:text-amber-300 transition-colors text-sm border border-amber-500/20"
+              <div className="w-px h-6 bg-white/10" />
+
+              {/* Action Buttons */}
+              <Link
+                href={`/troubleshoot?vessel=${vesselId}&name=${encodeURIComponent(vessel.name)}&equipment=${encodeURIComponent(vessel.type || '')}&project=${encodeURIComponent(fleetVessel?.nmdc?.project || '')}&mmsi=${fleetVessel?.mmsi || ''}`}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 hover:text-amber-300 transition-colors text-sm border border-amber-500/20"
+              >
+                <AlertTriangle className="w-3.5 h-3.5" />
+                <span className="hidden xl:inline">Report</span> Fault
+              </Link>
+              <Link
+                href={`/schematics?vessel=${vesselId}&name=${encodeURIComponent(vessel.name)}&type=${encodeURIComponent(vessel.type || '')}`}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary-500/10 hover:bg-primary-500/20 text-primary-400 hover:text-primary-300 transition-colors text-sm border border-primary-500/20"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                P&ID
+              </Link>
+              {profile?.officialUrl && (
+                <a
+                  href={profile.officialUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-colors text-sm"
+                  title="Official Specifications"
                 >
-                  <AlertTriangle className="w-4 h-4" />
-                  Report Fault
-                </Link>
-                <Link
-                  href={`/schematics?vessel=${vesselId}&name=${encodeURIComponent(vessel.name)}&type=${encodeURIComponent(vessel.type || '')}`}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-500/10 hover:bg-primary-500/20 text-primary-400 hover:text-primary-300 transition-colors text-sm border border-primary-500/20"
-                >
-                  <FileText className="w-4 h-4" />
-                  Schematics
-                </Link>
-                {profile?.officialUrl && (
-                  <a
-                    href={profile.officialUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-colors text-sm"
-                  >
-                    <FileText className="w-4 h-4" />
-                    Official Specs
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                )}
-              </div>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  Specs
+                </a>
+              )}
             </div>
           </div>
 
