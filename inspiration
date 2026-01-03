@@ -1,0 +1,1834 @@
+# NEXUS MARITIME: AI-Powered Fleet Operations Platform
+## Complete Product Requirements & Technical Specification
+
+**Version:** 1.0  
+**Target Client:** NMDC Shipping  
+**Partnership:** IFS + e& (5G/Edge AI)  
+**Objective:** Build flagship AI-powered maritime operations platform that establishes market leadership
+
+---
+
+## EXECUTIVE SUMMARY
+
+NEXUS Maritime is an AI-native fleet operations command center that transforms reactive maritime management into predictive, autonomous operations. Unlike traditional fleet tracking systems, NEXUS acts as an intelligent copilot that reasons about operations, predicts failures, optimizes resources, and autonomously makes routine decisions while keeping humans in control of strategic choices.
+
+**Core Value Proposition:**
+- 85% reduction in unplanned downtime through predictive maintenance
+- 12-18% fuel efficiency improvements via AI route optimization
+- 40% reduction in project timeline variance through autonomous scheduling
+- 73% reduction in safety incidents via proactive monitoring
+- Complete ESG compliance automation with carbon tracking
+
+---
+
+## SYSTEM ARCHITECTURE
+
+### Technology Stack
+
+**Frontend:**
+```
+- React 18+ with TypeScript
+- Three.js for 3D digital twins
+- Mapbox GL for maritime mapping
+- Recharts + D3.js for advanced visualizations
+- Zustand for state management
+- React Query for server state
+- WebSockets for real-time updates
+- Radix UI + custom design system
+- Mobile: React Native (Phase 2)
+```
+
+**Backend Services:**
+```
+- Node.js/Python FastAPI for API services
+- GraphQL API Gateway (Apollo Server)
+- Microservices architecture (Kubernetes)
+- Kafka for event streaming
+- Temporal for workflow orchestration
+- Redis for caching and pub/sub
+- gRPC for inter-service communication
+```
+
+**AI/ML Infrastructure:**
+```
+- Claude API (Anthropic) for reasoning and conversational AI
+- GPT-4 for structured data extraction
+- Custom PyTorch models for computer vision
+- Prophet + LSTM for time-series forecasting
+- Isolation Forest for anomaly detection
+- Mixed Integer Programming for optimization
+- Pinecone for vector embeddings
+- LangChain for agent orchestration
+```
+
+**Data Layer:**
+```
+- PostgreSQL + PostGIS for operational data
+- TimescaleDB for time-series sensor data
+- MongoDB for unstructured data (logs, reports)
+- Neo4j for knowledge graph
+- InfluxDB for metrics
+- S3/Azure Blob for data lake
+- Feast for ML feature store
+```
+
+**Infrastructure:**
+```
+- Kubernetes for container orchestration
+- Docker for containerization
+- Terraform for infrastructure as code
+- Prometheus + Grafana for monitoring
+- ELK stack for logging
+- GitHub Actions for CI/CD
+```
+
+---
+
+## CORE MODULES
+
+### 1. DIGITAL TWIN ENGINE
+
+**Purpose:** Create real-time virtual replicas of every vessel with full operational intelligence
+
+**Features:**
+- 3D interactive models of each vessel (Three.js visualization)
+- Real-time sensor data mapped to physical components (500+ data points per vessel)
+- Physics simulation engine predicting vessel behavior
+- Stress analysis with heat maps showing material fatigue
+- Historical playback ("shadow operations" - what should have happened vs reality)
+- Component hierarchy browser (vessel → systems → subsystems → parts)
+
+**Technical Implementation:**
+```javascript
+// Core digital twin structure
+{
+  vesselId: "NMDC-007",
+  model3D: "vessels/nmdc007/mesh.gltf",
+  sensors: [
+    {
+      id: "engine-main-temp-01",
+      type: "temperature",
+      location: { x, y, z },
+      value: 87.3,
+      normal_range: [75, 95],
+      status: "normal",
+      lastUpdate: timestamp
+    }
+  ],
+  systemHealth: {
+    propulsion: 0.94,
+    powerGeneration: 0.89,
+    cargo_systems: 0.97,
+    navigation: 1.0
+  },
+  stressAnalysis: {
+    hull: { max_stress: 85, critical_areas: [...] },
+    crane: { fatigue_level: 0.42, remaining_life: "2400 hours" }
+  }
+}
+```
+
+**UI Components:**
+- Interactive 3D viewport with zoom, rotate, pan
+- Sensor overlay showing real-time values
+- Heat map modes (temperature, stress, vibration, efficiency)
+- Timeline scrubber for historical replay
+- Component inspector panel
+- Alert indicators on 3D model
+
+---
+
+### 2. AI COPILOT SYSTEM
+
+**Purpose:** Conversational AI assistant that understands maritime operations and provides intelligent guidance
+
+**Architecture:**
+```
+Multi-Agent System:
+├── Coordinator Agent (Claude API)
+│   └── Routes queries to specialized agents
+├── Operations Agent
+│   └── Scheduling, routing, resource allocation
+├── Maintenance Agent
+│   └── Predictive maintenance, work orders, spare parts
+├── Safety Agent
+│   └── Compliance monitoring, risk assessment, incident analysis
+├── Fuel Optimization Agent
+│   └── Route planning, speed optimization, emissions
+└── Weather Agent
+    └── Weather integration, risk assessment, timing recommendations
+```
+
+**Capabilities:**
+- Natural language queries: "Should we delay departure given the weather forecast?"
+- Contextual awareness: Knows vessel status, project schedules, crew availability
+- Proactive suggestions: "I noticed fuel consumption is 8% above baseline. Investigate?"
+- Action execution: Can create maintenance orders, adjust schedules, send alerts
+- Explanation generation: Always explains reasoning behind recommendations
+- Multi-turn conversations: Maintains context across dialogue
+
+**Implementation:**
+```python
+class MaritimeAICopilot:
+    def __init__(self):
+        self.coordinator = ClaudeAgent(role="coordinator")
+        self.agents = {
+            'operations': OperationsAgent(),
+            'maintenance': MaintenanceAgent(),
+            'safety': SafetyAgent(),
+            'fuel': FuelOptimizationAgent(),
+            'weather': WeatherAgent()
+        }
+        self.knowledge_graph = Neo4jConnector()
+        self.vector_store = PineconeConnector()
+    
+    async def process_query(self, query: str, context: dict):
+        # Extract intent
+        intent = await self.coordinator.analyze_intent(query)
+        
+        # Route to appropriate agents
+        relevant_agents = self.select_agents(intent)
+        
+        # Gather information
+        agent_responses = await asyncio.gather(*[
+            agent.respond(query, context) 
+            for agent in relevant_agents
+        ])
+        
+        # Synthesize response
+        final_response = await self.coordinator.synthesize(
+            query, agent_responses, context
+        )
+        
+        # Generate actions if needed
+        actions = self.extract_actions(final_response)
+        
+        return {
+            'response': final_response,
+            'actions': actions,
+            'confidence': self.calculate_confidence(agent_responses),
+            'sources': self.compile_sources(agent_responses)
+        }
+```
+
+**UI Components:**
+- Chat interface accessible from every screen
+- Voice input support (Web Speech API)
+- Quick action buttons generated from AI suggestions
+- Confidence indicators for recommendations
+- Source citation for data-driven answers
+- Conversation history with search
+
+---
+
+### 3. PREDICTIVE MAINTENANCE INTELLIGENCE
+
+**Purpose:** Predict equipment failures 30-90 days in advance with actionable maintenance recommendations
+
+**Prediction Models:**
+```
+Equipment Health Scoring:
+- Multi-modal data fusion (vibration, temperature, pressure, oil analysis, acoustic)
+- LSTM neural networks for time-series patterns
+- Isolation Forest for anomaly detection
+- Survival analysis for failure probability
+- Confidence intervals based on data quality and historical accuracy
+```
+
+**Features:**
+- Equipment health dashboard with traffic light indicators
+- Failure prediction timeline with probability curves
+- Root cause analysis using causal AI
+- Maintenance schedule optimizer considering:
+  - Weather windows
+  - Port availability
+  - Crew certifications and availability
+  - Spare parts inventory and location
+  - Project deadlines and vessel assignments
+  - Cost optimization (planned vs emergency)
+- Parts inventory forecasting
+- Maintenance cost tracking and ROI analysis
+- Integration with CMMS/ERP systems
+
+**Data Structure:**
+```typescript
+interface PredictiveMaintenanceInsight {
+  equipmentId: string;
+  vesselId: string;
+  currentHealth: number; // 0-100
+  predictedFailureWindow: {
+    earliest: Date;
+    mostLikely: Date;
+    latest: Date;
+    confidence: number;
+  };
+  rootCauseAnalysis: {
+    primaryCause: string;
+    contributingFactors: string[];
+    evidenceStrength: number;
+    similarHistoricalCases: number;
+  };
+  recommendations: {
+    action: string;
+    timing: string;
+    location: string;
+    estimatedCost: number;
+    requiredParts: Part[];
+    requiredSkills: string[];
+    estimatedDowntime: number;
+  };
+  impactIfIgnored: {
+    failureProbability: number;
+    estimatedCost: number;
+    projectImpact: string[];
+    safetyRisk: string;
+  };
+}
+```
+
+**Visualization:**
+- Health score trends with prediction overlay
+- Component failure timeline (Gantt-style)
+- Maintenance calendar with optimization suggestions
+- Cost comparison charts (proactive vs reactive)
+- Fleet-wide health heatmap
+- Parts inventory levels with reorder predictions
+
+---
+
+### 4. AUTONOMOUS FLEET ORCHESTRATION
+
+**Purpose:** AI-powered mission control that optimally allocates vessels, crew, and equipment across projects
+
+**Optimization Engine:**
+```
+Constraints:
+- Vessel capabilities (tonnage, crane capacity, draft, speed)
+- Project requirements (equipment needs, timing, location)
+- Weather conditions and forecasts
+- Maintenance schedules
+- Crew certifications and rest requirements
+- Fuel availability and costs
+- Port availability and regulations
+- Safety requirements
+- Client commitments
+
+Objectives:
+- Minimize project delays
+- Maximize asset utilization
+- Minimize fuel consumption
+- Balance crew workload
+- Minimize deadhead sailing
+- Maximize revenue per vessel-day
+```
+
+**Features:**
+- Auto-generation of weekly operational schedules
+- What-if scenario simulator
+- Real-time reallocation when disruptions occur
+- Bottleneck identification and resolution
+- Resource conflict resolution
+- Performance analytics (actual vs optimal)
+- Manual override capabilities with AI recommendations
+
+**Implementation:**
+```python
+class FleetOrchestrator:
+    def optimize_schedule(self, time_window, constraints):
+        # Formulate as Mixed Integer Programming problem
+        problem = self.build_mip_model(time_window, constraints)
+        
+        # Solve using optimization solver
+        solution = pulp.solve(problem, solver=COIN_CMD())
+        
+        # Post-process for practical considerations
+        schedule = self.post_process(solution)
+        
+        # Validate against hard constraints
+        if not self.validate(schedule, constraints):
+            return self.fallback_heuristic(time_window, constraints)
+        
+        return {
+            'schedule': schedule,
+            'objective_value': solution.objective_value,
+            'utilization': self.calculate_utilization(schedule),
+            'risks': self.identify_risks(schedule),
+            'improvements': self.suggest_improvements(schedule)
+        }
+    
+    def simulate_disruption(self, current_schedule, disruption):
+        # Create new problem with disruption
+        new_constraints = self.apply_disruption(current_schedule, disruption)
+        
+        # Re-optimize
+        new_schedule = self.optimize_schedule(
+            current_schedule.time_window,
+            new_constraints
+        )
+        
+        # Compare impact
+        return {
+            'new_schedule': new_schedule,
+            'affected_projects': self.find_affected_projects(new_schedule),
+            'delay_minutes': self.calculate_delays(new_schedule),
+            'cost_impact': self.estimate_cost_delta(new_schedule),
+            'mitigation_options': self.generate_alternatives(new_schedule)
+        }
+```
+
+**UI Components:**
+- Mission control dashboard (NASA-style)
+- Interactive Gantt chart for all vessels
+- Map view with vessel assignments
+- Drag-and-drop manual adjustments
+- Scenario comparison view
+- Real-time alert panel
+- Optimization metrics dashboard
+
+---
+
+### 5. INTELLIGENT ROUTE OPTIMIZATION
+
+**Purpose:** Calculate optimal routes considering fuel efficiency, weather, deadlines, and costs
+
+**Features:**
+- Multi-objective optimization (time, fuel, cost, emissions, safety)
+- Real-time weather routing
+- Sea current and wave pattern integration
+- Dynamic re-routing based on conditions
+- Port selection optimization (fuel prices, availability, services)
+- Speed optimization (slow steaming vs deadline pressure)
+- Emission minimization routing
+- Historical route performance analysis
+
+**Route Calculation:**
+```python
+class RouteOptimizer:
+    def calculate_optimal_route(self, 
+                                origin, 
+                                destination, 
+                                vessel_specs,
+                                constraints):
+        # Get weather forecast along potential routes
+        weather_data = self.weather_service.get_forecast(
+            origin, destination, time_window
+        )
+        
+        # Generate candidate routes
+        routes = self.generate_routes(
+            origin, destination, 
+            constraints.max_deviation,
+            constraints.waypoint_restrictions
+        )
+        
+        # Score each route
+        scored_routes = []
+        for route in routes:
+            score = self.score_route(
+                route, vessel_specs, weather_data, constraints
+            )
+            scored_routes.append({
+                'route': route,
+                'fuel_consumption': score.fuel,
+                'travel_time': score.time,
+                'weather_risk': score.weather_risk,
+                'emissions': score.co2,
+                'cost': score.total_cost,
+                'safety_score': score.safety
+            })
+        
+        # Select optimal based on priorities
+        optimal = self.select_best(scored_routes, constraints.priorities)
+        
+        return {
+            'recommended_route': optimal,
+            'alternatives': scored_routes[:3],
+            'comparison': self.compare_to_baseline(optimal),
+            'savings': self.calculate_savings(optimal)
+        }
+```
+
+---
+
+### 6. SAFETY & COMPLIANCE INTELLIGENCE
+
+**Purpose:** Proactive monitoring and prediction of safety incidents with automated compliance
+
+**Monitoring Capabilities:**
+- Real-time safety protocol compliance (via sensors, cameras, logs)
+- Crew certification tracking and expiration alerts
+- Equipment inspection schedules and compliance
+- Environmental regulation monitoring (emissions, ballast water, waste)
+- Port regulation compliance
+- ISM Code / SOLAS compliance automation
+- Near-miss incident pattern analysis
+- Safety culture scoring
+
+**Predictive Safety:**
+```
+Incident Prediction Model:
+- Analyzes: crew fatigue levels, weather conditions, equipment status, 
+  operational complexity, historical incidents, time pressure
+- Predicts: High-risk time windows and operations
+- Recommends: Mitigation actions, additional precautions, schedule adjustments
+```
+
+**Features:**
+- Live safety dashboard with risk indicators
+- Automated compliance reports for authorities
+- Incident investigation tools with AI analysis
+- Safety training recommendations based on gaps
+- Safety culture analytics
+- Regulatory change tracking and impact assessment
+- Insurance documentation automation
+
+---
+
+### 7. ESG INTELLIGENCE CENTER
+
+**Purpose:** Comprehensive environmental, social, governance tracking and optimization
+
+**Environmental Metrics:**
+- Real-time carbon emissions per vessel/voyage/project
+- Fuel efficiency benchmarking against fleet and industry
+- Alternative fuel readiness assessment
+- Route optimization for minimal environmental impact
+- Emissions trading / carbon credit management
+- Ballast water compliance tracking
+- Waste management tracking
+- Air quality monitoring
+
+**Features:**
+- ESG dashboard with industry benchmarks
+- Automated ESG reporting (GRI, SASB, TCFD standards)
+- Carbon footprint calculator per voyage
+- Decarbonization pathway modeling
+- Regulatory compliance automation (IMO 2030/2050 targets)
+- Supplier sustainability scoring
+- Social metrics (crew welfare, safety, training)
+- Governance metrics (compliance, ethics, transparency)
+
+**Carbon Tracking:**
+```typescript
+interface VoyageEmissions {
+  voyageId: string;
+  vessel: string;
+  route: {
+    origin: string;
+    destination: string;
+    distance_nm: number;
+  };
+  emissions: {
+    co2_tonnes: number;
+    co2_per_nm: number;
+    sox_kg: number;
+    nox_kg: number;
+    pm_kg: number;
+  };
+  fuelConsumption: {
+    type: string; // HFO, MDO, LNG, etc.
+    quantity_tonnes: number;
+    cost_usd: number;
+  };
+  benchmarking: {
+    fleet_average_delta: number; // %
+    industry_average_delta: number; // %
+    best_in_class_delta: number; // %
+  };
+  optimization_potential: {
+    possible_reduction: number; // tonnes CO2
+    actions: string[];
+    estimated_cost_impact: number;
+  };
+}
+```
+
+---
+
+### 8. EDGE AI DEPLOYMENT (e& Integration)
+
+**Purpose:** Showcase distributed AI running on vessels via e& 5G/Edge infrastructure
+
+**Architecture:**
+```
+Cloud Layer (Central):
+- Global model training
+- Complex optimizations
+- Historical analytics
+- Cross-fleet learning
+- Knowledge graph management
+
+Edge Layer (Vessels):
+- Real-time anomaly detection
+- Local inference for time-critical decisions
+- Federated learning participation
+- Data preprocessing and filtering
+- Offline capability maintenance
+
+Hybrid Orchestration:
+- Model versioning and deployment
+- Edge-cloud workload distribution
+- Bandwidth optimization
+- Privacy-preserving computation
+```
+
+**Edge Models:**
+- Equipment failure detection (< 100ms inference)
+- Collision avoidance assistance
+- Fuel consumption optimization
+- Safety protocol monitoring
+- Communications optimization (when to sync with cloud)
+
+**Implementation:**
+```python
+class EdgeAIOrchestrator:
+    def deploy_model_to_vessel(self, model, vessel_id):
+        # Optimize model for edge deployment
+        edge_model = self.quantize_model(model)
+        
+        # Package with runtime
+        package = self.create_deployment_package(
+            edge_model,
+            vessel_id,
+            requirements=['pytorch-lite', 'onnx-runtime']
+        )
+        
+        # Deploy via e& edge infrastructure
+        deployment = self.e_and_edge.deploy(
+            package,
+            target=f"vessel-{vessel_id}",
+            fallback_strategy="offline_mode"
+        )
+        
+        return {
+            'deployment_id': deployment.id,
+            'model_version': edge_model.version,
+            'inference_latency': deployment.benchmark_latency(),
+            'bandwidth_reduction': self.calculate_bandwidth_savings(edge_model)
+        }
+    
+    def federated_learning_round(self, vessels):
+        # Collect model updates from vessels
+        updates = await self.collect_updates(vessels)
+        
+        # Aggregate updates (privacy-preserving)
+        global_update = self.federated_averaging(updates)
+        
+        # Update global model
+        self.global_model.apply_update(global_update)
+        
+        # Deploy updated model back to vessels
+        for vessel in vessels:
+            await self.deploy_model_to_vessel(self.global_model, vessel.id)
+```
+
+**e& Integration Points:**
+- 5G connectivity for vessel-to-cloud communication
+- Edge compute resources on vessels
+- Private network security
+- QoS guarantees for critical data
+- Bandwidth optimization showcase
+- Latency comparison demos
+
+---
+
+## USER INTERFACES
+
+### 1. Fleet Command Center (Operations Manager)
+
+**Layout:**
+- Large interactive map (center) showing all vessels
+- Real-time status panel (left) with vessel cards
+- Alert stream (right) with AI recommendations
+- Mission control timeline (bottom)
+- AI copilot chat (always accessible)
+
+**Key Features:**
+- Vessel status at a glance (color-coded health indicators)
+- Click vessel → detailed view with digital twin
+- Drag-and-drop vessel reassignment
+- What-if scenario simulator
+- One-click approval of AI recommendations
+- Performance metrics dashboard
+- Risk indicators for ongoing operations
+
+---
+
+### 2. Captain's Interface (Ship-Level View)
+
+**Layout:**
+- Single vessel focus with navigation center
+- Equipment health panel
+- Weather and route optimization
+- Maintenance scheduler
+- Crew management
+- Safety compliance checklist
+
+**Key Features:**
+- Simplified view focusing on tactical decisions
+- AI route recommendations with fuel savings
+- Maintenance planner with AI-optimized schedules
+- Crew fatigue monitoring
+- Safety protocol checklist with automated verification
+- Direct communication with operations center
+
+---
+
+### 3. Maintenance Engineer Interface
+
+**Layout:**
+- Equipment health predictions (center)
+- Maintenance work queue (left)
+- Parts inventory status (right)
+- Diagnostic tools (bottom panel)
+
+**Key Features:**
+- Predictive maintenance alerts with root cause
+- Work order management with AI optimization
+- Spare parts forecasting
+- Maintenance history with pattern analysis
+- Integration with CMMS
+- Mobile app for field work
+- AR-guided repair instructions (future phase)
+
+---
+
+### 4. Executive Dashboard
+
+**Layout:**
+- High-level KPIs with trend indicators
+- Fleet utilization map
+- Financial performance metrics
+- ESG compliance scorecard
+- Strategic insights from AI
+
+**Key Features:**
+- One-page operational overview
+- AI-generated executive summary
+- Risk management view with mitigation status
+- Project pipeline with confidence scores
+- ESG reporting with benchmarks
+- Investment recommendations
+- Stakeholder reporting automation
+
+---
+
+## DATA MODELS
+
+### Vessel Schema
+```typescript
+interface Vessel {
+  id: string;
+  name: string;
+  type: 'crane_vessel' | 'support_vessel' | 'construction' | 'supply';
+  specifications: {
+    length: number;
+    beam: number;
+    draft: number;
+    gross_tonnage: number;
+    crane_capacity?: number;
+    max_speed: number;
+    fuel_capacity: number;
+    crew_capacity: number;
+  };
+  currentStatus: {
+    location: { lat: number; lon: number };
+    heading: number;
+    speed: number;
+    operational_status: 'active' | 'maintenance' | 'standby' | 'transit';
+    current_project?: string;
+    fuel_level: number;
+    health_score: number;
+  };
+  equipment: Equipment[];
+  crew: CrewMember[];
+  maintenance_history: MaintenanceRecord[];
+  certifications: Certification[];
+  digital_twin_id: string;
+}
+```
+
+### Project Schema
+```typescript
+interface Project {
+  id: string;
+  name: string;
+  client: string;
+  type: 'construction' | 'decommissioning' | 'installation' | 'maintenance';
+  schedule: {
+    start_date: Date;
+    end_date: Date;
+    critical_path: Task[];
+    weather_windows: WeatherWindow[];
+  };
+  requirements: {
+    vessels_needed: VesselRequirement[];
+    crew_requirements: CrewRequirement[];
+    equipment: string[];
+    permits: string[];
+  };
+  location: {
+    lat: number;
+    lon: number;
+    water_depth: number;
+    distance_from_port: number;
+  };
+  status: 'planning' | 'active' | 'delayed' | 'completed';
+  risks: Risk[];
+  assigned_resources: {
+    vessels: string[];
+    crew: string[];
+    equipment: string[];
+  };
+}
+```
+
+### Equipment Schema
+```typescript
+interface Equipment {
+  id: string;
+  vessel_id: string;
+  type: string;
+  manufacturer: string;
+  model: string;
+  serial_number: string;
+  installation_date: Date;
+  specifications: Record<string, any>;
+  sensors: Sensor[];
+  health: {
+    score: number;
+    status: 'healthy' | 'warning' | 'critical';
+    predicted_failure?: PredictedFailure;
+    maintenance_due?: Date;
+  };
+  maintenance_history: MaintenanceRecord[];
+  operating_hours: number;
+  criticality: 'critical' | 'important' | 'normal';
+}
+```
+
+### Sensor Schema
+```typescript
+interface Sensor {
+  id: string;
+  equipment_id: string;
+  type: 'temperature' | 'vibration' | 'pressure' | 'flow' | 'oil_quality';
+  location: { x: number; y: number; z: number };
+  unit: string;
+  normal_range: { min: number; max: number };
+  current_value: number;
+  status: 'normal' | 'warning' | 'critical';
+  last_update: Date;
+  data_quality: number; // 0-1
+  calibration_due?: Date;
+}
+```
+
+---
+
+## IMPLEMENTATION PHASES
+
+### Phase 1: Foundation (Weeks 1-3)
+**Goal:** Core platform with essential features
+
+**Deliverables:**
+- Real-time fleet monitoring dashboard with live positions
+- Basic digital twin visualization (3D models, sensor overlay)
+- Sensor data ingestion pipeline (Kafka + TimescaleDB)
+- Equipment health scoring with simple predictions
+- Basic AI copilot (natural language queries)
+- Role-based authentication and dashboards
+- Responsive web interface
+
+**Tech Focus:**
+- Set up infrastructure (Kubernetes, databases)
+- Implement data pipelines
+- Build core UI components
+- Integrate Claude API for conversational AI
+- Deploy basic predictive models
+
+---
+
+### Phase 2: Intelligence (Weeks 4-6)
+**Goal:** Advanced AI capabilities
+
+**Deliverables:**
+- Multi-agent AI system with specialized agents
+- Predictive maintenance with 30-90 day forecasts
+- Route optimization engine
+- Maintenance schedule optimizer
+- Safety compliance monitoring
+- Knowledge graph integration
+- Automated compliance reporting
+
+**Tech Focus:**
+- Train custom ML models (LSTM, anomaly detection)
+- Implement optimization algorithms (MIP solver)
+- Build agent orchestration system
+- Integrate weather and sea condition APIs
+- Develop vector search for manuals/procedures
+
+---
+
+### Phase 3: Orchestration (Weeks 7-9)
+**Goal:** Autonomous fleet management
+
+**Deliverables:**
+- Autonomous fleet orchestration (AI mission control)
+- What-if scenario simulator
+- Real-time reallocation during disruptions
+- ESG intelligence center with carbon tracking
+- Computer vision pipelines (inspection analysis)
+- Advanced analytics and reporting
+- Integration APIs for ERP/CMMS
+
+**Tech Focus:**
+- Implement fleet optimization algorithms
+- Build scenario simulation engine
+- Develop ESG calculation models
+- Create computer vision models for inspection
+- Build comprehensive API layer
+
+---
+
+### Phase 4: Edge & Polish (Weeks 10-12)
+**Goal:** Production-ready with e& showcase
+
+**Deliverables:**
+- Edge AI deployment architecture
+- e& 5G integration demonstration
+- Federated learning implementation
+- Mobile app for field operations
+- Advanced visualizations (heat maps, stress analysis)
+- Performance optimization for scale (50+ vessels)
+- Comprehensive demo scenarios
+- Documentation and training materials
+
+**Tech Focus:**
+- Deploy edge models to vessel simulations
+- Optimize for performance and scale
+- Build mobile interface (React Native)
+- Create impressive visualizations
+- Prepare demo datasets and scenarios
+- Security hardening and testing
+
+---
+
+## DEMO SCENARIOS
+
+### Scenario 1: Crisis Response (The "Wow" Moment)
+
+**Setup:**
+"Vessel 7's main engine shows anomaly. Watch the AI respond in real-time."
+
+**AI Response Flow (3 seconds total):**
+
+1. **Detection** (0.3s): Abnormal vibration signature detected
+2. **Analysis** (0.5s): Compares against 10,000 historical patterns
+3. **Prediction** (0.8s): Predicts cylinder failure in 6-14 hours (87% confidence)
+4. **Root Cause** (1.0s): Fuel contamination + worn injector identified
+5. **Impact Assessment** (1.5s): 
+   - Vessel 7 critical to Project X
+   - Project at risk of 2-day delay
+   - Potential cost: $280K emergency + $150K/day delay
+6. **Solution Generation** (2.5s):
+   - Optimal route to Fujairah port (4 hours away)
+   - Vessel 12 can cover Project X with 6-hour delay
+   - Spare parts available in Fujairah warehouse
+   - Certified engineer can arrive in 8 hours
+7. **Action Execution** (3.0s):
+   - Work order auto-generated
+   - Captain, ops manager, maintenance team alerted
+   - Project timeline updated
+   - Client notification drafted
+
+**UI Shows:**
+- Real-time alert appearing on map
+- Digital twin showing affected component glowing red
+- AI reasoning displayed step-by-step
+- Reallocation plan visualized on fleet map
+- Cost comparison: $45K planned vs $430K crisis
+- One-click approval button for operations manager
+
+---
+
+### Scenario 2: Proactive Optimization (The "ROI" Moment)
+
+**Setup:**
+"It's Monday morning. AI has been analyzing operations overnight."
+
+**AI Presents Weekly Report:**
+
+**Identified Opportunities (Total Value: $340K this week)**
+
+1. **Route Optimization (12 vessels)**
+   - Current routes: 48,200 nautical miles
+   - Optimized routes: 46,800 nautical miles
+   - Fuel savings: 4,200 liters
+   - Cost savings: $8,400
+   - CO2 reduction: 13.2 tonnes
+
+2. **Maintenance Timing Optimization (3 vessels)**
+   - Weather forecast: 2-day storm window
+   - Recommendation: Advance maintenance during storm
+   - Downtime saved: 14 hours
+   - Value of protected productivity: $84,000
+
+3. **Crew Rotation Efficiency (7 crew changes)**
+   - Current plan: 9 flights
+   - Optimized plan: 7 flights
+   - Savings: $12,400
+   - Crew rest compliance: Improved
+
+4. **Parts Consolidation (4 port calls)**
+   - Combine deliveries to 2 ports
+   - Logistics savings: $8,200
+   - Inventory optimization: $15,000
+
+5. **Project Schedule Fine-tuning**
+   - Identified 2-hour buffer in Project X
+   - Reallocate to accelerate Project Y
+   - Early completion bonus potential: $200,000
+
+**UI Shows:**
+- Executive summary card with total value
+- Expandable sections for each opportunity
+- Visual comparisons (before/after routes, schedules)
+- One-click approval workflow
+- Expected vs actual tracking
+
+---
+
+### Scenario 3: Natural Language Power (The "Intelligence" Moment)
+
+**User Query:**
+"Show me all vessels that will need major maintenance in Q2 and recommend optimal scheduling considering our project pipeline"
+
+**AI Processing (visible to user):**
+```
+🔍 Analyzing fleet health predictions...
+   ✓ Evaluated 50 vessels
+   ✓ Found 7 requiring major maintenance in Q2
+   
+📊 Cross-referencing project schedules...
+   ✓ Analyzed 15 active projects
+   ✓ Identified critical vessel dependencies
+   
+🛠️ Optimizing maintenance windows...
+   ✓ Checked 23 port facilities
+   ✓ Verified spare parts availability
+   ✓ Matched crew certifications
+   
+💡 Generating optimal schedule...
+```
+
+**AI Response:**
+"I've identified 7 vessels requiring major maintenance in Q2. Here's the optimal schedule:
+
+**Critical Priority:**
+- **Vessel 3** (Main engine overhaul) - April 8-15 in Dubai
+  - Project X completes April 6
+  - Parts arrive April 5
+  - Certified engineer available
+  - Weather window: optimal
+  - Cost: $185K | Downtime: 7 days
+  
+- **Vessel 12** (Crane hydraulic system) - May 2-8 in Abu Dhabi
+  - Between Project Y and Project Z
+  - 6-day buffer available
+  - Cost: $140K | Downtime: 6 days
+
+**Standard Priority:**
+- Vessels 7, 18, 23 - June scheduling (details below)
+
+**Deferred (Low Risk):**
+- Vessels 9, 15 - Can safely defer to Q3
+
+**Total Q2 Maintenance:**
+- Cost: $780K (vs $1.2M if emergency)
+- Project impact: Zero delays
+- Utilization maintained: 87%
+
+Would you like to see alternative scheduling scenarios or approve this plan?"
+
+**User Follow-up:**
+"What if we delay Vessel 3 by 2 weeks?"
+
+**AI Instant Response:**
+"Delaying Vessel 3's maintenance to April 22-29 would:
+
+⚠️ **Risks:**
+- 34% probability of failure before April 22
+- Jeopardizes Project W start (April 20)
+- Emergency repair cost estimate: $320K
+- Potential project delay: 3 days ($450K penalty)
+
+✅ **Benefits:**
+- None significant
+
+💡 **Recommendation:** Maintain April 8-15 schedule. The risk far outweighs any scheduling convenience."
+
+---
+
+## INTEGRATION POINTS
+
+### External Systems to Connect:
+
+1. **ERP Integration (SAP, Oracle)**
+   - Parts inventory synchronization
+   - Financial data (costs, budgets)
+   - Procurement workflows
+   - HR data (crew information)
+
+2. **CMMS Integration (Maximo, etc.)**
+   - Work order bidirectional sync
+   - Maintenance history import
+   - Asset registry synchronization
+
+3. **Weather Services**
+   - Real-time weather data (Wind, waves, visibility)
+   - Forecasts (5-7 day outlook)
+   - Storm tracking
+   - Sea state predictions
+
+4. **AIS Integration**
+   - Vessel position verification
+   - Traffic monitoring
+   - Collision avoidance
+
+5. **Port Services**
+   - Berth availability
+   - Service provider information
+   - Customs/immigration systems
+
+6. **Client Portals**
+   - Project status reporting
+   - Automated updates
+   - Performance metrics sharing
+
+---
+
+## PERFORMANCE TARGETS
+
+### System Performance:
+- Dashboard load time: < 2 seconds
+- Real-time update latency: < 500ms
+- AI query response: < 5 seconds
+- 3D model rendering: 60 FPS
+- Concurrent users: 500+
+- Data retention: 5 years hot, 10 years archive
+- System uptime: 99.9%
+
+### AI Performance:
+- Failure prediction accuracy: > 85%
+- False positive rate: < 15%
+- Route optimization improvement: 8-15%
+- Maintenance cost reduction: > 30%
+- Schedule optimization improvement: > 20%
+
+### Data Processing:
+- Sensor data ingestion: 100K events/second
+- Time-series query latency: < 1 second
+- ML model inference: < 100ms (edge), < 1s (cloud)
+- Knowledge graph queries: < 500ms
+
+---
+
+## SECURITY & COMPLIANCE
+
+### Security Measures:
+- Role-based access control (RBAC)
+- Multi-factor authentication (MFA)
+- End-to-end encryption for sensitive data
+- API authentication via OAuth 2.0
+- Audit logging for all actions
+- Data anonymization for AI training
+- Regular security audits and penetration testing
+- GDPR compliance for crew data
+- ISO 27001 alignment
+
+### Maritime Compliance:
+- ISM Code alignment
+- SOLAS regulations
+- MARPOL environmental standards
+- Port State Control requirements
+- Classification society standards
+- Flag state requirements
+
+---
+
+## TESTING STRATEGY
+
+### Unit Testing:
+- Jest for React components
+- pytest for Python services
+- Coverage target: > 80%
+
+### Integration Testing:
+- API integration tests
+- Database migration tests
+- Message queue tests
+- ML pipeline tests
+
+### End-to-End Testing:
+- Playwright for UI automation
+- Critical user flows
+- Demo scenario automation
+
+### Load Testing:
+- JMeter for API load testing
+- Stress testing with 1000+ concurrent vessels
+- Database query performance testing
+
+### AI/ML Testing:
+- Model accuracy validation
+- Prediction confidence calibration
+- Adversarial testing
+- Bias detection
+- Model drift monitoring
+
+---
+
+## DEPLOYMENT
+
+### Infrastructure:
+```yaml
+Production Environment:
+  Cloud Provider: AWS / Azure
+  Region: Middle East (UAE)
+  Kubernetes: EKS / AKS
+  Database:
+    - RDS PostgreSQL (Multi-AZ)
+    - TimescaleDB (Time-series)
+    - DocumentDB (MongoDB compatible)
+    - Neo4j (Knowledge graph)
+  Caching: ElastiCache Redis (Cluster mode)
+  Storage: S3 / Blob Storage
+  CDN: CloudFront / Azure CDN
+  Load Balancer: Application Load Balancer
+  
+Development Environment:
+  Docker Compose for local development
+  Minikube for Kubernetes testing
+  LocalStack for AWS simulation
+  
+CI/CD:
+  GitHub Actions
+  Automated testing
+  Blue-green deployment
+  Canary releases for ML models
+```
+
+### Monitoring:
+```
+Metrics: Prometheus + Grafana
+Logging: ELK Stack (Elasticsearch, Logstash, Kibana)
+Tracing: Jaeger for distributed tracing
+Alerting: PagerDuty integration
+Uptime: StatusPage for public status
+APM: Datadog / New Relic
+ML Monitoring: Weights & Biases
+```
+
+---
+
+## SUCCESS METRICS
+
+### Business KPIs:
+- Unplanned downtime reduction: Target 85%
+- Fuel efficiency improvement: Target 12-18%
+- Maintenance cost reduction: Target 30%
+- Project timeline variance: Target 40% reduction
+- Safety incident reduction: Target 70%
+- Asset utilization increase: Target 15%
+- ROI timeline: < 18 months
+
+### User Adoption:
+- Daily active users: > 80% of operations staff
+- AI recommendation acceptance rate: > 70%
+- Feature adoption rate: > 60% within 3 months
+- User satisfaction score: > 4.2/5.0
+- Support ticket reduction: > 50% after training
+
+### Technical KPIs:
+- System availability: 99.9%
+- API response time: p95 < 1s
+- ML model accuracy: > 85%
+- Data pipeline reliability: > 99.5%
+- Edge deployment success rate: > 98%
+
+---
+
+## PRICING MODEL (Suggested)
+
+### Subscription Tiers:
+
+**Essential** - $25K/month per 10 vessels
+- Real-time monitoring
+- Basic predictive maintenance
+- Standard reporting
+- Email support
+
+**Professional** - $45K/month per 10 vessels
+- Everything in Essential
+- AI copilot
+- Route optimization
+- Advanced analytics
+- 24/7 support
+
+**Enterprise** - Custom pricing
+- Everything in Professional
+- Autonomous fleet orchestration
+- Custom integrations
+- Dedicated success manager
+- Edge AI deployment
+- White-label options
+
+**Implementation:**
+- One-time setup: $150K-500K (depends on fleet size)
+- Training: $50K
+- Custom development: $200/hour
+
+---
+
+## COMPETITIVE POSITIONING
+
+### vs Traditional Fleet Management (Dualog, Inmarsat Fleet):
+✅ **AI-native vs bolt-on analytics**
+✅ **Predictive vs reactive maintenance**
+✅ **Autonomous optimization vs manual planning**
+✅ **Conversational interface vs click-through dashboards**
+
+### vs Modern Competitors (ShipNet, Nautical, etc.):
+✅ **True multi-agent AI vs single-model systems**
+✅ **Digital twin technology vs 2D dashboards**
+✅ **Edge AI deployment vs cloud-only**
+✅ **Maritime-specific vs generic IoT platforms**
+
+### Key Differentiators:
+1. **Conversational AI copilot** - no other system has this
+2. **Digital twin with physics simulation** - far beyond tracking
+3. **Autonomous fleet orchestration** - AI making optimal decisions
+4. **Edge AI showcase** - perfect for e& partnership
+5. **Integrated ESG intelligence** - ahead of regulation
+6. **Multi-agent reasoning** - not just pattern matching
+
+---
+
+## DOCUMENTATION DELIVERABLES
+
+### Technical Documentation:
+- Architecture diagrams (system, data, deployment)
+- API documentation (OpenAPI/Swagger)
+- Database schemas
+- ML model cards
+- Integration guides
+- Security documentation
+- Disaster recovery procedures
+
+### User Documentation:
+- User guides per role
+- Video tutorials
+- FAQ and troubleshooting
+- Best practices guide
+- Training materials
+- Release notes
+
+### Business Documentation:
+- Executive overview
+- ROI calculator
+- Case studies
+- Sales presentations
+- Demo scripts
+
+---
+
+## RISKS & MITIGATION
+
+### Technical Risks:
+1. **ML Model Accuracy**
+   - Risk: Predictions below 85% accuracy
+   - Mitigation: Ensemble models, continuous retraining, human-in-loop validation
+
+2. **Scalability**
+   - Risk: Performance degradation with 50+ vessels
+   - Mitigation: Load testing, horizontal scaling, caching strategy, database optimization
+
+3. **Integration Complexity**
+   - Risk: Legacy system integration failures
+   - Mitigation: Robust API layer, adapter pattern, fallback mechanisms
+
+### Operational Risks:
+1. **User Adoption**
+   - Risk: Resistance to AI-driven decisions
+   - Mitigation: Training program, gradual rollout, manual override capability
+
+2. **Data Quality**
+   - Risk: Poor sensor data affecting predictions
+   - Mitigation: Data validation layer, outlier detection, data quality scoring
+
+3. **Connectivity**
+   - Risk: Intermittent vessel connectivity
+   - Mitigation: Edge deployment, offline mode, data synchronization strategy
+
+---
+
+## CURSOR AI INSTRUCTIONS
+
+### Getting Started:
+```
+Create a new React + TypeScript project with:
+- Vite for build tooling
+- Tailwind CSS for styling
+- React Query for data fetching
+- Zustand for state management
+- React Router for navigation
+
+Backend:
+- Node.js with Express OR Python FastAPI
+- PostgreSQL for primary database
+- Redis for caching
+- Docker for containerization
+
+Start with these core files:
+1. /src/components/FleetMap.tsx - Interactive map with vessel markers
+2. /src/components/VesselCard.tsx - Vessel status card component
+3. /src/components/DigitalTwin.tsx - 3D vessel visualization
+4. /src/components/AICopilot.tsx - Chat interface component
+5. /src/services/api.ts - API client with TypeScript types
+6. /src/hooks/useRealtime.ts - WebSocket hook for live updates
+7. /backend/server.ts - Express server OR main.py - FastAPI server
+8. /backend/db/schema.sql - Database schema
+9. /backend/services/aiService.ts - Claude API integration
+```
+
+### Priority 1 - Core Dashboard (Week 1):
+```
+Build the Fleet Command Center:
+
+1. Interactive map showing vessel positions
+   - Use Mapbox GL or Leaflet
+   - Vessel markers with status colors (green/yellow/red)
+   - Click marker → open vessel detail sidebar
+   - Real-time position updates via WebSocket
+
+2. Vessel status cards (left panel)
+   - Grid of vessel cards showing: name, location, health score, fuel level
+   - Color-coded borders based on status
+   - Click card → focus on map + open details
+
+3. Alert panel (right side)
+   - List of active alerts/recommendations
+   - Priority sorting (critical → normal)
+   - Click alert → show details + suggested actions
+
+4. Mock data structure:
+   - 5-10 vessels with realistic attributes
+   - Sensor data updating every 5 seconds
+   - 3-5 active alerts
+
+Use realistic maritime data:
+- Vessel types: AHTS, PSV, Crane vessels, Construction vessels
+- Locations: Arabian Gulf, UAE coast
+- Typical maritime equipment: Main engines, generators, cranes, thrusters
+```
+
+### Priority 2 - Digital Twin (Week 2):
+```
+Create 3D vessel visualization:
+
+1. Use Three.js with React Three Fiber
+2. Load simple 3D ship model (use free GLTF models or create basic geometry)
+3. Add sensor markers at equipment locations
+4. Color-code sensors based on status (green/yellow/red)
+5. Implement camera controls (orbit, zoom, pan)
+6. Show sensor tooltips on hover
+7. Add heat map overlay option (temperature, vibration)
+
+Start simple:
+- Basic ship shape (box geometry with proportions)
+- 10-20 sensor points
+- Smooth animations for camera transitions
+- Responsive to screen size
+```
+
+### Priority 3 - AI Copilot (Week 2-3):
+```
+Build conversational AI interface:
+
+1. Chat UI component (bottom drawer or side panel)
+2. Integration with Claude API (Anthropic)
+3. Context awareness:
+   - Current selected vessel
+   - Active alerts
+   - User role
+4. Example queries to support:
+   - "What's the health status of Vessel 7?"
+   - "Should we delay the project given the weather?"
+   - "Show me vessels needing maintenance this month"
+5. Response formatting:
+   - Markdown support
+   - Inline data visualizations
+   - Action buttons (e.g., "Create work order", "Adjust schedule")
+
+Backend implementation:
+- POST /api/copilot/query
+- Stream responses for better UX
+- Include conversation history
+- Add safety checks (don't execute actions without confirmation)
+```
+
+### Priority 4 - Predictive Maintenance (Week 3):
+```
+Build maintenance prediction interface:
+
+1. Equipment health dashboard
+   - List of equipment per vessel
+   - Health scores (0-100) with trend arrows
+   - Prediction timeline showing expected failure window
+   
+2. Maintenance scheduler
+   - Calendar view showing planned maintenance
+   - AI recommendations highlighted
+   - Drag-and-drop to adjust schedules
+   - Cost comparison (planned vs emergency)
+
+3. Backend ML simulation:
+   - For demo, use rule-based predictions:
+     * Degrading health over time
+     * Random variations
+     * Trigger alerts when health < 70
+   - Later: integrate real ML models
+
+4. Prediction card component:
+   - Equipment name + current health
+   - Predicted failure window
+   - Root cause explanation
+   - Recommended action
+   - Cost impact
+   - One-click work order creation
+```
+
+### Priority 5 - Autonomous Orchestration (Week 4):
+```
+Create fleet orchestration interface:
+
+1. Mission control dashboard
+   - Gantt chart showing vessel assignments
+   - Project timeline view
+   - Resource utilization metrics
+   
+2. What-if simulator
+   - "What if Vessel X breaks down?"
+   - Show reallocation plan
+   - Display impact (costs, delays)
+   
+3. Auto-schedule generation
+   - Button: "Generate optimal schedule"
+   - Shows before/after comparison
+   - Lists improvements and savings
+   - Approval workflow
+
+4. Backend optimization:
+   - For demo, use heuristic algorithms
+   - Later: implement proper MIP solver
+   - Return: schedule, savings, risk assessment
+```
+
+### Styling Guidelines:
+```
+Design system:
+- Primary color: Deep blue (#1E3A8A) - trust, maritime
+- Accent: Bright cyan (#06B6D4) - technology, AI
+- Warning: Amber (#F59E0B)
+- Critical: Red (#DC2626)
+- Success: Green (#10B981)
+
+Typography:
+- Headers: Inter or Montserrat (bold, modern)
+- Body: Inter or Open Sans (clean, readable)
+- Monospace: JetBrains Mono (for data/metrics)
+
+Components:
+- Cards: Subtle shadows, rounded corners (8px)
+- Buttons: Medium size, clear labels, loading states
+- Inputs: Clean borders, good contrast, helpful placeholders
+- Tables: Zebra striping, sortable columns, responsive
+
+Dashboard layout:
+- Dark mode friendly (optional toggle)
+- Responsive (desktop first, mobile considerations)
+- Information density: High but not overwhelming
+- White space: Generous but efficient
+```
+
+### Demo Data Generation:
+```
+Create realistic mock data:
+
+Vessels:
+- NMDC Horizon (AHTS)
+- NMDC Explorer (PSV)
+- NMDC Champion (Crane Vessel)
+- NMDC Integrity (Construction Vessel)
+- NMDC Victory (Supply Vessel)
+
+Equipment per vessel:
+- Main Engine (Wärtsilä, MAN)
+- Auxiliary Engines (2-4 units)
+- Generators (2-3 units)
+- Crane (for crane vessels)
+- Thrusters (bow and stern)
+- Hydraulic systems
+- HVAC systems
+
+Sensor types:
+- Temperature (°C)
+- Vibration (mm/s)
+- Pressure (bar)
+- Oil quality (%)
+- RPM
+- Power (kW)
+- Fuel flow (L/h)
+
+Generate patterns:
+- Normal operations: values within expected ranges
+- Degrading equipment: slowly declining metrics
+- Anomalies: sudden spikes or drops
+- Seasonal patterns: higher fuel in rough weather
+```
+
+### AI Integration Best Practices:
+```
+Claude API usage:
+- System prompt defines maritime operations context
+- Include vessel/fleet data in user messages
+- Use structured output when needed (JSON)
+- Implement streaming for better UX
+- Add error handling and fallbacks
+- Cache common queries
+- Rate limiting considerations
+
+Example system prompt:
+"You are an AI assistant for NEXUS Maritime, a fleet operations platform. 
+You help operations managers, captains, and maintenance engineers make 
+optimal decisions about vessel operations, maintenance, and safety. 
+You have access to real-time data about vessels, equipment health, 
+weather conditions, and project schedules. Always provide specific, 
+actionable recommendations with clear reasoning."
+
+Context injection:
+- Current vessel details (if focused on one)
+- Recent alerts
+- Ongoing projects
+- Weather conditions
+- User role and permissions
+```
+
+### Performance Considerations:
+```
+Optimization priorities:
+
+1. Real-time updates:
+   - Use WebSocket for live data
+   - Throttle high-frequency updates
+   - Only update changed values
+   - Virtual scrolling for long lists
+
+2. 3D rendering:
+   - Use Level of Detail (LOD) for models
+   - Frustum culling
+   - Limit draw calls
+   - GPU instancing for repeated elements
+
+3. Data fetching:
+   - React Query for caching
+   - Prefetch likely next views
+   - Pagination for large datasets
+   - Compress API responses
+
+4. State management:
+   - Zustand for global state
+   - React context for local state
+   - Avoid unnecessary re-renders
+   - Memoize expensive computations
+```
+
+### Testing Approach:
+```
+Priority tests:
+
+1. Unit tests (Jest):
+   - Utility functions
+   - Data transformations
+   - API clients
+
+2. Component tests (React Testing Library):
+   - User interactions
+   - Conditional rendering
+   - Form submissions
+
+3. Integration tests:
+   - API endpoints
+   - Database operations
+   - WebSocket connections
+
+4. E2E tests (Playwright):
+   - Critical user flows
+   - Demo scenarios
+   - Cross-browser compatibility
+
+Start with happy paths, add edge cases later
+```
+
+### Deployment Preparation:
+```
+Production readiness:
+
+1. Environment variables:
+   - API keys (Claude, Mapbox, weather)
+   - Database URLs
+   - Feature flags
+
+2. Docker containers:
+   - Frontend (Nginx serving static build)
+   - Backend (Node/Python service)
+   - Database (PostgreSQL with TimescaleDB)
+   - Redis cache
+
+3. CI/CD pipeline (GitHub Actions):
+   - Run tests
+   - Build Docker images
+   - Deploy to staging
+   - Manual approval for production
+
+4. Monitoring:
+   - Application logs (Winston/Python logging)
+   - Error tracking (Sentry)
+   - Performance monitoring (Datadog/New Relic)
+   - Uptime monitoring (StatusCake)
+```
+
+---
+
+## DEVELOPMENT PHASES TIMELINE
+
+### Week 1-2: Foundation
+- ✅ Project setup and infrastructure
+- ✅ Core dashboard with fleet map
+- ✅ Real-time data pipeline
+- ✅ Basic vessel cards and details
+- ✅ Mock data generation
+
+### Week 3-4: Intelligence Layer
+- ✅ Digital twin 3D visualization
+- ✅ AI copilot integration
+- ✅ Predictive maintenance UI
+- ✅ Equipment health tracking
+- ✅ Alert system
+
+### Week 5-6: Optimization
+- ✅ Fleet orchestration dashboard
+- ✅ Route optimization
+- ✅ Maintenance scheduler
+- ✅ What-if simulator
+- ✅ ESG tracking
+
+### Week 7-8: Advanced & Polish
+- ✅ Edge AI architecture demo
+- ✅ Advanced visualizations
+- ✅ Performance optimization
+- ✅ Demo scenarios
+- ✅ Documentation
+
+### Week 9-10: Integration & Testing
+- ✅ External API integrations
+- ✅ Comprehensive testing
+- ✅ Security hardening
+- ✅ User acceptance testing
+- ✅ Final polish
+
+### Week 11-12: Deployment & Launch
+- ✅ Production deployment
+- ✅ Training materials
+- ✅ Demo preparation
+- ✅ Presentation creation
+- ✅ Go-live support
+
+---
+
+## FINAL NOTES
+
+### What Makes This Different:
+
+1. **AI-First Architecture**: Every feature has intelligence baked in, not bolted on
+2. **Conversational Interface**: Natural language beats clicking through menus
+3. **Predictive by Default**: Don't just report - predict and recommend
+4. **Autonomous Operation**: AI handles routine, humans handle exceptions
+5. **Digital Twin Foundation**: Virtual replica enables simulation and testing
+6. **Edge Intelligence**: Showcase distributed AI via e& partnership
+7. **ESG Leadership**: Environmental tracking built-in, ahead of regulation
+8. **Maritime-Specific**: Not generic IoT - built for ships and offshore operations
+
+### Success Factors:
+
+✅ **Visual Impact**: Impressive 3D visualizations, real-time dashboards  
+✅ **Clear ROI**: Every feature shows $ saved, risks avoided  
+✅ **Easy to Understand**: Complex AI made simple through conversation  
+✅ **Scalable Story**: Demo with 5 vessels, works with 500  
+✅ **Partnership Ready**: Perfect showcase for e& 5G/Edge AI  
+✅ **Production Quality**: Not a prototype - looks and feels enterprise-grade  
+
+### Key Message to NMDC:
+
+"This isn't fleet tracking. This is an AI operations partner that thinks ahead, 
+optimizes continuously, and makes your operations predictable, efficient, and safe. 
+While others show you what happened, we show you what will happen and what to do about it."
+
+---
+
+## APPENDIX
+
+### Useful Resources:
+
+**Maritime Domain:**
+- IMO regulations: www.imo.org
+- Maritime equipment standards: DNV, ABS, Lloyd's Register
+- Weather data: NOAA, met.no, weatherapi.com
+- AIS data: Marine Traffic, VesselFinder APIs
+
+**Technology:**
+- Claude API: docs.anthropic.com
+- Three.js: threejs.org
+- React Three Fiber: docs.pmnd.rs/react-three-fiber
+- Mapbox: docs.mapbox.com
+- TimescaleDB: docs.timescale.com
+
+**Design Inspiration:**
+- Maritime control rooms: Maersk operations centers
+- AI interfaces: ChatGPT, Perplexity, Claude
+- Data visualization: Observable, D3 gallery
+- Dashboard design: Grafana, Datadog, Tableau
+
+### Glossary:
+
+- **AHTS**: Anchor Handling Tug Supply vessel
+- **PSV**: Platform Supply Vessel
+- **ISM Code**: International Safety Management Code
+- **SOLAS**: Safety of Life at Sea convention
+- **MARPOL**: Marine Pollution prevention
+- **AIS**: Automatic Identification System
+- **CMMS**: Computerized Maintenance Management System
+- **ERP**: Enterprise Resource Planning
+- **ESG**: Environmental, Social, Governance
+- **MIP**: Mixed Integer Programming
+- **LSTM**: Long Short-Term Memory (neural network)
+
+---
+
+**END OF SPECIFICATION**
+
+This document contains everything needed to build NEXUS Maritime.
+Give this to your development team, Cursor AI, or use it as your north star.
+
+Questions? Start building and iterate based on what impresses NMDC most during demos.
