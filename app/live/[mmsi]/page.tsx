@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import 'leaflet/dist/leaflet.css';
 import {
   Radio,
   Ship,
@@ -206,8 +207,6 @@ export default function VesselTrackingPage() {
 
     const initMap = async () => {
       const L = await import('leaflet');
-      // @ts-expect-error - Leaflet CSS import
-      await import('leaflet/dist/leaflet.css');
       leafletRef.current = L.default || L;
 
       const map = leafletRef.current.map(containerRef.current, {

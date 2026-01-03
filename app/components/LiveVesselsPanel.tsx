@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Radio, Ship, RefreshCw, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import type { FleetVessel } from '@/app/api/fleet/route';
+import 'leaflet/dist/leaflet.css';
 
 interface FleetMeta {
   source?: string;
@@ -143,7 +144,6 @@ export function LiveVesselsPanel({
     const initMap = async () => {
       try {
         const L = await import('leaflet');
-        await import('leaflet/dist/leaflet.css');
         leafletRef.current = L.default || L;
 
         // Double check container isn't already initialized

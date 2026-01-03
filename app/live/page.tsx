@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Radio, Ship, ChevronLeft, RefreshCw, ExternalLink, Navigation } from 'lucide-react';
 import Link from 'next/link';
 import type { FleetVessel } from '@/app/api/fleet/route';
+import 'leaflet/dist/leaflet.css';
 
 // UAE/Abu Dhabi region
 const UAE_CENTER = { lat: 24.5, lng: 54.5 };
@@ -103,7 +104,6 @@ export default function NMDCFleetMap() {
 
     const initMap = async () => {
       const L = await import('leaflet');
-      await import('leaflet/dist/leaflet.css');
       leafletRef.current = L.default || L;
 
       if ((containerRef.current as HTMLElement & { _leaflet_id?: string })?._leaflet_id) {

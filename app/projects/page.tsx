@@ -13,6 +13,7 @@ import {
   Clock,
   ChevronRight,
 } from 'lucide-react';
+import 'leaflet/dist/leaflet.css';
 import Link from 'next/link';
 import { 
   PROJECT_SITES, 
@@ -92,7 +93,6 @@ export default function ProjectsPage() {
     const initMap = async () => {
       try {
         const L = await import('leaflet');
-        await import('leaflet/dist/leaflet.css');
         leafletRef.current = L.default || L;
 
         const container = containerRef.current as HTMLElement & { _leaflet_id?: string };
