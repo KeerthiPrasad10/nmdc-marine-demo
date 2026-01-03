@@ -22,6 +22,11 @@ const NMDC_TYPE_MAP: Record<NMDCVessel['type'], VesselType> = {
   supply: 'supply_vessel',
   barge: 'crane_barge',
   survey: 'survey_vessel',
+  pipelay_barge: 'crane_barge',
+  jack_up: 'crane_barge',
+  accommodation_barge: 'supply_vessel',
+  work_barge: 'crane_barge',
+  derrick_barge: 'crane_barge',
 };
 
 // Vessel names by type
