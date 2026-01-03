@@ -91,8 +91,8 @@ function Scene({
       {/* Grid helper for depth perception */}
       <gridHelper args={[20, 40, '#1a1a3a', '#0a0a1a']} position={[0, -0.49, 0]} />
 
-      {/* Vessel Model */}
-      <VesselModel
+      {/* Vessel Model - Class-specific 3D model */}
+      <VesselModelSelector
         vesselType={vessel.type}
         healthScore={vessel.health_score ?? 100}
         isSelected={true}
@@ -299,79 +299,55 @@ export function DigitalTwin({ vessel, equipment }: DigitalTwinProps) {
             </div>
 
             {/* Troubleshooting section - only show for warning/critical */}
-            {selectedSensorData.status !== 'normal' && (
-              <div className="mt-4 pt-4 border-t border-white/10 space-y-3">
-                <h4 className="text-xs font-medium text-white/70 uppercase tracking-wide flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3" />
-                  Troubleshooting
-                </h4>
-                
-                {/* Temperature-specific troubleshooting */}
-                {selectedSensorData.type === 'temperature' && (
+            {selectedSensorData.status !== 'normal' && (() => {
+              const troubleshooting = getSensorTroubleshooting(
+                vessel.type,
+                selectedSensorData.type as 'temperature' | 'vibration' | 'pressure' | 'power',
+                selectedSensorData.status as 'critical' | 'warning'
+              );
+              return (
+                <div className="mt-4 pt-4 border-t border-white/10 space-y-3">
+                  <h4 className="text-xs font-medium text-white/70 uppercase tracking-wide flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    {vessel.type.replace('_', ' ').toUpperCase()} - Troubleshooting
+                  </h4>
+                  
+                  {/* Urgency banner */}
+                  <div className={`p-2 rounded text-[10px] ${
+                    selectedSensorData.status === 'critical' 
+                      ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' 
+                      : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                  }`}>
+                    ⚠️ {troubleshooting.urgency}
+                  </div>
+                  
                   <div className="space-y-2 text-xs">
                     <div className="text-rose-300 font-medium">Possible Causes:</div>
                     <ul className="text-white/60 space-y-1 pl-3">
-                      <li>• Insufficient coolant flow</li>
-                      <li>• Blocked cooling vents</li>
-                      <li>• Worn bearings causing friction</li>
-                      <li>• Overload conditions</li>
+                      {troubleshooting.causes.slice(0, 5).map((cause, i) => (
+                        <li key={i}>• {cause}</li>
+                      ))}
                     </ul>
                     <div className="text-emerald-300 font-medium mt-2">Recommended Actions:</div>
                     <ul className="text-white/60 space-y-1 pl-3">
-                      <li>1. Check coolant levels and pump operation</li>
-                      <li>2. Inspect and clean cooling vents</li>
-                      <li>3. Listen for unusual bearing noise</li>
-                      <li>4. Reduce load if possible</li>
+                      {troubleshooting.actions.slice(0, 5).map((action, i) => (
+                        <li key={i}>{i + 1}. {action}</li>
+                      ))}
                     </ul>
                   </div>
-                )}
-                
-                {/* Vibration-specific troubleshooting */}
-                {selectedSensorData.type === 'vibration' && (
-                  <div className="space-y-2 text-xs">
-                    <div className="text-rose-300 font-medium">Possible Causes:</div>
-                    <ul className="text-white/60 space-y-1 pl-3">
-                      <li>• Shaft misalignment</li>
-                      <li>• Unbalanced rotating parts</li>
-                      <li>• Loose mounting bolts</li>
-                      <li>• Worn or damaged bearings</li>
-                    </ul>
-                    <div className="text-emerald-300 font-medium mt-2">Recommended Actions:</div>
-                    <ul className="text-white/60 space-y-1 pl-3">
-                      <li>1. Perform laser alignment check</li>
-                      <li>2. Balance rotating components</li>
-                      <li>3. Torque all mounting bolts</li>
-                      <li>4. Inspect bearings for wear</li>
-                    </ul>
-                  </div>
-                )}
-                
-                {/* Power/health-specific troubleshooting */}
-                {selectedSensorData.type === 'power' && (
-                  <div className="space-y-2 text-xs">
-                    <div className="text-rose-300 font-medium">Possible Causes:</div>
-                    <ul className="text-white/60 space-y-1 pl-3">
-                      <li>• Component degradation</li>
-                      <li>• Electrical connection issues</li>
-                      <li>• Operating outside specifications</li>
-                      <li>• Overdue maintenance</li>
-                    </ul>
-                    <div className="text-emerald-300 font-medium mt-2">Recommended Actions:</div>
-                    <ul className="text-white/60 space-y-1 pl-3">
-                      <li>1. Review maintenance history</li>
-                      <li>2. Check electrical connections</li>
-                      <li>3. Perform comprehensive inspection</li>
-                      <li>4. Schedule preventive maintenance</li>
-                    </ul>
-                  </div>
-                )}
 
-                {/* Action button */}
-                <button className="w-full mt-3 px-3 py-2 rounded-lg bg-primary-500/20 text-primary-400 text-xs hover:bg-primary-500/30 transition-colors border border-primary-500/30">
-                  Generate Work Order →
-                </button>
-              </div>
-            )}
+                  {/* Action buttons */}
+                  <div className="flex gap-2">
+                    <button className="flex-1 px-3 py-2 rounded-lg bg-primary-500/20 text-primary-400 text-xs hover:bg-primary-500/30 transition-colors border border-primary-500/30">
+                      Generate Work Order
+                    </button>
+                    <button className="flex-1 px-3 py-2 rounded-lg bg-white/5 text-white/60 text-xs hover:bg-white/10 transition-colors border border-white/10">
+                      View Full Guide
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}

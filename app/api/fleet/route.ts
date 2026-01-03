@@ -384,8 +384,8 @@ export async function GET(request: NextRequest) {
         try {
           const statsResponse = await client.getStats();
           const stats = {
-            requestsMade: statsResponse.data?.requests_made || 0,
-            requestsRemaining: statsResponse.data?.requests_remaining || 0,
+            requestsMade: statsResponse.requests_used || 0,
+            requestsRemaining: statsResponse.requests_remaining || 0,
             lastChecked: new Date().toISOString(),
           };
           setApiStats(stats);

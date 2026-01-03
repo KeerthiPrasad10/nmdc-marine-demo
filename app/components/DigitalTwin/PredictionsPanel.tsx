@@ -1,9 +1,10 @@
 'use client';
 
 import { useMemo } from 'react';
-import { AlertTriangle, Clock, TrendingUp, Wrench, ChevronRight, Zap, Thermometer, Activity } from 'lucide-react';
+import { AlertTriangle, Clock, TrendingUp, Wrench, ChevronRight, Zap, Thermometer, Activity, Anchor, Ship } from 'lucide-react';
 import { Equipment } from '@/lib/supabase';
 import { SensorData } from './SensorOverlay';
+import { getTroubleshootingForVesselClass } from '@/lib/troubleshooting';
 
 interface Prediction {
   id: string;
@@ -15,11 +16,13 @@ interface Prediction {
   recommendedAction: string;
   costOfInaction: string;
   sensorType: 'temperature' | 'vibration' | 'pressure' | 'rpm' | 'fuel' | 'power';
+  vesselClassSpecific?: boolean;
 }
 
 interface PredictionsPanelProps {
   equipment: Equipment[];
   sensors: SensorData[];
+  vesselType?: string;
   onSensorSelect?: (sensorId: string) => void;
 }
 
@@ -126,8 +129,9 @@ function generatePredictions(equipment: Equipment[], sensors: SensorData[]): Pre
   });
 }
 
-export function PredictionsPanel({ equipment, sensors, onSensorSelect }: PredictionsPanelProps) {
+export function PredictionsPanel({ equipment, sensors, vesselType, onSensorSelect }: PredictionsPanelProps) {
   const predictions = useMemo(() => generatePredictions(equipment, sensors), [equipment, sensors]);
+  const vesselClassInfo = vesselType ? getTroubleshootingForVesselClass(vesselType) : null;
   
   const criticalCount = predictions.filter(p => p.severity === 'critical').length;
   const warningCount = predictions.filter(p => p.severity === 'warning').length;
@@ -177,7 +181,33 @@ export function PredictionsPanel({ equipment, sensors, onSensorSelect }: Predict
             )}
           </div>
         </div>
-        <p className="text-xs text-white/40 mt-1">
+        
+        {/* Vessel Class Info */}
+        {vesselClassInfo && (
+          <div className="mt-2 p-2 rounded-lg bg-primary-500/10 border border-primary-500/20">
+            <div className="flex items-center gap-2">
+              <Ship className="w-4 h-4 text-primary-400" />
+              <span className="text-xs text-primary-300 font-medium capitalize">
+                {vesselClassInfo.vesselClass.replace('_', ' ')}
+              </span>
+            </div>
+            <p className="text-[10px] text-white/40 mt-1">{vesselClassInfo.description}</p>
+            <div className="flex flex-wrap gap-1 mt-2">
+              {vesselClassInfo.criticalSystems.slice(0, 4).map((sys, i) => (
+                <span key={i} className="px-1.5 py-0.5 bg-white/5 rounded text-[9px] text-white/50">
+                  {sys}
+                </span>
+              ))}
+              {vesselClassInfo.criticalSystems.length > 4 && (
+                <span className="px-1.5 py-0.5 bg-white/5 rounded text-[9px] text-white/50">
+                  +{vesselClassInfo.criticalSystems.length - 4} more
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+        
+        <p className="text-xs text-white/40 mt-2">
           AI-powered failure predictions based on sensor data
         </p>
       </div>

@@ -755,6 +755,7 @@ export default function VesselDetailPage() {
               <PredictionsPanel 
                 equipment={equipment} 
                 sensors={[]}
+                vesselType={vessel.type}
                 onSensorSelect={(sensorId) => {
                   console.log('Select sensor:', sensorId);
                 }}
