@@ -190,7 +190,7 @@ export function VesselAlertsPanel({ vessel, alerts, onAcknowledge, onResolve }: 
                       </h5>
                       <span className="text-[10px] text-white/40 flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        {alert.created_at ? new Date(alert.created_at).toLocaleTimeString() : 'N/A'}
+                        {alert.timestamp ? new Date(alert.timestamp).toLocaleTimeString() : 'N/A'}
                       </span>
                     </div>
                     <p className="text-xs text-white/60 mt-1">{alert.description}</p>
