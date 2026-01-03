@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, use } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import 'leaflet/dist/leaflet.css';
@@ -111,8 +111,12 @@ function formatDate(dateStr: string): string {
 }
 
 export default function VesselTrackingPage() {
-  const params = useParams();
-  const mmsi = params.mmsi as string;
+  const rawParams = useParams();
+  // Handle Next.js 16 async params - unwrap if Promise
+  const params = rawParams && typeof rawParams === 'object' && 'then' in rawParams 
+    ? use(rawParams as Promise<{ mmsi: string }>) 
+    : rawParams;
+  const mmsi = (params?.mmsi as string) || '';
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapRef = useRef<any>(null);

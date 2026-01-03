@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, use } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase, Vessel, Equipment } from '@/lib/supabase';
@@ -67,9 +67,13 @@ const PredictionsPanel = dynamic(
 type TabType = 'overview' | 'digital-twin' | 'systems' | 'maintenance' | 'analysis';
 
 export default function VesselDetailPage() {
-  const params = useParams();
+  const rawParams = useParams();
   const router = useRouter();
-  const vesselId = params.id as string;
+  // Handle Next.js 16 async params - unwrap if Promise
+  const params = rawParams && typeof rawParams === 'object' && 'then' in rawParams 
+    ? use(rawParams as Promise<{ id: string }>) 
+    : rawParams;
+  const vesselId = (params?.id as string) || '';
 
   const [vessel, setVessel] = useState<Vessel | null>(null);
   const [fleetVessel, setFleetVessel] = useState<FleetVessel | null>(null);

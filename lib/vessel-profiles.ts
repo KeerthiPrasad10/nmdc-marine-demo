@@ -10,8 +10,10 @@
 export interface VesselProfile {
   id: string;
   name: string;
-  type: 'dredger' | 'tugboat' | 'supply_vessel' | 'crane_barge' | 'survey_vessel';
+  type: 'dredger' | 'tugboat' | 'supply_vessel' | 'crane_barge' | 'survey_vessel' 
+      | 'pipelay_barge' | 'derrick_barge' | 'jack_up_barge' | 'accommodation_barge' | 'work_barge';
   subtype: string;
+  company: 'nmdc_group' | 'nmdc_energy';
   
   // Specifications
   specs: {
@@ -86,12 +88,17 @@ export interface FailureMode {
 
 // NMDC Dredging & Marine Fleet
 export const VESSEL_PROFILES: Record<string, VesselProfile> = {
+  // ============================================================================
+  // NMDC GROUP - Dredging & Marine Construction
+  // ============================================================================
+  
   // Heavy Duty Cutter Suction Dredgers
   'al-hamra': {
     id: 'al-hamra',
     name: 'Al Hamra',
     type: 'dredger',
     subtype: 'Heavy Duty Cutter Suction Dredger (CSD)',
+    company: 'nmdc_group',
     specs: {
       lengthOverall: 89.0,
       breadth: 18.0,
@@ -124,6 +131,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'Al Khatem',
     type: 'dredger',
     subtype: 'Heavy Duty Cutter Suction Dredger (CSD)',
+    company: 'nmdc_group',
     specs: {
       lengthOverall: 89.0,
       breadth: 18.0,
@@ -155,6 +163,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'Al Mirfa',
     type: 'dredger',
     subtype: 'Heavy Duty Cutter Suction Dredger (CSD)',
+    company: 'nmdc_group',
     specs: {
       lengthOverall: 85.0,
       breadth: 17.0,
@@ -186,6 +195,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'Al Sadr',
     type: 'dredger',
     subtype: 'Cutter Suction Dredger (CSD)',
+    company: 'nmdc_group',
     specs: {
       lengthOverall: 75.0,
       breadth: 14.0,
@@ -216,6 +226,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'Al Yassat',
     type: 'dredger',
     subtype: 'Cutter Suction Dredger (CSD)',
+    company: 'nmdc_group',
     specs: {
       lengthOverall: 70.0,
       breadth: 13.0,
@@ -246,6 +257,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'Kattouf',
     type: 'dredger',
     subtype: 'Heavy Duty Cutter Suction Dredger (CSD)',
+    company: 'nmdc_group',
     specs: {
       lengthOverall: 92.0,
       breadth: 19.0,
@@ -278,6 +290,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'Gulf Hopper',
     type: 'dredger',
     subtype: 'Trailing Suction Hopper Dredger (TSHD)',
+    company: 'nmdc_group',
     specs: {
       lengthOverall: 95.0,
       breadth: 18.0,
@@ -312,6 +325,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'NMDC Lifter I',
     type: 'crane_barge',
     subtype: 'Heavy Lift Crane Barge',
+    company: 'nmdc_group',
     specs: {
       lengthOverall: 120.0,
       breadth: 36.0,
@@ -344,6 +358,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'NMDC Lifter II',
     type: 'crane_barge',
     subtype: 'Derrick Lay Barge',
+    company: 'nmdc_group',
     specs: {
       lengthOverall: 196.9,
       breadth: 43.4,
@@ -377,6 +392,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'Heavy Lift Alpha',
     type: 'crane_barge',
     subtype: 'Sheerleg Crane Barge',
+    company: 'nmdc_group',
     specs: {
       lengthOverall: 85.0,
       breadth: 28.0,
@@ -408,6 +424,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'Gulf Pioneer',
     type: 'tugboat',
     subtype: 'Anchor Handling Tug Supply (AHTS)',
+    company: 'nmdc_group',
     specs: {
       lengthOverall: 65.0,
       breadth: 15.0,
@@ -441,6 +458,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'Al Dhafra Tug',
     type: 'tugboat',
     subtype: 'Harbor Tug',
+    company: 'nmdc_group',
     specs: {
       lengthOverall: 32.0,
       breadth: 10.0,
@@ -472,6 +490,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'Harbor Force',
     type: 'tugboat',
     subtype: 'Harbor Tug',
+    company: 'nmdc_group',
     specs: {
       lengthOverall: 28.0,
       breadth: 9.0,
@@ -503,6 +522,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'Sea Guardian',
     type: 'tugboat',
     subtype: 'Emergency Response Tug',
+    company: 'nmdc_group',
     specs: {
       lengthOverall: 45.0,
       breadth: 12.0,
@@ -536,6 +556,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'Gulf Provider',
     type: 'supply_vessel',
     subtype: 'Platform Supply Vessel (PSV)',
+    company: 'nmdc_group',
     specs: {
       lengthOverall: 72.0,
       breadth: 16.0,
@@ -569,6 +590,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'NMDC Supplier I',
     type: 'supply_vessel',
     subtype: 'Platform Supply Vessel (PSV)',
+    company: 'nmdc_group',
     specs: {
       lengthOverall: 68.0,
       breadth: 15.0,
@@ -602,6 +624,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'Offshore Express',
     type: 'supply_vessel',
     subtype: 'Fast Supply Vessel (FSV)',
+    company: 'nmdc_group',
     specs: {
       lengthOverall: 55.0,
       breadth: 12.0,
@@ -636,6 +659,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'Marine Scanner',
     type: 'survey_vessel',
     subtype: 'Hydrographic Survey Vessel',
+    company: 'nmdc_group',
     specs: {
       lengthOverall: 42.0,
       breadth: 10.0,
@@ -669,6 +693,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'Deep Scanner',
     type: 'survey_vessel',
     subtype: 'Geophysical Survey Vessel',
+    company: 'nmdc_group',
     specs: {
       lengthOverall: 55.0,
       breadth: 12.0,
@@ -702,6 +727,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'Ocean Explorer',
     type: 'survey_vessel',
     subtype: 'Multi-Purpose Survey Vessel',
+    company: 'nmdc_group',
     specs: {
       lengthOverall: 48.0,
       breadth: 11.0,
@@ -726,6 +752,358 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
       'Positioning',
       'Environmental sampling',
       'Light construction support',
+    ],
+  },
+  
+  // ============================================================================
+  // NMDC ENERGY - Offshore EPC, Pipelaying & Heavy Lift
+  // Source: https://www.nmdc-energy.com/en/about-us/fleet/
+  // Specs verified from official PDF datasheets via Exa search
+  // ============================================================================
+  
+  // Derrick Lay Barges
+  'dls-4200': {
+    id: 'dls-4200',
+    name: 'DLS-4200',
+    type: 'derrick_barge',
+    subtype: 'Derrick Lay Semi-Submersible',
+    company: 'nmdc_energy',
+    specs: {
+      lengthOverall: 196.9,   // Verified from Ulstein design docs
+      breadth: 43.4,
+      depth: 19.6,
+      craneCapacity: 4200,    // 4200 short tons (3810 metric tons)
+      accommodation: 350,
+      powerInstalled: 25000,
+      yearBuilt: 2015,
+      flag: 'UAE',
+      classNotation: 'ABS',
+    },
+    systems: generateCraneBargeSystems('dls-4200'),
+    docs: {
+      fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
+      specsUrl: 'https://www.nmdc-energy.com/assets/files/fleet/derrick%20barges/DLS-4200.pdf',
+    },
+    officialUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
+    description: 'Major derrick and pipelay vessel - one of the largest in the Middle East. 10-point mooring, pipes up to 66" diameter, water depth 10-2000m.',
+    capabilities: [
+      'Heavy lift up to 4200 short tons',
+      'S-Lay pipelaying up to 66" diameter',
+      'Platform topsides installation',
+      'Jacket installation',
+      'Deep water operations (10-2000m)',
+      '10-point mooring system',
+    ],
+  },
+  
+  'delma-2000': {
+    id: 'delma-2000',
+    name: 'DELMA 2000',
+    type: 'derrick_barge',
+    subtype: 'Pipelay Crane Vessel',
+    company: 'nmdc_energy',
+    specs: {
+      lengthOverall: 180.0,   // 232m with fixed stinger
+      breadth: 32.0,
+      craneCapacity: 2000,
+      accommodation: 300,
+      yearBuilt: 2010,
+      flag: 'UAE',
+    },
+    systems: generateCraneBargeSystems('delma-2000'),
+    docs: {
+      fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
+      specsUrl: 'https://www.nmdc-energy.com/assets/files/fleet/derrick%20barges/Delma%202000.pdf',
+    },
+    officialUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
+    description: 'Major pipelay crane vessel with 2000T lift capacity. IMO: 9429455.',
+    capabilities: [
+      'Heavy lift up to 2000T',
+      'S-Lay pipelaying',
+      'Platform installation',
+      'Offshore construction',
+    ],
+  },
+  
+  // Pipelay Barges (Conventional Flat Bottom)
+  'plb-648': {
+    id: 'plb-648',
+    name: 'PLB-648',
+    type: 'pipelay_barge',
+    subtype: 'Conventional Flat Bottom Pipelay Barge',
+    company: 'nmdc_energy',
+    specs: {
+      lengthOverall: 106.0,
+      breadth: 30.0,
+      depth: 7.5,
+      craneCapacity: 600,     // Huisman 600MT + 2x160T Manitowoc
+      accommodation: 244,
+      powerInstalled: 4170,
+      yearBuilt: 1979,
+      flag: 'UAE',
+      classNotation: 'ABS Maltese Cross A1',
+    },
+    systems: generateCraneBargeSystems('plb-648'),
+    docs: {
+      fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
+      specsUrl: 'https://www.nmdc-energy.com/assets/files/fleet/conventional%20flat%20bottom%20barges/PLB-648.pdf',
+    },
+    officialUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
+    description: 'Conventional flat bottom pipelay barge with Huisman 600MT pedestal crane. Pipes 6"-48". IMO: 8758055.',
+    capabilities: [
+      'Heavy lift up to 600T',
+      'Pipe laying 6" to 48" diameter',
+      'Flexible & cable lay',
+      '8-point mooring system',
+      'Helideck (Bell 212 certified)',
+    ],
+  },
+  
+  'dlb-750': {
+    id: 'dlb-750',
+    name: 'DLB-750',
+    type: 'pipelay_barge',
+    subtype: 'Conventional Flat Bottom Barge / Side Lay',
+    company: 'nmdc_energy',
+    specs: {
+      lengthOverall: 122.0,
+      breadth: 33.5,
+      depth: 8.8,
+      accommodation: 269,
+      flag: 'UAE',
+      classNotation: 'ABS A1 (E)',
+    },
+    systems: generateCraneBargeSystems('dlb-750'),
+    docs: {
+      fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
+      specsUrl: 'https://www.nmdc-energy.com/assets/files/fleet/conventional%20flat%20bottom%20barges/DLB-750.pdf',
+    },
+    officialUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
+    description: 'Side lay pipelay barge with 4500m² deck area. Pipes 4"-60". IMO: 8758108.',
+    capabilities: [
+      'Pipe laying 4" to 60" diameter',
+      '10-point mooring system',
+      'Tensioners: 2x125MT',
+      'Helideck (Sikorski S61)',
+    ],
+  },
+  
+  'dlb-1000': {
+    id: 'dlb-1000',
+    name: 'DLB-1000',
+    type: 'pipelay_barge',
+    subtype: 'Conventional Flat Bottom Pipelay Barge',
+    company: 'nmdc_energy',
+    specs: {
+      lengthOverall: 121.9,
+      breadth: 36.6,
+      depth: 8.2,
+      accommodation: 269,
+      yearBuilt: 1983,
+      flag: 'UAE',
+      classNotation: 'ABS Maltese Cross 100 A1',
+    },
+    systems: generateCraneBargeSystems('dlb-1000'),
+    docs: {
+      fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
+      specsUrl: 'https://www.nmdc-energy.com/assets/files/fleet/conventional%20flat%20bottom%20barges/DLB-1000.pdf',
+    },
+    officialUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
+    description: 'Pipelay barge built by Daewoo. Derrick crane CLYDE 52-DE-230-30-15.',
+    capabilities: [
+      'Heavy lift',
+      'Pipe laying',
+      'Flexible & cable lay',
+      '8-point mooring',
+    ],
+  },
+  
+  // Jack-Up Barges (Self-Elevating Platforms)
+  'sep-450': {
+    id: 'sep-450',
+    name: 'SEP-450',
+    type: 'jack_up_barge',
+    subtype: 'Self-Elevating Platform (Self-Propelled)',
+    company: 'nmdc_energy',
+    specs: {
+      lengthOverall: 61.0,
+      breadth: 36.0,
+      depth: 6.0,
+      craneCapacity: 300,     // Seatrax 300t main crane
+      accommodation: 219,
+      powerInstalled: 5620,   // 4x1405kW
+      flag: 'UAE',
+      classNotation: 'ABS+A1 Self Elevating Unit +AMS +ACCU',
+    },
+    systems: generateCraneBargeSystems('sep-450'),
+    docs: {
+      fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
+      specsUrl: 'https://www.nmdc-energy.com/assets/files/fleet/jack-up%20barges/SEP-450.pdf',
+    },
+    officialUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
+    description: 'Self-propelled jack-up with 4 triangular legs (94.2m). Helideck for Sikorsky S61N.',
+    capabilities: [
+      'Self-propelled',
+      'Self-elevating platform',
+      'Crane operations 300T',
+      'Hook up operations',
+      'Jacket & deck lifting',
+    ],
+  },
+  
+  'sep-550': {
+    id: 'sep-550',
+    name: 'SEP-550',
+    type: 'jack_up_barge',
+    subtype: 'Self-Elevating Platform',
+    company: 'nmdc_energy',
+    specs: {
+      lengthOverall: 76.0,    // 61m waterline
+      breadth: 36.0,
+      depth: 6.0,
+      accommodation: 314,     // 271 + 43 mobile
+      flag: 'UAE',
+      classNotation: 'ABS+A1 Self-Elevation Unit',
+    },
+    systems: generateCraneBargeSystems('sep-550'),
+    docs: {
+      fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
+      specsUrl: 'https://www.nmdc-energy.com/assets/files/fleet/jack-up%20barges/SEP-550.pdf',
+    },
+    officialUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
+    description: 'Jack-up with 4 triangular legs (66.6m). 800m² deck area.',
+    capabilities: [
+      'Self-elevating platform',
+      'Hook up operations',
+      'Sleepers & mattress installation',
+      'Jacket & deck lifting',
+    ],
+  },
+  
+  'sep-750': {
+    id: 'sep-750',
+    name: 'SEP-750',
+    type: 'jack_up_barge',
+    subtype: 'Self-Elevating Platform',
+    company: 'nmdc_energy',
+    specs: {
+      lengthOverall: 61.0,
+      breadth: 36.0,
+      depth: 6.0,
+      craneCapacity: 162,     // Seatrax 162t main hoist
+      accommodation: 260,     // 217 + 43 mobile
+      powerInstalled: 4140,   // 3x1380kW
+      flag: 'UAE',
+      classNotation: 'ABS+A1 Self Elevating Unit',
+    },
+    systems: generateCraneBargeSystems('sep-750'),
+    docs: {
+      fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
+      specsUrl: 'https://www.nmdc-energy.com/assets/files/fleet/jack-up%20barges/SEP-750.pdf',
+    },
+    officialUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
+    description: 'Jack-up with 4 triangular legs (66.6m). CAP437 helideck. 800m² deck, 10T/m² capacity.',
+    capabilities: [
+      'Self-elevating platform',
+      'Crane operations 162T',
+      'Hook up operations',
+      'Drilling & demolishing',
+    ],
+  },
+  
+  // Offshore Support & Cable Lay
+  'umm-shaif': {
+    id: 'umm-shaif',
+    name: 'UMM SHAIF',
+    type: 'supply_vessel',
+    subtype: 'DP3 Offshore Support & Cable Laying Vessel',
+    company: 'nmdc_energy',
+    specs: {
+      lengthOverall: 111.56,  // 129.86m with stern extension
+      breadth: 43.4,
+      depth: 31.7,
+      craneCapacity: 300,     // 300t Huisman pedestal crane
+      accommodation: 620,     // 556-620 capacity
+      powerInstalled: 5280,
+      yearBuilt: 2009,
+      flag: 'UAE',
+      classNotation: 'ABS +A1, Accommodation Barge, +AMS-NP, +DPS-3',
+    },
+    systems: generateSupplyVesselSystems('umm-shaif'),
+    docs: {
+      fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
+      specsUrl: 'https://www.nmdc-energy.com/assets/files/fleet/offshore%20support%20and%20cable%20lay/Umm%20Shaif.pdf',
+    },
+    officialUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
+    description: 'DP3 cable laying vessel with 5000mt carousel. IMO: 8771497. 7200kW thruster power.',
+    capabilities: [
+      'DP3 positioning',
+      'Cable laying (5000mt carousel)',
+      '300T crane',
+      'Accommodation for 620 POB',
+      'Deck area 1615m²',
+    ],
+  },
+  
+  // AHTS Vessels
+  'saadiyat': {
+    id: 'saadiyat',
+    name: 'SAADIYAT',
+    type: 'tugboat',
+    subtype: 'Tug/AHTS/Supply/Fire Fighting Vessel',
+    company: 'nmdc_energy',
+    specs: {
+      lengthOverall: 48.0,
+      breadth: 13.2,
+      depth: 4.8,
+      accommodation: 28,
+      powerInstalled: 4480,   // 2x3004 HP
+      yearBuilt: 2011,
+      flag: 'UAE',
+      classNotation: 'Bureau Veritas',
+    },
+    systems: generateTugSystems('saadiyat'),
+    docs: {
+      fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
+      specsUrl: 'https://www.nmdc-energy.com/assets/files/fleet/anchor%20handling%20tug%20supply/Saadiyat.pdf',
+    },
+    officialUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
+    description: 'AHTS vessel with 75T bollard pull. IMO: 9577513. Fire fighting capable.',
+    capabilities: [
+      'Anchor handling (200T capacity)',
+      'Towing (75T bollard pull)',
+      'Supply duties (180T deck cargo)',
+      'Fire fighting',
+    ],
+  },
+  
+  'yas': {
+    id: 'yas',
+    name: 'YAS',
+    type: 'tugboat',
+    subtype: 'Tug/AHTS/Supply/Fire Fighting Vessel',
+    company: 'nmdc_energy',
+    specs: {
+      lengthOverall: 48.0,
+      breadth: 13.2,
+      depth: 4.8,
+      accommodation: 28,
+      yearBuilt: 2011,
+      flag: 'UAE',
+      classNotation: 'Bureau Veritas',
+    },
+    systems: generateTugSystems('yas'),
+    docs: {
+      fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
+      specsUrl: 'https://www.nmdc-energy.com/assets/files/fleet/anchor%20handling%20tug%20supply/Yas.pdf',
+    },
+    officialUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
+    description: 'Sister vessel to SAADIYAT. AHTS with 75T bollard pull.',
+    capabilities: [
+      'Anchor handling (200T capacity)',
+      'Towing (75T bollard pull)',
+      'Supply duties',
+      'Fire fighting',
     ],
   },
 };
