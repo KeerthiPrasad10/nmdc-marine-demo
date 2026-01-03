@@ -805,6 +805,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     specs: {
       lengthOverall: 180.0,   // 232m with fixed stinger
       breadth: 32.0,
+      depth: 15.0,
       craneCapacity: 2000,
       accommodation: 300,
       yearBuilt: 2010,
