@@ -400,8 +400,8 @@ export async function GET(request: NextRequest) {
             } : null,
             usage: {
               creditsPerRefresh: NMDC_FLEET.length,
-              monthlyLimit: statsResponse.data?.requests_made + statsResponse.data?.requests_remaining || 80000,
-              refreshesRemaining: Math.floor((statsResponse.data?.requests_remaining || 0) / NMDC_FLEET.length),
+              monthlyLimit: (statsResponse.requests_used || 0) + (statsResponse.requests_remaining || 0) || 80000,
+              refreshesRemaining: Math.floor((statsResponse.requests_remaining || 0) / NMDC_FLEET.length),
             },
           });
         } catch (err) {
