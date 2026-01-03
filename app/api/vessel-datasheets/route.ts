@@ -2,7 +2,9 @@ import Exa from 'exa-js';
 import { createClient } from '@supabase/supabase-js';
 import { VESSEL_PROFILES } from '@/lib/vessel-profiles';
 
-const exa = new Exa(process.env.EXA_API_KEY);
+// Exa API for semantic search - only initialized if API key is available
+const exaApiKey = process.env.EXA_API_KEY || '';
+const exa = exaApiKey ? new Exa(exaApiKey) : null;
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
@@ -37,6 +39,18 @@ function extractDomain(url: string): string {
 
 // Search for PDF datasheets for a specific vessel subtype
 async function searchSubtypeDatasheets(vesselType: string, subtype: string): Promise<DatasheetResult> {
+  // Return empty result if Exa API is not configured
+  if (!exa) {
+    return {
+      vesselId: '',
+      vesselName: '',
+      vesselType: vesselType,
+      subtype: subtype,
+      datasheets: [],
+      error: 'EXA_API_KEY not configured',
+    };
+  }
+
   try {
     const results = await exa.searchAndContents(
       `${subtype} technical specifications datasheet brochure PDF`,
