@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState, useCallback, use } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import React, { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase, Vessel, Equipment } from '@/lib/supabase';
 import { getVesselProfileByName, VesselProfile, VesselSystem } from '@/lib/vessel-profiles';
@@ -66,14 +66,9 @@ const PredictionsPanel = dynamic(
 
 type TabType = 'overview' | 'digital-twin' | 'systems' | 'maintenance' | 'analysis';
 
-export default function VesselDetailPage() {
-  const rawParams = useParams();
+// Wrapper component to handle Next.js 16 async params
+function VesselDetailContent({ vesselId }: { vesselId: string }) {
   const router = useRouter();
-  // Handle Next.js 16 async params - unwrap if Promise
-  const params = rawParams && typeof rawParams === 'object' && 'then' in rawParams 
-    ? use(rawParams as unknown as Promise<{ id: string }>) 
-    : rawParams;
-  const vesselId = (params?.id as string) || '';
 
   const [vessel, setVessel] = useState<Vessel | null>(null);
   const [fleetVessel, setFleetVessel] = useState<FleetVessel | null>(null);
@@ -1152,5 +1147,15 @@ export default function VesselDetailPage() {
       </main>
     </div>
   );
+}
+
+// Next.js 16 compatible page component with async params
+export default function VesselDetailPage({ 
+  params 
+}: { 
+  params: Promise<{ id: string }> 
+}) {
+  const { id } = React.use(params);
+  return <VesselDetailContent vesselId={id} />;
 }
 

@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef, use } from 'react';
-import { useParams } from 'next/navigation';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import 'leaflet/dist/leaflet.css';
 import {
@@ -110,13 +109,7 @@ function formatDate(dateStr: string): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-export default function VesselTrackingPage() {
-  const rawParams = useParams();
-  // Handle Next.js 16 async params - unwrap if Promise
-  const params = rawParams && typeof rawParams === 'object' && 'then' in rawParams 
-    ? use(rawParams as unknown as Promise<{ mmsi: string }>) 
-    : rawParams;
-  const mmsi = (params?.mmsi as string) || '';
+function VesselTrackingContent({ mmsi }: { mmsi: string }) {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapRef = useRef<any>(null);
@@ -730,5 +723,15 @@ export default function VesselTrackingPage() {
       `}</style>
     </div>
   );
+}
+
+// Next.js 16 compatible page component with async params
+export default function VesselTrackingPage({ 
+  params 
+}: { 
+  params: Promise<{ mmsi: string }> 
+}) {
+  const { mmsi } = React.use(params);
+  return <VesselTrackingContent mmsi={mmsi} />;
 }
 
