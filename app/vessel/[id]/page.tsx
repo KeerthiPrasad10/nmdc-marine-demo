@@ -70,7 +70,7 @@ const PredictionsPanel = dynamic(
   { ssr: false }
 );
 
-type TabType = 'overview' | 'digital-twin' | 'systems' | 'analysis';
+type TabType = 'overview' | 'digital-twin' | 'systems' | 'analysis' | 'maintenance';
 
 // Wrapper component to handle Next.js 16 async params
 function VesselDetailContent({ vesselId }: { vesselId: string }) {

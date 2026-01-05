@@ -317,7 +317,7 @@ export default function OrchestrationPage() {
                   id: v.id, 
                   name: v.name, 
                   type: v.type,
-                  project: v.destination || undefined,
+                  project: (v as Record<string, unknown>).destination as string | undefined,
                   healthScore: typeof v.fuel_level === 'number' ? v.fuel_level : undefined,
                 }))}
                 onOptimizationApplied={(suggestion) => {
