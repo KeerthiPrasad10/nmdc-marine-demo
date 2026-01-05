@@ -1,8 +1,52 @@
 'use client';
 
 import { useState, useRef, useEffect, FormEvent, useCallback } from 'react';
-import { Vessel } from '@/lib/supabase';
+import { Vessel, Weather } from '@/lib/supabase';
 import type { QueryResponse, Source, KnowledgeBase } from '@/lib/sdk/resolve-sdk';
+
+// Flexible alert type that works with both Supabase Alert and NMDCAlert
+interface FlexibleAlert {
+  id: string;
+  severity: string;
+  title?: string;
+  message?: string;
+  description?: string | null;
+  vessel_id?: string | null;
+  vesselId?: string;
+  resolved?: boolean | null;
+  status?: string;
+}
+
+// Context that can be injected into troubleshooting queries
+interface AppContext {
+  vessel?: {
+    name: string;
+    type: string;
+    status?: string;
+    fuelLevel?: number;
+    engineStatus?: string;
+    location?: { lat: number; lng: number };
+    speed?: number;
+    heading?: number;
+  } | null;
+  activeAlerts?: Array<{
+    severity: string;
+    message: string;
+    component?: string;
+  }>;
+  weather?: {
+    condition?: string;
+    windSpeed?: number;
+    waveHeight?: number;
+    temperature?: number;
+  } | null;
+  equipment?: string;
+  fleetStatus?: {
+    totalVessels: number;
+    operationalCount: number;
+    maintenanceCount: number;
+  };
+}
 import {
   Send,
   Wrench,
@@ -40,6 +84,13 @@ interface TroubleshootPanelProps {
   selectedVessel?: Vessel | null;
   equipmentType?: string;
   initialSymptom?: string;
+  alerts?: FlexibleAlert[];
+  weather?: Weather | null;
+  fleetMetrics?: {
+    totalVessels: number;
+    operationalVessels: number;
+    maintenanceVessels: number;
+  };
 }
 
 // Quick troubleshooting prompts based on vessel type
@@ -55,7 +106,10 @@ const TROUBLESHOOT_PROMPTS = [
 export function TroubleshootPanel({ 
   selectedVessel, 
   equipmentType,
-  initialSymptom 
+  initialSymptom,
+  alerts,
+  weather,
+  fleetMetrics,
 }: TroubleshootPanelProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState(initialSymptom || '');
@@ -160,18 +214,125 @@ export function TroubleshootPanel({
     }
   }, []);
 
+  // Build structured context for the AI
+  const buildAppContext = useCallback((): AppContext => {
+    const context: AppContext = {};
+
+    // Vessel context
+    if (selectedVessel) {
+      // Use type assertion for properties that may exist in runtime but not in strict type
+      const v = selectedVessel as Record<string, unknown>;
+      context.vessel = {
+        name: selectedVessel.name,
+        type: selectedVessel.type,
+        status: typeof v.status === 'string' ? v.status : undefined,
+        fuelLevel: typeof v.fuel_level === 'number' ? v.fuel_level : undefined,
+        engineStatus: typeof v.engine_status === 'string' ? v.engine_status : undefined,
+        location: typeof v.current_lat === 'number' && typeof v.current_lng === 'number'
+          ? { lat: v.current_lat, lng: v.current_lng }
+          : undefined,
+        speed: typeof v.speed === 'number' ? v.speed : undefined,
+        heading: typeof v.heading === 'number' ? v.heading : undefined,
+      };
+    }
+
+    // Active alerts for this vessel
+    if (alerts && selectedVessel) {
+      const vesselId = selectedVessel.id;
+      const vesselAlerts = alerts
+        .filter(a => {
+          const alertVesselId = a.vessel_id || a.vesselId;
+          const isResolved = a.resolved || a.status === 'resolved';
+          return alertVesselId === vesselId && !isResolved;
+        })
+        .slice(0, 5); // Limit to 5 most relevant
+      if (vesselAlerts.length > 0) {
+        context.activeAlerts = vesselAlerts.map(a => ({
+          severity: a.severity,
+          message: a.message || a.title || a.description || 'Alert',
+          component: undefined,
+        }));
+      }
+    }
+
+    // Weather context
+    if (weather) {
+      context.weather = {
+        condition: weather.condition || undefined,
+        windSpeed: typeof weather.wind_speed === 'number' ? weather.wind_speed : undefined,
+        waveHeight: typeof weather.wave_height === 'number' ? weather.wave_height : undefined,
+        temperature: typeof weather.temperature === 'number' ? weather.temperature : undefined,
+      };
+    }
+
+    // Equipment context
+    if (equipmentType) {
+      context.equipment = equipmentType;
+    }
+
+    // Fleet status context
+    if (fleetMetrics) {
+      context.fleetStatus = {
+        totalVessels: fleetMetrics.totalVessels,
+        operationalCount: fleetMetrics.operationalVessels,
+        maintenanceCount: fleetMetrics.maintenanceVessels,
+      };
+    }
+
+    return context;
+  }, [selectedVessel, alerts, weather, equipmentType, fleetMetrics]);
+
   const sendMessage = async (content: string) => {
     if ((!content.trim() && !selectedImage) || isLoading) return;
 
     setHasInteracted(true);
     
-    // Build context-aware query
+    // Build rich context-aware query
+    const appContext = buildAppContext();
+    const hasContext = Object.keys(appContext).length > 0;
+    
     let contextualContent = content.trim();
-    if (selectedVessel) {
-      contextualContent = `[Vessel: ${selectedVessel.name}, Type: ${selectedVessel.type}] ${contextualContent}`;
-    }
-    if (equipmentType) {
-      contextualContent = `[Equipment: ${equipmentType}] ${contextualContent}`;
+    
+    // Build system instructions for intelligent context gathering
+    const systemInstructions = `<system_instructions>
+You are a marine equipment troubleshooting assistant. When helping diagnose issues:
+
+1. ASSESS CONTEXT: Review the app_context provided. If critical information is missing, ASK before diagnosing.
+
+2. ASK CLARIFYING QUESTIONS when you need:
+   - Specific symptoms (sounds, smells, vibrations, visual indicators)
+   - Timeline (when did it start, sudden vs gradual, intermittent vs constant)
+   - Recent changes (maintenance, operational changes, environmental conditions)
+   - Specific readings (pressure, temperature, RPM, flow rates)
+   - Equipment details (make, model, age, maintenance history)
+
+3. USE SELECTION RESPONSES to let users pick from options when narrowing down issues.
+   Example: If user reports "pump problem", ask them to select: 
+   - Low pressure / No flow / Unusual noise / Overheating / Vibration
+
+4. BE SPECIFIC about what additional info would help. Don't ask vague questions.
+
+5. If you have enough context, provide actionable troubleshooting steps.
+
+Available context types you can request:
+- Equipment specifications (user can upload equipment photo or datasheet)
+- Sensor readings (user can provide current values)
+- Maintenance logs (user can describe recent work)
+- Environmental conditions (already provided in context if available)
+</system_instructions>
+
+`;
+    
+    if (hasContext) {
+      // Format context as a structured block the AI can understand
+      const contextBlock = `${systemInstructions}<app_context>
+${JSON.stringify(appContext, null, 2)}
+</app_context>
+
+User Query: ${content.trim()}`;
+      contextualContent = contextBlock;
+    } else {
+      contextualContent = `${systemInstructions}User Query: ${content.trim()}`;
     }
 
     const userMessage: Message = {

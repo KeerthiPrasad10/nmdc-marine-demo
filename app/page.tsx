@@ -516,7 +516,16 @@ export default function Dashboard() {
 
         {/* Center - Resolve Troubleshooting */}
         <main className="flex-1 min-w-0 flex flex-col bg-black">
-          <TroubleshootPanel selectedVessel={selectedVesselData} />
+          <TroubleshootPanel 
+            selectedVessel={selectedVesselData}
+            alerts={alerts}
+            weather={weather}
+            fleetMetrics={{
+              totalVessels: metrics.totalVessels,
+              operationalVessels: metrics.operationalVessels,
+              maintenanceVessels: metrics.maintenanceVessels,
+            }}
+          />
         </main>
 
         {/* Right Sidebar - Map/Alerts/Weather */}
