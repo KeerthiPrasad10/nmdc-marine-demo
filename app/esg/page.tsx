@@ -113,7 +113,7 @@ export default function ESGPage() {
             fuel_level: 70 + Math.random() * 25,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
-          })) as Vessel[];
+          })) as unknown as Vessel[];
         }
 
         setVessels(data);
@@ -150,7 +150,7 @@ export default function ESGPage() {
           fuel_level: 70 + Math.random() * 25,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-        })) as Vessel[];
+        })) as unknown as Vessel[];
         
         setVessels(fallbackData);
         

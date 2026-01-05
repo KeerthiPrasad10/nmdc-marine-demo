@@ -69,7 +69,7 @@ export default function OrchestrationPage() {
 
       // Fall back to NMDC fleet data if Supabase is not configured or returns empty
       if (!vesselsData || vesselsData.length === 0) {
-        vesselsData = NMDC_FLEET.map((v, index) => ({
+        vesselsData = NMDC_FLEET.map((v) => ({
           id: v.mmsi,
           name: v.name,
           type: v.type,
@@ -88,7 +88,7 @@ export default function OrchestrationPage() {
           fuel_level: 70 + Math.random() * 25,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-        })) as Vessel[];
+        })) as unknown as Vessel[];
       }
 
       setVessels(vesselsData);
@@ -131,7 +131,7 @@ export default function OrchestrationPage() {
         fuel_level: 70 + Math.random() * 25,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-      })) as Vessel[];
+      })) as unknown as Vessel[];
       
       setVessels(fallbackVessels);
       
