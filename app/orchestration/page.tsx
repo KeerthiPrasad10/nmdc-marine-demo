@@ -1,16 +1,15 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase, Vessel } from '@/lib/supabase';
+import { supabase, Vessel, isSupabaseConfigured } from '@/lib/supabase';
 import { GanttChart } from '@/app/components/orchestration/GanttChart';
-import { ScenarioSimulator } from '@/app/components/orchestration/ScenarioSimulator';
+import { ScheduleOptimizer } from '@/app/components/orchestration/ScheduleOptimizer';
 import { 
   Project, 
   VesselAssignment, 
   ScheduleConflict, 
   FleetMetrics,
-  ScenarioSimulation,
 } from '@/lib/orchestration/types';
 import { 
   generateMockProjects, 
@@ -18,6 +17,7 @@ import {
   generateMockConflicts,
   generateFleetMetrics,
 } from '@/lib/orchestration/mock-data';
+import { NMDC_FLEET } from '@/lib/nmdc/fleet';
 import {
   ArrowLeft,
   LayoutGrid,
@@ -43,37 +43,109 @@ export default function OrchestrationPage() {
   const [metrics, setMetrics] = useState<FleetMetrics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedAssignment, setSelectedAssignment] = useState<VesselAssignment | null>(null);
-  const [lastSimulation, setLastSimulation] = useState<ScenarioSimulation | null>(null);
+  const [conflictsPanelHighlighted, setConflictsPanelHighlighted] = useState(false);
+  const conflictsPanelRef = useRef<HTMLDivElement>(null);
+  
+  // Optimization overlay state
+  const [hoveredSuggestion, setHoveredSuggestion] = useState<{
+    id: string;
+    type: 'reschedule' | 'reroute' | 'reassign' | 'delay' | 'accelerate';
+    affectedVessels: string[];
+    estimatedImpact: { timeDelta: number };
+  } | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
-      // Fetch vessels from Supabase
-      const { data: vesselsData } = await supabase
-        .from('vessels')
-        .select('*')
-        .order('name');
-
-      if (vesselsData) {
-        setVessels(vesselsData);
-
-        // Generate mock orchestration data
-        const mockProjects = generateMockProjects();
-        const mockAssignments = generateMockAssignments(
-          mockProjects,
-          vesselsData.map(v => ({ id: v.id, name: v.name }))
-        );
-        const mockConflicts = generateMockConflicts();
-        const mockMetrics = generateFleetMetrics(
-          vesselsData.map(v => ({ id: v.id, status: v.status || 'operational' }))
-        );
-
-        setProjects(mockProjects);
-        setAssignments(mockAssignments);
-        setConflicts(mockConflicts);
-        setMetrics(mockMetrics);
+      let vesselsData: Vessel[] | null = null;
+      
+      // Try to fetch vessels from Supabase if configured
+      if (isSupabaseConfigured) {
+        const { data } = await supabase
+          .from('vessels')
+          .select('*')
+          .order('name');
+        vesselsData = data;
       }
+
+      // Fall back to NMDC fleet data if Supabase is not configured or returns empty
+      if (!vesselsData || vesselsData.length === 0) {
+        vesselsData = NMDC_FLEET.map((v, index) => ({
+          id: v.mmsi,
+          name: v.name,
+          type: v.type,
+          mmsi: v.mmsi,
+          imo: v.imo || null,
+          status: 'operational',
+          current_lat: 24.5 + Math.random() * 0.5,
+          current_lng: 54.0 + Math.random() * 0.5,
+          heading: Math.floor(Math.random() * 360),
+          speed: 5 + Math.random() * 10,
+          destination: v.project || 'Abu Dhabi',
+          eta: new Date(Date.now() + Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
+          last_update: new Date().toISOString(),
+          crew_count: v.crewCount || 20,
+          engine_status: 'operational',
+          fuel_level: 70 + Math.random() * 25,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })) as Vessel[];
+      }
+
+      setVessels(vesselsData);
+
+      // Generate mock orchestration data
+      const mockProjects = generateMockProjects();
+      const mockAssignments = generateMockAssignments(
+        mockProjects,
+        vesselsData.map(v => ({ id: v.id, name: v.name }))
+      );
+      const mockConflicts = generateMockConflicts();
+      const mockMetrics = generateFleetMetrics(
+        vesselsData.map(v => ({ id: v.id, status: v.status || 'operational' }))
+      );
+
+      setProjects(mockProjects);
+      setAssignments(mockAssignments);
+      setConflicts(mockConflicts);
+      setMetrics(mockMetrics);
     } catch (error) {
       console.error('Error fetching data:', error);
+      
+      // Even on error, fall back to NMDC fleet data
+      const fallbackVessels = NMDC_FLEET.map((v) => ({
+        id: v.mmsi,
+        name: v.name,
+        type: v.type,
+        mmsi: v.mmsi,
+        imo: v.imo || null,
+        status: 'operational',
+        current_lat: 24.5 + Math.random() * 0.5,
+        current_lng: 54.0 + Math.random() * 0.5,
+        heading: Math.floor(Math.random() * 360),
+        speed: 5 + Math.random() * 10,
+        destination: v.project || 'Abu Dhabi',
+        eta: new Date(Date.now() + Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
+        last_update: new Date().toISOString(),
+        crew_count: v.crewCount || 20,
+        engine_status: 'operational',
+        fuel_level: 70 + Math.random() * 25,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })) as Vessel[];
+      
+      setVessels(fallbackVessels);
+      
+      const mockProjects = generateMockProjects();
+      const mockAssignments = generateMockAssignments(
+        mockProjects,
+        fallbackVessels.map(v => ({ id: v.id, name: v.name }))
+      );
+      setProjects(mockProjects);
+      setAssignments(mockAssignments);
+      setConflicts(generateMockConflicts());
+      setMetrics(generateFleetMetrics(
+        fallbackVessels.map(v => ({ id: v.id, status: v.status || 'operational' }))
+      ));
     } finally {
       setIsLoading(false);
     }
@@ -87,13 +159,18 @@ export default function OrchestrationPage() {
     setSelectedAssignment(assignment);
   };
 
-  const handleSimulationComplete = (result: ScenarioSimulation) => {
-    setLastSimulation(result);
+  const handleViewConflicts = () => {
+    // Scroll to conflicts panel
+    conflictsPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    
+    // Add highlight effect
+    setConflictsPanelHighlighted(true);
+    setTimeout(() => setConflictsPanelHighlighted(false), 2000);
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
           <p className="text-white/60">Loading orchestration data...</p>
@@ -103,9 +180,9 @@ export default function OrchestrationPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f]">
+    <div className="min-h-screen bg-black">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-[#0a0a0f]/95 backdrop-blur-sm border-b border-white/5">
+      <header className="sticky top-0 z-50 bg-black/95 backdrop-blur-sm border-b border-white/5">
         <div className="max-w-[1800px] mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -203,7 +280,10 @@ export default function OrchestrationPage() {
                   {conflicts.filter(c => c.severity === 'critical').length} critical conflict(s) require immediate attention
                 </p>
               </div>
-              <button className="px-3 py-1.5 rounded-lg bg-rose-500/20 text-rose-400 text-sm hover:bg-rose-500/30 transition-colors">
+              <button 
+                onClick={handleViewConflicts}
+                className="px-3 py-1.5 rounded-lg bg-rose-500/20 text-rose-400 text-sm hover:bg-rose-500/30 transition-colors"
+              >
                 View Details
               </button>
             </div>
@@ -219,23 +299,59 @@ export default function OrchestrationPage() {
               projects={projects}
               vessels={vessels.map(v => ({ id: v.id, name: v.name, type: v.type }))}
               onAssignmentClick={handleAssignmentClick}
+              highlightedVessels={hoveredSuggestion?.affectedVessels || []}
+              optimizationImpact={hoveredSuggestion ? {
+                type: hoveredSuggestion.type,
+                vesselIds: hoveredSuggestion.affectedVessels,
+                daysChange: hoveredSuggestion.estimatedImpact.timeDelta,
+              } : null}
             />
           </div>
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Scenario Simulator */}
-            <div className="h-[400px]">
-              <ScenarioSimulator
-                assignments={assignments}
-                vessels={vessels.map(v => ({ id: v.id, name: v.name, type: v.type }))}
-                onSimulationComplete={handleSimulationComplete}
+            {/* Schedule Optimizer */}
+            <div className="h-[500px]">
+              <ScheduleOptimizer
+                vessels={vessels.map(v => ({ 
+                  id: v.id, 
+                  name: v.name, 
+                  type: v.type,
+                  project: v.destination || undefined,
+                  healthScore: typeof v.fuel_level === 'number' ? v.fuel_level : undefined,
+                }))}
+                onOptimizationApplied={(suggestion) => {
+                  console.log('Applied optimization:', suggestion);
+                  // In a real app, this would update the schedule
+                }}
+                onSuggestionHover={(suggestion) => {
+                  if (suggestion) {
+                    setHoveredSuggestion({
+                      id: suggestion.id,
+                      type: suggestion.type,
+                      affectedVessels: suggestion.affectedVessels,
+                      estimatedImpact: suggestion.estimatedImpact,
+                    });
+                  } else {
+                    setHoveredSuggestion(null);
+                  }
+                }}
+                selectedSuggestionId={hoveredSuggestion?.id || null}
               />
             </div>
 
             {/* Conflicts Panel */}
-            <div className="bg-[#0a0a0f] rounded-xl border border-white/10 overflow-hidden">
-              <div className="px-4 py-3 border-b border-white/10 bg-white/[0.02]">
+            <div 
+              ref={conflictsPanelRef}
+              className={`bg-black rounded-xl border overflow-hidden transition-all duration-500 ${
+                conflictsPanelHighlighted 
+                  ? 'border-white/40 ring-2 ring-white/20' 
+                  : 'border-white/10'
+              }`}
+            >
+              <div className={`px-4 py-3 border-b border-white/10 transition-colors duration-500 ${
+                conflictsPanelHighlighted ? 'bg-white/10' : 'bg-white/[0.02]'
+              }`}>
                 <h3 className="text-sm font-medium text-white">Schedule Conflicts</h3>
               </div>
               <div className="p-3 space-y-2 max-h-[180px] overflow-y-auto">

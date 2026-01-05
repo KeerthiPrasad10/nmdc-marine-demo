@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase, Vessel, Equipment } from '@/lib/supabase';
 import { getVesselProfileByName, VesselProfile, VesselSystem } from '@/lib/vessel-profiles';
-import { ChatPanel } from '@/app/components/ChatPanel';
+import { TroubleshootPanel } from '@/app/components/TroubleshootPanel';
 import type { FleetVessel } from '@/app/api/fleet/route';
 import { generateAlertsFromFleet, type NMDCAlert } from '@/lib/nmdc/alerts';
 import {
@@ -39,6 +39,12 @@ import {
   Cuboid,
   Download,
   File,
+  ClipboardList,
+  CheckCircle2,
+  XCircle,
+  Lightbulb,
+  TrendingUp,
+  Calendar,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
@@ -48,7 +54,7 @@ const DigitalTwin = dynamic(
   { 
     ssr: false,
     loading: () => (
-      <div className="w-full h-[600px] bg-[#0a0a0f] rounded-xl flex items-center justify-center">
+      <div className="w-full h-[600px] bg-black rounded-xl flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-white/60">Loading 3D Digital Twin...</p>
@@ -64,7 +70,7 @@ const PredictionsPanel = dynamic(
   { ssr: false }
 );
 
-type TabType = 'overview' | 'digital-twin' | 'systems' | 'maintenance' | 'analysis';
+type TabType = 'overview' | 'digital-twin' | 'systems' | 'analysis';
 
 // Wrapper component to handle Next.js 16 async params
 function VesselDetailContent({ vesselId }: { vesselId: string }) {
@@ -240,7 +246,7 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
           <p className="text-white/60">Loading vessel data...</p>
@@ -251,7 +257,7 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
 
   if (!vessel) {
     return (
-      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-white mb-4">Vessel Not Found</h1>
           <Link href="/" className="text-primary-400 hover:text-primary-300">
@@ -281,9 +287,9 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
   const criticalAlerts = alerts.filter(a => a.severity === 'critical');
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f]">
+    <div className="min-h-screen bg-black">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-[#0a0a0f]/95 backdrop-blur-sm border-b border-white/5">
+      <header className="sticky top-0 z-50 bg-black/95 backdrop-blur-sm border-b border-white/5">
         <div className="max-w-[1800px] mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -365,9 +371,8 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
             {[
               { id: 'overview', label: 'Overview', icon: Box },
               { id: 'digital-twin', label: '3D Digital Twin', icon: Cuboid },
-              { id: 'systems', label: 'Systems & Equipment', icon: Cpu },
-              { id: 'maintenance', label: 'Predictive Maintenance', icon: Wrench },
-              { id: 'analysis', label: 'AI Analysis', icon: MessageSquare },
+              { id: 'systems', label: 'Systems & Maintenance', icon: Cpu },
+              { id: 'analysis', label: 'Resolve', icon: Wrench },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -826,321 +831,366 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
         )}
 
         {activeTab === 'systems' && (
-          <div className="grid grid-cols-3 gap-6">
-            {/* Systems List */}
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-white">Vessel Systems</h2>
-              {profile?.systems ? (
-                <div className="space-y-2">
-                  {profile.systems.map((system) => (
-                    <button
-                      key={system.id}
-                      onClick={() => setSelectedSystem(system)}
-                      className={`w-full text-left p-4 rounded-xl border transition-colors ${
-                        selectedSystem?.id === system.id
-                          ? 'bg-primary-500/10 border-primary-500/30'
-                          : 'bg-white/[0.02] border-white/8 hover:bg-white/5'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium text-white">{system.name}</span>
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${
-                          system.criticalityLevel === 'critical' ? 'bg-rose-500/20 text-rose-400' :
-                          system.criticalityLevel === 'high' ? 'bg-amber-500/20 text-amber-400' :
-                          'bg-white/10 text-white/50'
-                        }`}>
-                          {system.criticalityLevel}
-                        </span>
-                      </div>
-                      <p className="text-xs text-white/40 mt-1 capitalize">{system.category}</p>
-                    </button>
-                  ))}
+          <div className="grid grid-cols-12 gap-6">
+            {/* Left: Systems & Equipment List */}
+            <div className="col-span-3 space-y-4">
+              {/* Health Summary - Compact */}
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-white/[0.02] border border-white/8">
+                <div className={`text-2xl font-bold ${getHealthColor(vessel.health_score ?? 100)}`}>
+                  {vessel.health_score ?? 100}%
                 </div>
-              ) : (
-                <p className="text-white/40 text-sm">No system data available.</p>
-              )}
+                <div className="text-xs text-white/50">
+                  <div>Overall Health</div>
+                  <div>{equipment.length} systems monitored</div>
+                </div>
+              </div>
+
+              {/* Systems List */}
+              <div className="space-y-1">
+                {profile?.systems ? (
+                  profile.systems.map((system) => {
+                    const systemEquipment = equipment.find(e => 
+                      e.name.toLowerCase().includes(system.name.toLowerCase().split(' ')[0])
+                    );
+                    const health = systemEquipment?.health_score ?? 100;
+                    
+                    return (
+                      <button
+                        key={system.id}
+                        onClick={() => setSelectedSystem(system)}
+                        className={`w-full text-left p-3 rounded-lg border transition-all ${
+                          selectedSystem?.id === system.id
+                            ? 'bg-primary-500/10 border-primary-500/30'
+                            : 'bg-transparent border-transparent hover:bg-white/5'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                            health >= 80 ? 'bg-emerald-400' :
+                            health >= 60 ? 'bg-amber-400' : 'bg-rose-400'
+                          }`} />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm text-white truncate">{system.name}</div>
+                            <div className="text-[10px] text-white/40">{system.maintenanceIntervalHours.toLocaleString()}h interval</div>
+                          </div>
+                          <div className={`text-xs font-medium ${getHealthColor(health)}`}>
+                            {health}%
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })
+                ) : equipment.length > 0 ? (
+                  equipment.map((eq) => (
+                    <button
+                      key={eq.id}
+                      onClick={() => setSelectedSystem(null)}
+                      className="w-full text-left p-3 rounded-lg hover:bg-white/5 transition-all"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                          (eq.health_score ?? 100) >= 80 ? 'bg-emerald-400' :
+                          (eq.health_score ?? 100) >= 60 ? 'bg-amber-400' : 'bg-rose-400'
+                        }`} />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm text-white truncate">{eq.name}</div>
+                          <div className="text-[10px] text-white/40 capitalize">{eq.type}</div>
+                        </div>
+                        <div className={`text-xs font-medium ${getHealthColor(eq.health_score ?? 100)}`}>
+                          {eq.health_score ?? 100}%
+                        </div>
+                      </div>
+                    </button>
+                  ))
+                ) : (
+                  <p className="text-white/40 text-sm p-3">No system data available.</p>
+                )}
+              </div>
             </div>
 
-            {/* System Details */}
-            <div className="col-span-2">
+            {/* Center: System Details */}
+            <div className="col-span-6">
               {selectedSystem ? (
-                <div className="rounded-xl bg-white/[0.02] border border-white/8 p-6">
-                  <div className="flex items-center justify-between mb-6">
+                <div className="space-y-4">
+                  {/* System Header */}
+                  <div className="flex items-start justify-between">
                     <div>
-                      <h2 className="text-xl font-semibold text-white">{selectedSystem.name}</h2>
-                      <p className="text-sm text-white/50 capitalize">{selectedSystem.category} System</p>
+                      <h2 className="text-lg font-semibold text-white">{selectedSystem.name}</h2>
+                      <p className="text-xs text-white/40 capitalize">{selectedSystem.category} • {selectedSystem.criticalityLevel} priority</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm text-white/50">Maintenance Interval</p>
-                      <p className="text-lg font-semibold text-white">{selectedSystem.maintenanceIntervalHours.toLocaleString()} hrs</p>
+                      <div className="text-xs text-white/40">PM Interval</div>
+                      <div className="text-sm font-medium text-white">{selectedSystem.maintenanceIntervalHours.toLocaleString()} hrs</div>
                     </div>
                   </div>
 
-                  <h3 className="text-sm font-medium text-white/50 mb-3">Components</h3>
-                  <div className="space-y-4">
+                  {/* Components - Compact */}
+                  <div className="rounded-lg bg-white/[0.02] border border-white/8 divide-y divide-white/5">
                     {selectedSystem.components.map((component) => (
-                      <div key={component.id} className="bg-white/5 rounded-lg p-4 border border-white/8">
-                        <div className="flex items-center justify-between mb-3">
+                      <div key={component.id} className="p-4">
+                        <div className="flex items-center justify-between mb-2">
                           <div>
-                            <h4 className="font-medium text-white">{component.name}</h4>
-                            <p className="text-xs text-white/40">{component.type} {component.manufacturer && `• ${component.manufacturer}`}</p>
+                            <span className="text-sm font-medium text-white">{component.name}</span>
+                            {component.manufacturer && (
+                              <span className="text-xs text-white/40 ml-2">{component.manufacturer}</span>
+                            )}
                           </div>
+                          <span className="text-[10px] text-white/30 uppercase">{component.type}</span>
                         </div>
 
                         {component.failureModes.length > 0 && (
-                          <div className="mt-4 pt-4 border-t border-white/10">
-                            <h5 className="text-xs font-medium text-white/50 mb-2">Failure Modes & RCA</h5>
-                            <div className="space-y-3">
-                              {component.failureModes.map((fm, i) => (
-                                <div key={i} className="bg-white/5 rounded-lg p-3">
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-                                    <span className="text-sm font-medium text-white">{fm.mode}</span>
-                                    {fm.mtbf && (
-                                      <span className="ml-auto text-xs text-white/40">MTBF: {fm.mtbf.toLocaleString()} hrs</span>
-                                    )}
-                                  </div>
-                                  <div className="grid grid-cols-2 gap-3 text-xs">
-                                    <div>
-                                      <p className="text-white/40 mb-1">Symptoms</p>
-                                      <ul className="text-white/70 space-y-0.5">
-                                        {fm.symptoms.map((s, j) => (
-                                          <li key={j}>• {s}</li>
-                                        ))}
-                                      </ul>
-                                    </div>
-                                    <div>
-                                      <p className="text-white/40 mb-1">Root Causes</p>
-                                      <ul className="text-white/70 space-y-0.5">
-                                        {fm.causes.map((c, j) => (
-                                          <li key={j}>• {c}</li>
-                                        ))}
-                                      </ul>
-                                    </div>
-                                  </div>
-                                  <div className="mt-2 pt-2 border-t border-white/5">
-                                    <p className="text-white/40 text-xs mb-1">Mitigations</p>
-                                    <div className="flex flex-wrap gap-1">
-                                      {fm.mitigations.map((m, j) => (
-                                        <span key={j} className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded text-xs">
-                                          {m}
-                                        </span>
-                                      ))}
-                                    </div>
-                                  </div>
+                          <div className="mt-3 space-y-2">
+                            {component.failureModes.slice(0, 2).map((fm, i) => (
+                              <div key={i} className="flex items-start gap-2 text-xs">
+                                <AlertTriangle className="w-3 h-3 text-amber-400 mt-0.5 flex-shrink-0" />
+                                <div className="flex-1">
+                                  <span className="text-white/70">{fm.mode}</span>
+                                  {fm.mtbf && (
+                                    <span className="text-white/30 ml-2">MTBF {fm.mtbf.toLocaleString()}h</span>
+                                  )}
                                 </div>
-                              ))}
-                            </div>
+                              </div>
+                            ))}
                           </div>
                         )}
                       </div>
                     ))}
                   </div>
+
+                  {/* Equipment Metrics */}
+                  {equipment.length > 0 && (
+                    <div className="grid grid-cols-4 gap-3">
+                      {equipment.slice(0, 4).map((eq) => (
+                        <div key={eq.id} className="p-3 rounded-lg bg-white/[0.02] border border-white/8">
+                          <div className="text-[10px] text-white/40 mb-1 truncate">{eq.name}</div>
+                          <div className="flex items-baseline gap-2">
+                            <span className={`text-lg font-semibold ${getHealthColor(eq.health_score ?? 100)}`}>
+                              {eq.health_score ?? 100}%
+                            </span>
+                          </div>
+                          {eq.hours_operated && (
+                            <div className="text-[10px] text-white/30 mt-1">
+                              {eq.hours_operated.toLocaleString()}h operated
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ) : (
-                <div className="rounded-xl bg-white/[0.02] border border-white/8 p-12 text-center">
-                  <Cpu className="w-12 h-12 text-white/20 mx-auto mb-4" />
-                  <p className="text-white/50">Select a system to view components and failure modes</p>
+                <div className="h-full flex items-center justify-center rounded-lg bg-white/[0.01] border border-white/5">
+                  <div className="text-center p-8">
+                    <Cpu className="w-8 h-8 text-white/20 mx-auto mb-3" />
+                    <p className="text-sm text-white/40">Select a system to view details</p>
+                  </div>
                 </div>
               )}
             </div>
-          </div>
-        )}
 
-        {activeTab === 'maintenance' && (
-          <div className="grid grid-cols-3 gap-6">
-            {/* Equipment Health */}
-            <div className="col-span-2 space-y-6">
-              <div className="rounded-xl bg-white/[0.02] border border-white/8 p-6">
-                <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                  <Wrench className="w-5 h-5 text-primary-400" />
-                  Equipment Health Status
-                </h2>
-                {equipment.length > 0 ? (
-                  <div className="space-y-3">
-                    {equipment.map((eq) => (
-                      <div key={eq.id} className="bg-white/5 rounded-lg p-4 border border-white/8">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-3 h-3 rounded-full ${
-                              (eq.health_score ?? 100) >= 80 ? 'bg-emerald-400' :
-                              (eq.health_score ?? 100) >= 60 ? 'bg-amber-400' : 'bg-rose-400'
-                            }`} />
-                            <div>
-                              <h3 className="font-medium text-white">{eq.name}</h3>
-                              <p className="text-xs text-white/40 capitalize">{eq.type}</p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <span className={`text-lg font-bold ${getHealthColor(eq.health_score ?? 100)}`}>
-                              {eq.health_score ?? 100}%
-                            </span>
-                            <p className="text-xs text-white/40">health</p>
-                          </div>
-                        </div>
-                        
-                        <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all ${
-                              (eq.health_score ?? 100) >= 80 ? 'bg-emerald-400' :
-                              (eq.health_score ?? 100) >= 60 ? 'bg-amber-400' : 'bg-rose-400'
-                            }`}
-                            style={{ width: `${eq.health_score ?? 100}%` }}
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-4 gap-4 mt-4 text-xs">
-                          <div>
-                            <p className="text-white/40">Temperature</p>
-                            <p className="text-white">{eq.temperature?.toFixed(0) ?? '--'}°C</p>
-                          </div>
-                          <div>
-                            <p className="text-white/40">Vibration</p>
-                            <p className="text-white">{eq.vibration?.toFixed(1) ?? '--'} mm/s</p>
-                          </div>
-                          <div>
-                            <p className="text-white/40">Hours Operated</p>
-                            <p className="text-white">{eq.hours_operated?.toLocaleString() ?? '--'}</p>
-                          </div>
-                          <div>
-                            <p className="text-white/40">Last Maintenance</p>
-                            <p className="text-white">
-                              {eq.last_maintenance
-                                ? new Date(eq.last_maintenance).toLocaleDateString()
-                                : '--'}
-                            </p>
-                          </div>
-                        </div>
-
-                        {eq.predicted_failure && (
-                          <div className="mt-3 p-2 rounded-lg bg-rose-500/10 border border-rose-500/20">
-                            <div className="flex items-center gap-2">
-                              <TrendingDown className="w-4 h-4 text-rose-400" />
-                              <span className="text-xs text-rose-400">
-                                Predicted: {eq.predicted_failure} ({eq.failure_confidence}% confidence)
-                              </span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+            {/* Right: Maintenance Intelligence */}
+            <div className="col-span-3 space-y-4 overflow-y-auto max-h-[calc(100vh-200px)]">
+              {/* Quick Stats */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="p-3 rounded-lg bg-white/[0.02] border border-white/8 text-center">
+                  <div className={`text-lg font-bold ${criticalEquipment.length > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                    {criticalEquipment.length}
                   </div>
-                ) : (
-                  <p className="text-white/40 text-sm">No equipment data available.</p>
-                )}
+                  <div className="text-[10px] text-white/40">Critical</div>
+                </div>
+                <div className="p-3 rounded-lg bg-white/[0.02] border border-white/8 text-center">
+                  <div className={`text-lg font-bold ${alerts.length > 0 ? 'text-amber-400' : 'text-white/50'}`}>
+                    {alerts.length}
+                  </div>
+                  <div className="text-[10px] text-white/40">Alerts</div>
+                </div>
               </div>
-            </div>
 
-            {/* PdM Summary */}
-            <div className="space-y-6">
-              <div className="rounded-xl bg-white/[0.02] border border-white/8 p-6">
-                <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                  <Shield className="w-5 h-5 text-emerald-400" />
-                  PdM Summary
-                </h2>
-                <div className="space-y-4">
-                  <div className="bg-white/5 rounded-lg p-4 border border-white/8">
-                    <div className="flex items-center justify-between">
-                      <span className="text-white/50">Overall Health</span>
-                      <span className={`text-xl font-bold ${getHealthColor(vessel.health_score ?? 100)}`}>
-                        {vessel.health_score ?? 100}%
-                      </span>
+              {/* Past Work Orders */}
+              <div className="rounded-lg bg-white/[0.02] border border-white/8 p-4">
+                <h3 className="text-xs font-medium text-white/60 uppercase tracking-wide mb-3 flex items-center gap-2">
+                  <ClipboardList className="w-3.5 h-3.5" />
+                  Past Work Orders
+                </h3>
+                <div className="space-y-2">
+                  {/* Mock work order data - in production, fetch from API */}
+                  {[
+                    { id: 'WO-2024-127', type: 'CM', system: 'Main Propulsion', issue: 'Bearing replacement', date: '2024-12-28', status: 'completed' },
+                    { id: 'WO-2024-119', type: 'PM', system: 'Hydraulic System', issue: 'Oil change & filter', date: '2024-12-15', status: 'completed' },
+                    { id: 'WO-2024-108', type: 'CM', system: 'Dredge Pump', issue: 'Seal leak repair', date: '2024-12-02', status: 'completed' },
+                  ].map((wo) => (
+                    <div key={wo.id} className="p-2 rounded bg-white/[0.03] border border-white/5">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] font-mono text-white/50">{wo.id}</span>
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded ${
+                          wo.type === 'CM' ? 'bg-rose-500/20 text-rose-400' : 'bg-blue-500/20 text-blue-400'
+                        }`}>
+                          {wo.type}
+                        </span>
+                      </div>
+                      <div className="text-xs text-white/80">{wo.issue}</div>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-[10px] text-white/40">{wo.system}</span>
+                        <span className="text-[10px] text-white/30">{wo.date}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <button className="w-full mt-3 text-[10px] text-primary-400 hover:text-primary-300 transition-colors">
+                  View all work orders →
+                </button>
+              </div>
+
+              {/* PM Schedule Recommendations */}
+              <div className="rounded-lg bg-primary-500/5 border border-primary-500/20 p-4">
+                <h3 className="text-xs font-medium text-primary-400 uppercase tracking-wide mb-3 flex items-center gap-2">
+                  <Lightbulb className="w-3.5 h-3.5" />
+                  PM Recommendations
+                </h3>
+                <div className="space-y-3">
+                  {/* AI-generated recommendations based on work order history */}
+                  <div className="p-2 rounded bg-white/[0.03] border-l-2 border-amber-400">
+                    <div className="flex items-start gap-2">
+                      <TrendingUp className="w-3 h-3 text-amber-400 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <div className="text-xs text-white/80">Increase PM frequency for Main Propulsion bearings</div>
+                        <div className="text-[10px] text-white/40 mt-0.5">3 corrective repairs in last 6 months suggests 500h interval vs current 1000h</div>
+                      </div>
                     </div>
                   </div>
-                  <div className="bg-white/5 rounded-lg p-4 border border-white/8">
-                    <div className="flex items-center justify-between">
-                      <span className="text-white/50">Equipment Monitored</span>
-                      <span className="text-xl font-bold text-white">{equipment.length}</span>
+                  <div className="p-2 rounded bg-white/[0.03] border-l-2 border-emerald-400">
+                    <div className="flex items-start gap-2">
+                      <TrendingDown className="w-3 h-3 text-emerald-400 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <div className="text-xs text-white/80">Extend Hydraulic System oil change interval</div>
+                        <div className="text-[10px] text-white/40 mt-0.5">Oil analysis shows good condition at 750h - can extend to 1000h</div>
+                      </div>
                     </div>
                   </div>
-                  <div className="bg-white/5 rounded-lg p-4 border border-white/8">
-                    <div className="flex items-center justify-between">
-                      <span className="text-white/50">Critical Issues</span>
-                      <span className={`text-xl font-bold ${criticalEquipment.length > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                        {criticalEquipment.length}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="bg-white/5 rounded-lg p-4 border border-white/8">
-                    <div className="flex items-center justify-between">
-                      <span className="text-white/50">Active Alerts</span>
-                      <span className={`text-xl font-bold ${alerts.length > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
-                        {alerts.length}
-                      </span>
+                  <div className="p-2 rounded bg-white/[0.03] border-l-2 border-blue-400">
+                    <div className="flex items-start gap-2">
+                      <Calendar className="w-3 h-3 text-blue-400 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <div className="text-xs text-white/80">Schedule Dredge Pump overhaul</div>
+                        <div className="text-[10px] text-white/40 mt-0.5">Based on OEM recommendation at 5000h - currently at 4658h</div>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Upcoming Maintenance */}
-              <div className="rounded-xl bg-white/[0.02] border border-white/8 p-6">
-                <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-blue-400" />
-                  Upcoming Maintenance
-                </h2>
-                {profile?.systems ? (
-                  <div className="space-y-2">
-                    {profile.systems
-                      .filter(s => s.criticalityLevel === 'critical' || s.criticalityLevel === 'high')
-                      .slice(0, 4)
-                      .map((system) => (
-                        <div key={system.id} className="p-3 rounded-lg bg-white/5 border border-white/8">
-                          <p className="text-sm text-white">{system.name}</p>
-                          <p className="text-xs text-white/40">
-                            Every {system.maintenanceIntervalHours.toLocaleString()} hours
-                          </p>
-                        </div>
-                      ))}
-                  </div>
-                ) : (
-                  <p className="text-white/40 text-sm">No maintenance schedule available.</p>
-                )}
+              {/* Current PM Schedule */}
+              <div className="rounded-lg bg-white/[0.02] border border-white/8 p-4">
+                <h3 className="text-xs font-medium text-white/60 uppercase tracking-wide mb-3 flex items-center gap-2">
+                  <Clock className="w-3.5 h-3.5" />
+                  PM Schedule
+                </h3>
+                <div className="space-y-1">
+                  {profile?.systems?.slice(0, 4).map((system) => (
+                    <div key={system.id} className="flex items-center justify-between py-1.5">
+                      <span className="text-xs text-white/70 truncate flex-1">{system.name}</span>
+                      <span className="text-[10px] text-white/40 ml-2">
+                        {system.maintenanceIntervalHours.toLocaleString()}h
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
+
+              {/* OEM Documentation Query */}
+              <button
+                onClick={() => setActiveTab('analysis')}
+                className="w-full p-4 rounded-lg bg-amber-500/10 border border-amber-500/20 text-left hover:bg-amber-500/15 transition-colors"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <FileText className="w-4 h-4 text-amber-400" />
+                  <span className="text-sm font-medium text-amber-400">Query OEM Manuals</span>
+                </div>
+                <p className="text-[10px] text-white/50">
+                  Get maintenance procedures, intervals, and recommendations from manufacturer documentation
+                </p>
+              </button>
             </div>
           </div>
         )}
 
         {activeTab === 'analysis' && (
-          <div className="grid grid-cols-2 gap-6 h-[calc(100vh-240px)]">
-            <div className="rounded-xl bg-white/[0.02] border border-white/8 overflow-hidden">
-              <ChatPanel selectedVessel={vessel} />
+          <div className="grid grid-cols-12 gap-4 h-[calc(100vh-240px)]">
+            {/* Troubleshooting Panel - Takes most of the space */}
+            <div className="col-span-8 rounded-xl bg-white/[0.02] border border-white/8 overflow-hidden">
+              <TroubleshootPanel 
+                selectedVessel={vessel} 
+                equipmentType={selectedSystem?.name}
+              />
             </div>
-            <div className="rounded-xl bg-white/[0.02] border border-white/8 p-6">
-              <h2 className="text-lg font-semibold text-white mb-4">AI Analysis Context</h2>
-              <div className="space-y-4 text-sm">
-                <div className="bg-white/5 rounded-lg p-4 border border-white/8">
-                  <h3 className="text-white/50 mb-2">Current Vessel State</h3>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>Health: <span className={getHealthColor(vessel.health_score ?? 100)}>{vessel.health_score ?? 100}%</span></div>
-                    <div>Fuel: <span className="text-white">{vessel.fuel_level?.toFixed(0)}%</span></div>
-                    <div>Speed: <span className="text-white">{vessel.speed?.toFixed(1)} kn</span></div>
-                    <div>Crew: <span className="text-white">{vessel.crew_count}</span></div>
-                  </div>
-                </div>
-                
-                <div className="bg-white/5 rounded-lg p-4 border border-white/8">
-                  <h3 className="text-white/50 mb-2">Equipment Summary</h3>
-                  <div className="space-y-1">
-                    <div>Total Equipment: <span className="text-white">{equipment.length}</span></div>
-                    <div>Healthy (&gt;80%): <span className="text-emerald-400">{equipment.filter(e => (e.health_score ?? 100) >= 80).length}</span></div>
-                    <div>Warning (60-80%): <span className="text-amber-400">{equipment.filter(e => (e.health_score ?? 100) >= 60 && (e.health_score ?? 100) < 80).length}</span></div>
-                    <div>Critical (&lt;60%): <span className="text-rose-400">{equipment.filter(e => (e.health_score ?? 100) < 60).length}</span></div>
-                  </div>
-                </div>
 
-                <div className="bg-white/5 rounded-lg p-4 border border-white/8">
-                  <h3 className="text-white/50 mb-2">Active Alerts</h3>
+            {/* Context Panel - Narrow sidebar */}
+            <div className="col-span-4 space-y-3 overflow-y-auto">
+              {/* Active Issues - Only show if there are issues */}
+              {(criticalAlerts.length > 0 || criticalEquipment.length > 0) && (
+                <div className="rounded-lg bg-rose-500/10 border border-rose-500/20 p-3">
+                  <h3 className="text-[10px] font-medium text-rose-400 uppercase tracking-wide mb-2">Active Issues</h3>
                   <div className="space-y-1">
-                    <div>Critical: <span className="text-rose-400">{alerts.filter(a => a.severity === 'critical').length}</span></div>
-                    <div>Warning: <span className="text-amber-400">{alerts.filter(a => a.severity === 'warning').length}</span></div>
-                    <div>Info: <span className="text-blue-400">{alerts.filter(a => a.severity === 'info').length}</span></div>
+                    {criticalAlerts.slice(0, 2).map((alert, i) => (
+                      <div key={i} className="text-xs text-white/70 truncate">• {alert.title}</div>
+                    ))}
+                    {criticalEquipment.slice(0, 2).map((eq, i) => (
+                      <div key={i} className="text-xs text-white/70">• {eq.name}: {eq.health_score}%</div>
+                    ))}
                   </div>
                 </div>
+              )}
 
-                <p className="text-white/40 text-xs">
-                  The AI has access to all vessel data, equipment status, and documentation to provide contextual analysis and recommendations.
-                </p>
+              {/* Quick Stats */}
+              <div className="grid grid-cols-3 gap-2">
+                <div className="p-2 rounded-lg bg-white/[0.02] border border-white/8 text-center">
+                  <div className={`text-sm font-bold ${getHealthColor(vessel.health_score ?? 100)}`}>
+                    {vessel.health_score ?? 100}%
+                  </div>
+                  <div className="text-[9px] text-white/40">Health</div>
+                </div>
+                <div className="p-2 rounded-lg bg-white/[0.02] border border-white/8 text-center">
+                  <div className="text-sm font-bold text-white">{equipment.length}</div>
+                  <div className="text-[9px] text-white/40">Systems</div>
+                </div>
+                <div className="p-2 rounded-lg bg-white/[0.02] border border-white/8 text-center">
+                  <div className={`text-sm font-bold ${alerts.length > 0 ? 'text-amber-400' : 'text-white/50'}`}>
+                    {alerts.length}
+                  </div>
+                  <div className="text-[9px] text-white/40">Alerts</div>
+                </div>
               </div>
+
+              {/* Equipment with Issues */}
+              {equipment.filter(e => (e.health_score ?? 100) < 80).length > 0 && (
+                <div className="rounded-lg bg-white/[0.02] border border-white/8 p-3">
+                  <h3 className="text-[10px] font-medium text-white/50 uppercase tracking-wide mb-2">Equipment Status</h3>
+                  <div className="space-y-1">
+                    {equipment
+                      .sort((a, b) => (a.health_score ?? 100) - (b.health_score ?? 100))
+                      .slice(0, 5)
+                      .map((eq) => (
+                        <div key={eq.id} className="flex items-center justify-between py-1">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                              (eq.health_score ?? 100) >= 80 ? 'bg-emerald-400' :
+                              (eq.health_score ?? 100) >= 60 ? 'bg-amber-400' : 'bg-rose-400'
+                            }`} />
+                            <span className="text-xs text-white/70 truncate">{eq.name}</span>
+                          </div>
+                          <span className={`text-xs font-medium ml-2 ${getHealthColor(eq.health_score ?? 100)}`}>
+                            {eq.health_score ?? 100}%
+                          </span>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Tip */}
+              <p className="text-[10px] text-white/30 px-1">
+                Query OEM manuals and P&IDs for troubleshooting procedures and root cause analysis.
+              </p>
             </div>
           </div>
         )}

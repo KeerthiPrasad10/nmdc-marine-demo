@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase, Vessel } from '@/lib/supabase';
+import { supabase, Vessel, isSupabaseConfigured } from '@/lib/supabase';
 import {
   VesselEmissions,
   FleetEmissionsSummary,
@@ -18,6 +18,7 @@ import {
   generateDecarbonizationPathway,
   generateEmissionsTrend,
 } from '@/lib/esg/mock-data';
+import { NMDC_FLEET } from '@/lib/nmdc/fleet';
 import {
   ArrowLeft,
   Leaf,
@@ -80,26 +81,88 @@ export default function ESGPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const { data } = await supabase
-          .from('vessels')
-          .select('*')
-          .order('name');
-
-        if (data) {
-          setVessels(data);
-
-          const emissions = generateVesselEmissions(
-            data.map(v => ({ id: v.id, name: v.name, type: v.type }))
-          );
-          setVesselEmissions(emissions);
-          setFleetSummary(generateFleetSummary(emissions));
-          setComplianceTargets(generateComplianceTargets());
-          setEsgScore(generateESGScore());
-          setPathway(generateDecarbonizationPathway());
-          setEmissionsTrend(generateEmissionsTrend(12));
+        let data: Vessel[] | null = null;
+        
+        // Try to fetch vessels from Supabase if configured
+        if (isSupabaseConfigured) {
+          const result = await supabase
+            .from('vessels')
+            .select('*')
+            .order('name');
+          data = result.data;
         }
+
+        // Fall back to NMDC fleet data if Supabase is not configured or returns empty
+        if (!data || data.length === 0) {
+          data = NMDC_FLEET.map((v) => ({
+            id: v.mmsi,
+            name: v.name,
+            type: v.type,
+            mmsi: v.mmsi,
+            imo: v.imo || null,
+            status: 'operational',
+            current_lat: 24.5 + Math.random() * 0.5,
+            current_lng: 54.0 + Math.random() * 0.5,
+            heading: Math.floor(Math.random() * 360),
+            speed: 5 + Math.random() * 10,
+            destination: v.project || 'Abu Dhabi',
+            eta: new Date(Date.now() + Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
+            last_update: new Date().toISOString(),
+            crew_count: v.crewCount || 20,
+            engine_status: 'operational',
+            fuel_level: 70 + Math.random() * 25,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })) as Vessel[];
+        }
+
+        setVessels(data);
+
+        const emissions = generateVesselEmissions(
+          data.map(v => ({ id: v.id, name: v.name, type: v.type }))
+        );
+        setVesselEmissions(emissions);
+        setFleetSummary(generateFleetSummary(emissions));
+        setComplianceTargets(generateComplianceTargets());
+        setEsgScore(generateESGScore());
+        setPathway(generateDecarbonizationPathway());
+        setEmissionsTrend(generateEmissionsTrend(12));
       } catch (error) {
         console.error('Error fetching data:', error);
+        
+        // Even on error, fall back to NMDC fleet data
+        const fallbackData = NMDC_FLEET.map((v) => ({
+          id: v.mmsi,
+          name: v.name,
+          type: v.type,
+          mmsi: v.mmsi,
+          imo: v.imo || null,
+          status: 'operational',
+          current_lat: 24.5 + Math.random() * 0.5,
+          current_lng: 54.0 + Math.random() * 0.5,
+          heading: Math.floor(Math.random() * 360),
+          speed: 5 + Math.random() * 10,
+          destination: v.project || 'Abu Dhabi',
+          eta: new Date(Date.now() + Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
+          last_update: new Date().toISOString(),
+          crew_count: v.crewCount || 20,
+          engine_status: 'operational',
+          fuel_level: 70 + Math.random() * 25,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })) as Vessel[];
+        
+        setVessels(fallbackData);
+        
+        const emissions = generateVesselEmissions(
+          fallbackData.map(v => ({ id: v.id, name: v.name, type: v.type }))
+        );
+        setVesselEmissions(emissions);
+        setFleetSummary(generateFleetSummary(emissions));
+        setComplianceTargets(generateComplianceTargets());
+        setEsgScore(generateESGScore());
+        setPathway(generateDecarbonizationPathway());
+        setEmissionsTrend(generateEmissionsTrend(12));
       } finally {
         setIsLoading(false);
       }
@@ -131,7 +194,7 @@ export default function ESGPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
           <p className="text-white/60">Loading ESG data...</p>
@@ -141,9 +204,9 @@ export default function ESGPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f]">
+    <div className="min-h-screen bg-black">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-[#0a0a0f]/95 backdrop-blur-sm border-b border-white/5">
+      <header className="sticky top-0 z-50 bg-black/95 backdrop-blur-sm border-b border-white/5">
         <div className="max-w-[1800px] mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">

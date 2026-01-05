@@ -1,0 +1,30 @@
+{
+  "name": "@ifs/resolve-sdk",
+  "version": "1.0.0",
+  "description": "SDK for the Resolve AI Troubleshooting API",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "files": [
+    "index.ts",
+    "index.js",
+    "index.d.ts"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublish": "npm run build"
+  },
+  "keywords": [
+    "resolve",
+    "troubleshooting",
+    "ai",
+    "maintenance",
+    "p&id",
+    "manual"
+  ],
+  "author": "IFS",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
+

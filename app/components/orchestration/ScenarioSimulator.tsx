@@ -110,7 +110,7 @@ export function ScenarioSimulator({
   };
 
   return (
-    <div className="h-full flex flex-col bg-[#0a0a0f] rounded-xl border border-white/10 overflow-hidden">
+    <div className="h-full flex flex-col bg-black rounded-xl border border-white/10 overflow-hidden">
       {/* Header */}
       <div className="px-4 py-3 border-b border-white/10 bg-white/[0.02]">
         <h3 className="text-sm font-medium text-white">What-If Scenario Simulator</h3>

@@ -11,17 +11,35 @@ interface GanttChartProps {
   onAssignmentClick?: (assignment: VesselAssignment) => void;
   startDate?: Date;
   daysToShow?: number;
+  // Optimization overlay support
+  highlightedVessels?: string[]; // Vessel IDs to highlight (from optimization suggestions)
+  optimizationImpact?: {
+    type: 'delay' | 'reschedule' | 'reassign' | 'accelerate' | 'reroute';
+    vesselIds: string[];
+    daysChange?: number;
+  } | null;
 }
 
+// Muted, professional color palette
 const projectColors: Record<string, string> = {
-  'proj-001': 'bg-violet-500/80',
-  'proj-002': 'bg-cyan-500/80',
-  'proj-003': 'bg-amber-500/80',
-  'proj-004': 'bg-emerald-500/80',
-  'proj-005': 'bg-rose-500/80',
-  'proj-006': 'bg-blue-500/80',
-  'maintenance': 'bg-slate-500/80',
+  'proj-001': 'bg-slate-400/60',
+  'proj-002': 'bg-zinc-500/60',
+  'proj-003': 'bg-stone-400/60',
+  'proj-004': 'bg-neutral-400/60',
+  'proj-005': 'bg-gray-500/60',
+  'proj-006': 'bg-slate-500/60',
+  'maintenance': 'bg-white/20',
 };
+
+// Fallback colors for dynamic project IDs
+const fallbackColors = [
+  'bg-slate-400/60',
+  'bg-zinc-500/60', 
+  'bg-stone-400/60',
+  'bg-neutral-400/60',
+  'bg-gray-500/60',
+  'bg-slate-500/60',
+];
 
 export function GanttChart({
   assignments,
@@ -30,6 +48,8 @@ export function GanttChart({
   onAssignmentClick,
   startDate: initialStartDate,
   daysToShow = 60,
+  highlightedVessels = [],
+  optimizationImpact = null,
 }: GanttChartProps) {
   const [startDate, setStartDate] = useState(
     initialStartDate || new Date(Date.now() - 15 * 24 * 60 * 60 * 1000)
@@ -126,7 +146,7 @@ export function GanttChart({
   }, [dateColumns]);
 
   return (
-    <div className="flex flex-col h-full bg-[#0a0a0f] rounded-xl border border-white/10 overflow-hidden">
+    <div className="flex flex-col h-full bg-black rounded-xl border border-white/10 overflow-hidden">
       {/* Header Controls */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-white/[0.02]">
         <div className="flex items-center gap-2">
@@ -153,17 +173,19 @@ export function GanttChart({
         
         <div className="flex items-center gap-4 text-xs">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded bg-violet-500/80" />
-            <span className="text-white/50">Construction</span>
+            <div className="w-3 h-3 rounded bg-slate-400/60" />
+            <span className="text-white/50">Project</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded bg-cyan-500/80" />
-            <span className="text-white/50">Dredging</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded bg-slate-500/80" />
+            <div className="w-3 h-3 rounded bg-white/20" />
             <span className="text-white/50">Maintenance</span>
           </div>
+          {highlightedVessels.length > 0 && (
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded bg-white/40 ring-1 ring-white/60" />
+              <span className="text-white/60">Affected</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -208,12 +230,43 @@ export function GanttChart({
           </div>
 
           {/* Vessel Rows */}
-          {vesselRows.map(({ vessel, assignments: vesselAssignments }) => (
-            <div key={vessel.id} className="flex border-b border-white/5 hover:bg-white/[0.02]">
+          {vesselRows.map(({ vessel, assignments: vesselAssignments }) => {
+            const isHighlighted = highlightedVessels.includes(vessel.id);
+            const hasImpact = optimizationImpact?.vesselIds.includes(vessel.id);
+            
+            return (
+            <div 
+              key={vessel.id} 
+              className={`flex border-b transition-all duration-300 ${
+                isHighlighted 
+                  ? 'bg-white/10 border-white/20' 
+                  : 'border-white/5 hover:bg-white/[0.02]'
+              }`}
+            >
               {/* Vessel Name */}
-              <div className="w-48 flex-shrink-0 px-4 py-3 bg-white/[0.02] border-r border-white/10">
-                <div className="text-sm text-white font-medium truncate">{vessel.name}</div>
+              <div className={`w-48 flex-shrink-0 px-4 py-3 border-r border-white/10 transition-colors ${
+                isHighlighted ? 'bg-white/10' : 'bg-white/[0.02]'
+              }`}>
+                <div className="flex items-center gap-2">
+                  {isHighlighted && (
+                    <span className="w-2 h-2 rounded-full bg-white/60 animate-pulse" />
+                  )}
+                  <div className="text-sm text-white font-medium truncate">{vessel.name}</div>
+                </div>
                 <div className="text-[10px] text-white/40 capitalize">{vessel.type.replace('_', ' ')}</div>
+                {hasImpact && optimizationImpact && (
+                  <div className={`text-[10px] mt-1 font-medium ${
+                    optimizationImpact.type === 'delay' ? 'text-amber-400' :
+                    optimizationImpact.type === 'accelerate' ? 'text-emerald-400' :
+                    'text-white/60'
+                  }`}>
+                    {optimizationImpact.type === 'delay' && optimizationImpact.daysChange && `+${Math.abs(optimizationImpact.daysChange)} days`}
+                    {optimizationImpact.type === 'accelerate' && optimizationImpact.daysChange && `-${Math.abs(optimizationImpact.daysChange)} days`}
+                    {optimizationImpact.type === 'reassign' && '→ Reassign'}
+                    {optimizationImpact.type === 'reschedule' && '↔ Reschedule'}
+                    {optimizationImpact.type === 'reroute' && '⤳ Reroute'}
+                  </div>
+                )}
               </div>
 
               {/* Timeline */}
@@ -231,19 +284,23 @@ export function GanttChart({
                 </div>
 
                 {/* Assignment Bars */}
-                {vesselAssignments.map(assignment => {
+                {vesselAssignments.map((assignment, idx) => {
                   const style = getBarStyle(assignment);
                   if (!style) return null;
 
                   const project = projects.find(p => p.id === assignment.projectId);
                   const isHovered = hoveredAssignment === assignment.id;
+                  const isAffected = hasImpact;
+                  
+                  // Get color - use project color or fallback
+                  const colorClass = projectColors[assignment.projectId] || fallbackColors[idx % fallbackColors.length];
 
                   return (
                     <div
                       key={assignment.id}
-                      className={`absolute top-2 h-10 rounded-lg cursor-pointer transition-all ${
-                        projectColors[assignment.projectId] || 'bg-primary-500/80'
-                      } ${isHovered ? 'ring-2 ring-white/50 z-10' : ''}`}
+                      className={`absolute top-2 h-10 rounded-lg cursor-pointer transition-all ${colorClass} ${
+                        isHovered ? 'ring-2 ring-white/50 z-10' : ''
+                      } ${isAffected ? 'ring-1 ring-dashed ring-white/40' : ''}`}
                       style={style}
                       onClick={() => onAssignmentClick?.(assignment)}
                       onMouseEnter={() => setHoveredAssignment(assignment.id)}
@@ -294,7 +351,8 @@ export function GanttChart({
                 )}
               </div>
             </div>
-          ))}
+          );
+          })}
         </div>
       </div>
 

@@ -4,21 +4,27 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, Weather, Vessel } from '@/lib/supabase';
 import type { FleetVessel } from './api/fleet/route';
 import { generateAlertsFromFleet, getAlertCounts, type NMDCAlert } from '@/lib/nmdc/alerts';
+import { 
+  PROJECT_SITES, 
+  PROJECT_TYPE_CONFIG, 
+  PROJECT_STATUS_CONFIG,
+  getProjectStats,
+  type ProjectSite 
+} from '@/lib/nmdc/projects';
 import {
   Header,
   MetricCard,
   VesselCard,
   AlertPanel,
   WeatherWidget,
-  ChatPanel,
   AIInsightsPanel,
   VesselWeatherPanel,
   VesselAlertsPanel,
   LiveVesselsPanel,
+  TroubleshootPanel,
 } from './components';
 import {
   AlertTriangle,
-  Wrench,
   Heart,
   Activity,
   ChevronLeft,
@@ -29,6 +35,9 @@ import {
   Radio,
   Ship,
   Users,
+  Anchor,
+  MapPin,
+  Building2,
 } from 'lucide-react';
 
 // Convert FleetVessel to database Vessel format for compatibility
@@ -110,9 +119,14 @@ export default function Dashboard() {
   
   // Sidebar state
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
+  const [leftPanel, setLeftPanel] = useState<'vessels' | 'projects'>('vessels');
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
   const [rightPanel, setRightPanel] = useState<'alerts' | 'weather' | 'ai' | 'live'>('live');
   const [selectedVessel, setSelectedVessel] = useState<string | null>(null);
+  const [selectedProject, setSelectedProject] = useState<ProjectSite | null>(null);
+  
+  // Project stats
+  const projectStats = getProjectStats();
 
   // Handle vessel selection - switch to live panel and highlight
   const handleSelectVessel = useCallback((vesselId: string | null) => {
@@ -238,6 +252,7 @@ export default function Dashboard() {
         onRefresh={fetchFleet}
         onlineCount={metrics.onlineVessels}
         totalCount={metrics.totalVessels}
+        hideSecondaryNav
       />
 
       {/* Main Content Area */}
@@ -253,81 +268,239 @@ export default function Dashboard() {
               leftSidebarOpen ? 'translate-x-0' : '-translate-x-full'
             }`}
           >
-            {/* Metrics Grid */}
-            <div className="p-4 border-b border-white/8">
-              <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">
-                NMDC Fleet Status
-              </h3>
-              <div className="grid grid-cols-2 gap-2">
-                <MetricCard
-                  title="Online"
-                  value={metrics.onlineVessels}
-                  subtitle={`of ${metrics.totalVessels}`}
-                  icon={<Radio className="h-4 w-4" />}
-                  color="success"
-                  compact
-                  info="Vessels actively transmitting AIS position data within the last hour"
-                  infoSource="live"
-                />
-                <MetricCard
-                  title="At Sea"
-                  value={metrics.operationalVessels}
-                  subtitle={`of ${metrics.totalVessels}`}
-                  icon={<Activity className="h-4 w-4" />}
-                  color="primary"
-                  compact
-                  info="Vessels with health score above 60%, indicating operational status"
-                  infoSource="simulated"
-                />
-                <MetricCard
-                  title="Total Crew"
-                  value={metrics.totalCrew}
-                  icon={<Users className="h-4 w-4" />}
-                  color="primary"
-                  compact
-                  info="Total crew members across all NMDC fleet vessels based on vessel profiles"
-                  infoSource="static"
-                />
-                <MetricCard
-                  title="Health"
-                  value={`${metrics.averageHealth}%`}
-                  icon={<Heart className="h-4 w-4" />}
-                  color={metrics.averageHealth >= 70 ? 'success' : 'warning'}
-                  compact
-                  info="Average equipment health score. Note: This is simulated - real data would come from onboard SCADA systems"
-                  infoSource="simulated"
-                />
-              </div>
-              <div className="mt-3 flex items-center justify-between text-xs">
-                <span className="text-white/40">{metrics.activeProjects} project sites</span>
-                <span className={`flex items-center gap-1 ${
-                  dataSource === 'live' ? 'text-green-400' : 
-                  dataSource === 'cache' ? 'text-blue-400' : 'text-amber-400'
-                }`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${
-                    dataSource === 'live' ? 'bg-green-400 animate-pulse' : 
-                    dataSource === 'cache' ? 'bg-blue-400' : 'bg-amber-400'
-                  }`} />
-                  {dataSource === 'live' ? 'Live AIS' : dataSource === 'cache' ? 'Cached' : 'Simulated'}
-                </span>
+            {/* Tab Switcher */}
+            <div className="flex-shrink-0 p-2 border-b border-white/5">
+              <div className="grid grid-cols-2 gap-1">
+                <button
+                  onClick={() => setLeftPanel('vessels')}
+                  className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                    leftPanel === 'vessels'
+                      ? 'bg-white/10 text-white'
+                      : 'text-white/40 hover:text-white/60 hover:bg-white/5'
+                  }`}
+                >
+                  <Ship className="h-4 w-4" />
+                  Vessels
+                </button>
+                <button
+                  onClick={() => setLeftPanel('projects')}
+                  className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                    leftPanel === 'projects'
+                      ? 'bg-white/10 text-white'
+                      : 'text-white/40 hover:text-white/60 hover:bg-white/5'
+                  }`}
+                >
+                  <Anchor className="h-4 w-4" />
+                  Projects
+                </button>
               </div>
             </div>
 
-            {/* Vessel List */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-2">
-              <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">
-                Vessels ({vessels.length})
-              </h3>
-              {vessels.map((vessel) => (
-                <VesselCard
-                  key={vessel.id}
-                  vessel={vessel}
-                  compact
-                  selected={selectedVessel === vessel.id}
-                  onClick={() => handleSelectVessel(vessel.id)}
-                />
-              ))}
-            </div>
+            {/* Vessels Panel */}
+            {leftPanel === 'vessels' && (
+              <>
+                {/* Metrics Grid */}
+                <div className="p-4 border-b border-white/8">
+                  <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">
+                    NMDC Fleet Status
+                  </h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    <MetricCard
+                      title="Online"
+                      value={metrics.onlineVessels}
+                      subtitle={`of ${metrics.totalVessels}`}
+                      icon={<Radio className="h-4 w-4" />}
+                      color="success"
+                      compact
+                      info="Vessels actively transmitting AIS position data within the last hour"
+                      infoSource="live"
+                    />
+                    <MetricCard
+                      title="At Sea"
+                      value={metrics.operationalVessels}
+                      subtitle={`of ${metrics.totalVessels}`}
+                      icon={<Activity className="h-4 w-4" />}
+                      color="primary"
+                      compact
+                      info="Vessels with health score above 60%, indicating operational status"
+                      infoSource="simulated"
+                    />
+                    <MetricCard
+                      title="Total Crew"
+                      value={metrics.totalCrew}
+                      icon={<Users className="h-4 w-4" />}
+                      color="primary"
+                      compact
+                      info="Total crew members across all NMDC fleet vessels based on vessel profiles"
+                      infoSource="static"
+                    />
+                    <MetricCard
+                      title="Health"
+                      value={`${metrics.averageHealth}%`}
+                      icon={<Heart className="h-4 w-4" />}
+                      color={metrics.averageHealth >= 70 ? 'success' : 'warning'}
+                      compact
+                      info="Average equipment health score. Note: This is simulated - real data would come from onboard SCADA systems"
+                      infoSource="simulated"
+                    />
+                  </div>
+                  <div className="mt-3 flex items-center justify-between text-xs">
+                    <span className="text-white/40">{metrics.activeProjects} project sites</span>
+                    <span className={`flex items-center gap-1 ${
+                      dataSource === 'live' ? 'text-green-400' : 
+                      dataSource === 'cache' ? 'text-blue-400' : 'text-amber-400'
+                    }`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${
+                        dataSource === 'live' ? 'bg-green-400 animate-pulse' : 
+                        dataSource === 'cache' ? 'bg-blue-400' : 'bg-amber-400'
+                      }`} />
+                      {dataSource === 'live' ? 'Live AIS' : dataSource === 'cache' ? 'Cached' : 'Simulated'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Vessel List */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                  <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">
+                    Vessels ({vessels.length})
+                  </h3>
+                  {vessels.map((vessel) => (
+                    <VesselCard
+                      key={vessel.id}
+                      vessel={vessel}
+                      compact
+                      selected={selectedVessel === vessel.id}
+                      onClick={() => handleSelectVessel(vessel.id)}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Projects Panel */}
+            {leftPanel === 'projects' && (
+              <>
+                {/* Project Stats */}
+                <div className="p-4 border-b border-white/8">
+                  <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">
+                    Project Overview
+                  </h3>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="bg-white/5 rounded-lg p-3 text-center">
+                      <p className="text-xl font-bold text-green-400">{projectStats.active}</p>
+                      <p className="text-[10px] text-white/50">Active</p>
+                    </div>
+                    <div className="bg-white/5 rounded-lg p-3 text-center">
+                      <p className="text-xl font-bold text-blue-400">{projectStats.planned}</p>
+                      <p className="text-[10px] text-white/50">Planned</p>
+                    </div>
+                    <div className="bg-white/5 rounded-lg p-3 text-center">
+                      <p className="text-xl font-bold text-white/40">{projectStats.completed}</p>
+                      <p className="text-[10px] text-white/50">Completed</p>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex items-center justify-between text-xs">
+                    <span className="text-white/40">Avg progress: {projectStats.avgProgress}%</span>
+                    <span className="text-amber-400 font-medium">{projectStats.totalValue}</span>
+                  </div>
+                </div>
+
+                {/* Project List */}
+                <div className="flex-1 overflow-y-auto">
+                  {PROJECT_SITES.map((project) => {
+                    const typeConfig = PROJECT_TYPE_CONFIG[project.type];
+                    const statusConfig = PROJECT_STATUS_CONFIG[project.status];
+                    const isSelected = selectedProject?.id === project.id;
+                    
+                    return (
+                      <button
+                        key={project.id}
+                        onClick={() => setSelectedProject(isSelected ? null : project)}
+                        className={`w-full text-left p-3 border-b border-white/5 transition-all ${
+                          isSelected ? 'bg-white/10' : 'hover:bg-white/5'
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div
+                            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-sm"
+                            style={{ backgroundColor: `${typeConfig.color}20` }}
+                          >
+                            {typeConfig.icon}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-sm font-medium text-white truncate">{project.name}</h3>
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <MapPin className="h-3 w-3 text-white/30" />
+                              <p className="text-xs text-white/50 truncate">{project.location.area}</p>
+                            </div>
+                            <div className="flex items-center gap-2 mt-1.5">
+                              <span
+                                className="text-[10px] px-1.5 py-0.5 rounded"
+                                style={{ 
+                                  backgroundColor: `${statusConfig.color}20`,
+                                  color: statusConfig.color,
+                                }}
+                              >
+                                {statusConfig.label}
+                              </span>
+                              {project.assignedVessels.length > 0 && (
+                                <span className="flex items-center gap-1 text-[10px] text-white/40">
+                                  <Ship className="h-3 w-3" />
+                                  {project.assignedVessels.length}
+                                </span>
+                              )}
+                            </div>
+                            {project.status === 'active' && project.progress !== undefined && (
+                              <div className="mt-2">
+                                <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full rounded-full transition-all"
+                                    style={{ 
+                                      width: `${project.progress}%`,
+                                      backgroundColor: typeConfig.color,
+                                    }}
+                                  />
+                                </div>
+                                <p className="text-[10px] text-white/40 mt-0.5 text-right">{project.progress}%</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {/* Expanded Details */}
+                        {isSelected && (
+                          <div className="mt-3 pt-3 border-t border-white/10 space-y-2">
+                            <p className="text-xs text-white/60 line-clamp-2">{project.description}</p>
+                            <div className="flex items-center gap-3 text-[10px] text-white/40">
+                              <span className="flex items-center gap-1">
+                                <Building2 className="h-3 w-3" />
+                                {project.client}
+                              </span>
+                              {project.value && (
+                                <span className="text-amber-400">{project.value}</span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Legend */}
+                <div className="p-3 border-t border-white/10 bg-black/50">
+                  <p className="text-[10px] text-white/40 mb-2">Project Types</p>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(PROJECT_TYPE_CONFIG).map(([key, config]) => (
+                      <div key={key} className="flex items-center gap-1">
+                        <span className="text-xs">{config.icon}</span>
+                        <span className="text-[10px] text-white/50">{config.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Toggle Button */}
@@ -341,9 +514,9 @@ export default function Dashboard() {
           </button>
         </aside>
 
-        {/* Center - AI Chat (Main Element) */}
-        <main className="flex-1 min-w-0 flex flex-col">
-          <ChatPanel selectedVessel={selectedVesselData} />
+        {/* Center - Resolve Troubleshooting */}
+        <main className="flex-1 min-w-0 flex flex-col bg-black">
+          <TroubleshootPanel selectedVessel={selectedVesselData} />
         </main>
 
         {/* Right Sidebar - Map/Alerts/Weather */}
@@ -360,17 +533,6 @@ export default function Dashboard() {
             {/* Panel Tabs */}
             <div className="flex-shrink-0 p-2 border-b border-white/5">
               <div className="grid grid-cols-4 gap-1">
-                <button
-                  onClick={() => setRightPanel('ai')}
-                  className={`flex items-center justify-center gap-1 px-2 py-1.5 rounded text-xs font-medium transition-all ${
-                    rightPanel === 'ai'
-                      ? 'bg-white/10 text-white'
-                      : 'text-white/40 hover:text-white/60 hover:bg-white/5'
-                  }`}
-                >
-                  <Compass className="h-3 w-3" />
-                  AI
-                </button>
                 <button
                   onClick={() => setRightPanel('live')}
                   className={`flex items-center justify-center gap-1 px-2 py-1.5 rounded text-xs font-medium transition-all ${
@@ -391,12 +553,22 @@ export default function Dashboard() {
                   }`}
                 >
                   <Bell className="h-3 w-3" />
-                  Alerts
                   {alertCounts.unacknowledged > 0 && (
                     <span className="ml-1 text-[10px] text-white/50">
                       {alertCounts.unacknowledged}
                     </span>
                   )}
+                </button>
+                <button
+                  onClick={() => setRightPanel('ai')}
+                  className={`flex items-center justify-center gap-1 px-2 py-1.5 rounded text-xs font-medium transition-all ${
+                    rightPanel === 'ai'
+                      ? 'bg-white/10 text-white'
+                      : 'text-white/40 hover:text-white/60 hover:bg-white/5'
+                  }`}
+                >
+                  <Compass className="h-3 w-3" />
+                  AI
                 </button>
                 <button
                   onClick={() => setRightPanel('weather')}

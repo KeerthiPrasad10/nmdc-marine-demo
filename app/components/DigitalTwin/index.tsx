@@ -127,7 +127,7 @@ function Scene({
 
 function LoadingState() {
   return (
-    <div className="absolute inset-0 flex items-center justify-center bg-[#0a0a0f]">
+    <div className="absolute inset-0 flex items-center justify-center bg-black">
       <div className="text-center">
         <Loader2 className="w-10 h-10 text-primary-500 animate-spin mx-auto mb-4" />
         <p className="text-white/60 text-sm">Loading 3D model...</p>
@@ -138,7 +138,7 @@ function LoadingState() {
 
 function ErrorState({ message }: { message: string }) {
   return (
-    <div className="absolute inset-0 flex items-center justify-center bg-[#0a0a0f]">
+    <div className="absolute inset-0 flex items-center justify-center bg-black">
       <div className="text-center">
         <AlertCircle className="w-10 h-10 text-rose-500 mx-auto mb-4" />
         <p className="text-white/60 text-sm">{message}</p>
@@ -197,7 +197,7 @@ export function DigitalTwin({ vessel, equipment }: DigitalTwinProps) {
   }
 
   return (
-    <div className="relative w-full h-full min-h-[500px] bg-[#0a0a0f] rounded-xl overflow-hidden">
+    <div className="relative w-full h-full min-h-[500px] bg-black rounded-xl overflow-hidden">
       {/* 3D Canvas */}
       <Suspense fallback={<LoadingState />}>
         <Canvas

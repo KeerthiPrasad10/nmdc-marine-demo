@@ -24,6 +24,7 @@ interface HeaderProps {
   onRefresh: () => void;
   onlineCount?: number;
   totalCount?: number;
+  hideSecondaryNav?: boolean;
 }
 
 export function Header({ 
@@ -32,6 +33,7 @@ export function Header({
   onRefresh, 
   onlineCount = 0,
   totalCount = 0,
+  hideSecondaryNav = false,
 }: HeaderProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -46,8 +48,8 @@ export function Header({
         {/* Logo & Title */}
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-700">
-              <Ship className="h-5 w-5 text-white" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 border border-white/10">
+              <Ship className="h-5 w-5 text-white/80" />
             </div>
             <div className="hidden sm:block">
               <h1 className="text-lg font-bold text-white tracking-tight">NMDC Fleet Operations</h1>
@@ -85,28 +87,34 @@ export function Header({
               <Radio className="w-4 h-4" />
               Live AIS
             </Link>
-            <Link
-              href="/projects"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-white/60 hover:text-white hover:bg-white/5 transition-colors"
-            >
-              <Anchor className="w-4 h-4" />
-              Projects
-            </Link>
-            <div className="w-px h-4 bg-white/10 mx-1" />
-            <Link
-              href="/troubleshoot"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-amber-400/70 hover:text-amber-400 hover:bg-amber-500/10 transition-colors"
-            >
-              <Wrench className="w-4 h-4" />
-              Troubleshoot
-            </Link>
-            <Link
-              href="/schematics"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-primary-400/70 hover:text-primary-400 hover:bg-primary-500/10 transition-colors"
-            >
-              <FileText className="w-4 h-4" />
-              Schematics
-            </Link>
+            {!hideSecondaryNav && (
+              <Link
+                href="/projects"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-white/60 hover:text-white hover:bg-white/5 transition-colors"
+              >
+                <Anchor className="w-4 h-4" />
+                Projects
+              </Link>
+            )}
+            {!hideSecondaryNav && (
+              <>
+                <div className="w-px h-4 bg-white/10 mx-1" />
+                <Link
+                  href="/troubleshoot"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-white/50 hover:text-white/80 hover:bg-white/5 transition-colors"
+                >
+                  <Wrench className="w-4 h-4" />
+                  Troubleshoot
+                </Link>
+                <Link
+                  href="/schematics"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-white/50 hover:text-white/80 hover:bg-white/5 transition-colors"
+                >
+                  <FileText className="w-4 h-4" />
+                  Schematics
+                </Link>
+              </>
+            )}
           </nav>
         </div>
 
@@ -115,12 +123,12 @@ export function Header({
           {/* Fleet Online Status */}
           <div className="flex items-center gap-2 text-sm">
             {isConnected ? (
-              <Wifi className="h-4 w-4 text-emerald-400" />
+              <Wifi className="h-4 w-4 text-white/50" />
             ) : (
-              <WifiOff className="h-4 w-4 text-rose-400" />
+              <WifiOff className="h-4 w-4 text-white/30" />
             )}
-            <span className="text-white/60">Fleet:</span>
-            <span className={`font-medium ${onlineCount > 0 ? 'text-emerald-400' : 'text-white/40'}`}>
+            <span className="text-white/50">Fleet:</span>
+            <span className={`font-medium ${onlineCount > 0 ? 'text-white/70' : 'text-white/40'}`}>
               {onlineCount}/{totalCount}
             </span>
             <span className="text-white/40">online</span>

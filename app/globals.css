@@ -7,34 +7,39 @@
    =========================== */
 
 :root {
-  /* Primary Palette (Purple/Violet) */
-  --primary-50: #faf5ff;
-  --primary-100: #f3e8ff;
-  --primary-200: #e9d5ff;
-  --primary-300: #d8b4fe;
-  --primary-400: #c084fc;
-  --primary-500: #a855f7;
-  --primary-600: #9333ea;
-  --primary-700: #7e22ce;
-  --primary-800: #6b21a8;
-  --primary-900: #581c87;
+  /* Primary Palette - Muted slate/teal for professional feel */
+  --primary-50: #f0fdfa;
+  --primary-100: #ccfbf1;
+  --primary-200: #99f6e4;
+  --primary-300: #5eead4;
+  --primary-400: #2dd4bf;
+  --primary-500: #5b8a8a;
+  --primary-600: #4a7373;
+  --primary-700: #3d5f5f;
+  --primary-800: #334d4d;
+  --primary-900: #2a3f3f;
   
-  /* Background Colors */
+  /* Background Colors - Pure black theme, no blue tint */
   --bg-primary: #000000;
-  --bg-panel: #0a0a0a;
-  --bg-card: #050505;
+  --bg-secondary: #0a0a0a;
+  --bg-panel: #0d0d0d;
+  --bg-card: #080808;
+  --bg-elevated: #111111;
   
   /* Border Colors */
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-soft: rgba(255, 255, 255, 0.23);
-  --border-medium: rgba(255, 255, 255, 0.12);
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-soft: rgba(255, 255, 255, 0.15);
+  --border-medium: rgba(255, 255, 255, 0.10);
   
-  /* Semantic Colors */
-  --success: #34d399;
-  --error: #fb7185;
-  --warning: #fbbf24;
-  --info: #a5b4fc;
-  --tool: #7dd3fc;
+  /* Semantic Colors - More muted, professional */
+  --success: #6db89b;
+  --error: #c97a7a;
+  --warning: #c9a86c;
+  --info: #7a8eb8;
+  --tool: #6ba3b8;
+  
+  /* Accent - Subtle warm tone */
+  --accent: #a89078;
 }
 
 @theme inline {
@@ -149,9 +154,9 @@ body {
 }
 
 .glass-input:focus {
-  border-color: var(--primary-500);
+  border-color: rgba(255, 255, 255, 0.25);
   outline: none;
-  box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.2);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 /* ===========================
@@ -269,11 +274,11 @@ body {
 }
 
 .card-hover:hover {
-  transform: translateY(-2px);
-  border-color: rgba(168, 85, 247, 0.5);
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.15);
   box-shadow: 
-    0 0 0 1px rgba(168, 85, 247, 0.1) inset,
-    0 8px 30px rgba(168, 85, 247, 0.15);
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset,
+    0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 /* ===========================
@@ -311,7 +316,7 @@ body {
    Focus Styles (Accessibility)
    =========================== */
 *:focus-visible {
-  outline: 2px solid var(--primary-500);
+  outline: 1px solid rgba(255, 255, 255, 0.3);
   outline-offset: 2px;
 }
 

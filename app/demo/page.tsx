@@ -123,9 +123,9 @@ export default function DemoPage() {
   const isComplete = completedSteps.size === selectedScenario.steps.length;
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f]">
+    <div className="min-h-screen bg-black">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-[#0a0a0f]/95 backdrop-blur-sm border-b border-white/5">
+      <header className="sticky top-0 z-50 bg-black/95 backdrop-blur-sm border-b border-white/5">
         <div className="max-w-[1800px] mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -253,7 +253,7 @@ export default function DemoPage() {
           {/* Main Demo Area */}
           <div className="col-span-2">
             {/* Step Timeline */}
-            <div className="bg-[#0a0a0f] rounded-xl border border-white/10 p-6">
+            <div className="bg-black rounded-xl border border-white/10 p-6">
               <h2 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-primary-400" />
                 AI Response Timeline

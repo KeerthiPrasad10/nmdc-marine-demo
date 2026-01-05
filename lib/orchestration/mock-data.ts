@@ -139,18 +139,26 @@ export function generateMockProjects(): Project[] {
 }
 
 // Generate vessel assignments for Gantt chart
+// Now dynamically assigns projects to actual vessels passed in
 export function generateMockAssignments(projects: Project[], vessels: Array<{ id: string; name: string }>): VesselAssignment[] {
   const assignments: VesselAssignment[] = [];
   const now = new Date();
 
-  projects.forEach((project) => {
-    project.assignedVessels.forEach((vesselId) => {
-      const vessel = vessels.find(v => v.id === vesselId);
-      if (!vessel) return;
+  // If no vessels, return empty
+  if (vessels.length === 0) return assignments;
 
+  // Assign projects to actual vessels (distribute across fleet)
+  projects.forEach((project, projectIndex) => {
+    // Assign 1-2 vessels per project
+    const numVessels = project.priority === 'critical' ? 2 : 1;
+    
+    for (let i = 0; i < numVessels && i < vessels.length; i++) {
+      const vesselIndex = (projectIndex * 2 + i) % vessels.length;
+      const vessel = vessels[vesselIndex];
+      
       assignments.push({
-        id: `assign-${project.id}-${vesselId}`,
-        vesselId,
+        id: `assign-${project.id}-${vessel.id}`,
+        vesselId: vessel.id,
         vesselName: vessel.name,
         projectId: project.id,
         projectName: project.name,
@@ -161,22 +169,30 @@ export function generateMockAssignments(projects: Project[], vessels: Array<{ id
         utilization: project.status === 'active' ? 75 + Math.random() * 20 : 
                      project.status === 'planning' ? 0 : 85,
       });
-    });
+    }
   });
 
-  // Add some maintenance blocks
-  vessels.slice(0, 3).forEach((vessel, i) => {
-    assignments.push({
-      id: `maint-${vessel.id}`,
-      vesselId: vessel.id,
-      vesselName: vessel.name,
-      projectId: 'maintenance',
-      projectName: 'Scheduled Maintenance',
-      startDate: new Date(now.getTime() + (20 + i * 15) * 24 * 60 * 60 * 1000),
-      endDate: new Date(now.getTime() + (25 + i * 15) * 24 * 60 * 60 * 1000),
-      status: 'scheduled',
-      utilization: 0,
-    });
+  // Add some maintenance blocks for vessels that don't have many assignments
+  const assignmentCounts = new Map<string, number>();
+  assignments.forEach(a => {
+    assignmentCounts.set(a.vesselId, (assignmentCounts.get(a.vesselId) || 0) + 1);
+  });
+  
+  // Find vessels with fewer assignments and add maintenance
+  vessels.forEach((vessel, i) => {
+    if ((assignmentCounts.get(vessel.id) || 0) < 2 && i < 5) {
+      assignments.push({
+        id: `maint-${vessel.id}`,
+        vesselId: vessel.id,
+        vesselName: vessel.name,
+        projectId: 'maintenance',
+        projectName: 'Scheduled Maintenance',
+        startDate: new Date(now.getTime() + (20 + i * 10) * 24 * 60 * 60 * 1000),
+        endDate: new Date(now.getTime() + (25 + i * 10) * 24 * 60 * 60 * 1000),
+        status: 'scheduled',
+        utilization: 0,
+      });
+    }
   });
 
   return assignments;
