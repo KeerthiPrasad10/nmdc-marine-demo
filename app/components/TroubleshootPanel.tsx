@@ -115,8 +115,9 @@ export function TroubleshootPanel({
   const [input, setInput] = useState(initialSymptom || '');
   const [isLoading, setIsLoading] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -195,24 +196,44 @@ export function TroubleshootPanel({
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64 = event.target?.result as string;
-      // Remove data URL prefix for API
-      const base64Data = base64.split(',')[1];
-      setSelectedImage(base64Data);
-      setImagePreview(base64);
-    };
-    reader.readAsDataURL(file);
+    // Store the file for later upload
+    setSelectedImageFile(file);
+    
+    // Create preview URL
+    const previewUrl = URL.createObjectURL(file);
+    setImagePreview(previewUrl);
   }, []);
 
   const removeImage = useCallback(() => {
-    setSelectedImage(null);
+    // Revoke object URL to free memory
+    if (imagePreview && imagePreview.startsWith('blob:')) {
+      URL.revokeObjectURL(imagePreview);
+    }
+    setSelectedImageFile(null);
     setImagePreview(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  }, []);
+  }, [imagePreview]);
+
+  // Upload image to storage and get URL
+  const uploadImage = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const response = await fetch('/api/upload-image', {
+      method: 'POST',
+      body: formData,
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to upload image');
+    }
+    
+    const data = await response.json();
+    return data.url;
+  };
 
   // Build structured context for the AI
   const buildAppContext = useCallback((): AppContext => {
@@ -283,7 +304,7 @@ export function TroubleshootPanel({
   }, [selectedVessel, alerts, weather, equipmentType, fleetMetrics]);
 
   const sendMessage = async (content: string) => {
-    if ((!content.trim() && !selectedImage) || isLoading) return;
+    if ((!content.trim() && !selectedImageFile) || isLoading) return;
 
     setHasInteracted(true);
     
@@ -293,32 +314,60 @@ export function TroubleshootPanel({
     
     let contextualContent = content.trim();
     
-    // Build system instructions for intelligent context gathering
+    // Build system instructions for action-oriented troubleshooting
     const systemInstructions = `<system_instructions>
-You are a marine equipment troubleshooting assistant. When helping diagnose issues:
+You are a marine equipment troubleshooting assistant. Your goal is to QUICKLY DIAGNOSE the issue and provide ACTIONABLE RESOLUTION.
 
-1. ASSESS CONTEXT: Review the app_context provided. If critical information is missing, ASK before diagnosing.
+## TROUBLESHOOTING FLOW (Follow strictly):
 
-2. ASK CLARIFYING QUESTIONS when you need:
-   - Specific symptoms (sounds, smells, vibrations, visual indicators)
-   - Timeline (when did it start, sudden vs gradual, intermittent vs constant)
-   - Recent changes (maintenance, operational changes, environmental conditions)
-   - Specific readings (pressure, temperature, RPM, flow rates)
-   - Equipment details (make, model, age, maintenance history)
+### PHASE 1: QUICK TRIAGE (1-2 questions max)
+- Review app_context for vessel/equipment info
+- Ask ONE selection question to narrow down the symptom category
+- Example: "Select the primary symptom: [Noise/Vibration] [Overheating] [Pressure Loss] [No Output] [Intermittent Operation]"
 
-3. USE SELECTION RESPONSES to let users pick from options when narrowing down issues.
-   Example: If user reports "pump problem", ask them to select: 
-   - Low pressure / No flow / Unusual noise / Overheating / Vibration
+### PHASE 2: PINPOINT FAULT (1 question max)  
+- Based on selection, identify the MOST LIKELY fault
+- If needed, ask ONE more specific question
+- Then COMMIT to a diagnosis - don't keep asking
 
-4. BE SPECIFIC about what additional info would help. Don't ask vague questions.
+### PHASE 3: RESOLUTION (Always reach this)
+After 2-3 exchanges, you MUST provide a resolution with:
 
-5. If you have enough context, provide actionable troubleshooting steps.
+1. **FAULT IDENTIFIED**: State the specific component/issue
+   - Example: "Bearing failure in pump impeller shaft"
 
-Available context types you can request:
-- Equipment specifications (user can upload equipment photo or datasheet)
-- Sensor readings (user can provide current values)
-- Maintenance logs (user can describe recent work)
-- Environmental conditions (already provided in context if available)
+2. **SEVERITY & SAFETY**:
+   - CRITICAL: Immediate shutdown required
+   - HIGH: Complete within 24 hours  
+   - MEDIUM: Schedule for next maintenance window
+   - LOW: Monitor and address when convenient
+
+3. **LOTO REQUIREMENTS** (if applicable):
+   - Isolation points to lock out
+   - Energy sources to verify zero-energy state
+   - Required PPE
+
+4. **WORK ORDER DETAILS**:
+   - Task description
+   - Estimated time
+   - Parts/materials needed
+   - Skills required (mechanical, electrical, hydraulic)
+
+5. **STEP-BY-STEP REPAIR PROCEDURE**:
+   - Numbered checklist of actions
+   - Verification steps after repair
+
+## RULES:
+- NEVER ask more than 3 total questions before providing resolution
+- If user provides symptom + equipment, go directly to diagnosis
+- Don't ask for information already in app_context
+- Be decisive - pick the most probable cause, don't hedge
+- Always end with actionable next steps, never leave user hanging
+
+## RESPONSE FORMAT:
+Use 'checklist' type for repair procedures
+Use 'selection' type ONLY for initial triage (max 2 times)
+Use 'info_message' for diagnosis and work order details
 </system_instructions>
 
 `;
@@ -344,26 +393,57 @@ User Query: ${content.trim()}`;
 
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
-    const capturedImage = selectedImage;
+    const capturedImageFile = selectedImageFile;
+    const capturedImagePreview = imagePreview;
     removeImage();
     setIsLoading(true);
 
     try {
+      // Upload image first if present (more efficient than base64)
+      let imageUrl: string | undefined;
+      if (capturedImageFile) {
+        setIsUploading(true);
+        try {
+          imageUrl = await uploadImage(capturedImageFile);
+        } catch (uploadError) {
+          console.error('Image upload failed:', uploadError);
+          throw new Error('Failed to upload image. Please try again.');
+        } finally {
+          setIsUploading(false);
+        }
+      }
+      
+      // Clean up preview URL
+      if (capturedImagePreview && capturedImagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(capturedImagePreview);
+      }
+
       const response = await fetch('/api/troubleshoot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: capturedImage ? 'analyze_image' : 'query',
+          action: imageUrl ? 'analyze_image' : 'query',
           message: contextualContent,
-          imageBase64: capturedImage,
+          imageUrl,  // Send URL instead of base64
           knowledgeBaseId: selectedKnowledgeBase,
           responseFormat: 'json',
         }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to get response');
+        // Handle both JSON and text error responses
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to get response');
+        } else {
+          const errorText = await response.text();
+          // Check for common error patterns
+          if (errorText.includes('Request Entity Too Large') || response.status === 413) {
+            throw new Error('Image is too large. Please use an image smaller than 10MB.');
+          }
+          throw new Error(errorText || `Server error: ${response.status}`);
+        }
       }
 
       const data: QueryResponse = await response.json();
@@ -583,6 +663,17 @@ User Query: ${content.trim()}`;
                       <div 
                         className="prose prose-invert prose-sm max-w-none prose-p:my-1.5 prose-p:leading-relaxed prose-ul:my-1.5 prose-li:my-0 prose-strong:text-white prose-headings:text-white prose-headings:font-medium"
                         dangerouslySetInnerHTML={{ __html: message.content }}
+                        onClick={(e) => {
+                          // Handle clicks on selection options via event delegation
+                          const target = e.target as HTMLElement;
+                          const optionEl = target.closest('[data-option-value]') as HTMLElement;
+                          if (optionEl) {
+                            const optionValue = optionEl.getAttribute('data-option-value');
+                            if (optionValue) {
+                              sendMessage(optionValue);
+                            }
+                          }
+                        }}
                       />
                     ) : (
                       <p className="leading-relaxed">{message.content}</p>
@@ -662,10 +753,10 @@ User Query: ${content.trim()}`;
           />
           <button
             type="submit"
-            disabled={(!input.trim() && !selectedImage) || isLoading}
+            disabled={(!input.trim() && !selectedImageFile) || isLoading || isUploading}
             className="px-3 py-2.5 rounded-lg bg-white/15 text-white/80 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
           >
-            {isLoading ? (
+            {isLoading || isUploading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <Send className="h-4 w-4" />
@@ -823,9 +914,14 @@ function formatSelectionEnhanced(data: { question?: string; options: Array<{ id?
   }
   html += '<div class="grid grid-cols-2 gap-2">';
   data.options.forEach((option) => {
+    const optionTitle = option.title || option.id || 'Option';
+    const optionValue = `${optionTitle}${option.subtitle ? ': ' + option.subtitle : ''}`;
     html += `
-      <div class="p-2 rounded bg-white/[0.03] border border-white/8 hover:border-white/20 cursor-pointer transition-colors">
-        <p class="text-white/80 text-xs font-medium">${option.title || option.id}</p>
+      <div 
+        data-option-value="${escapeHtml(optionValue)}"
+        class="p-2 rounded bg-white/[0.03] border border-white/8 hover:border-white/20 hover:bg-white/[0.05] cursor-pointer transition-colors active:scale-[0.98]"
+      >
+        <p class="text-white/80 text-xs font-medium">${optionTitle}</p>
         ${option.subtitle ? `<p class="text-white/40 text-[10px] mt-0.5">${option.subtitle}</p>` : ''}
       </div>
     `;
@@ -886,8 +982,12 @@ function formatSelection(data: { title?: string; question?: string; options: Arr
   data.options.forEach((option) => {
     const displayTitle = option.title || option.label || option.id || 'Option';
     const displayDesc = option.subtitle || option.description;
+    const optionValue = `${displayTitle}${displayDesc ? ': ' + displayDesc : ''}`;
     html += `
-      <div class="p-2 rounded bg-white/[0.03] border border-white/8 hover:border-white/20 cursor-pointer transition-colors">
+      <div 
+        data-option-value="${escapeHtml(optionValue)}"
+        class="p-2 rounded bg-white/[0.03] border border-white/8 hover:border-white/20 hover:bg-white/[0.05] cursor-pointer transition-colors active:scale-[0.98]"
+      >
         <p class="text-white/80 text-sm font-medium">${displayTitle}</p>
         ${displayDesc ? `<p class="text-white/40 text-xs mt-1">${displayDesc}</p>` : ''}
       </div>
@@ -895,6 +995,16 @@ function formatSelection(data: { title?: string; question?: string; options: Arr
   });
   html += '</div>';
   return html;
+}
+
+// Escape HTML special characters for safe attribute values
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 }
 
 function formatMarkdown(content: string): string {

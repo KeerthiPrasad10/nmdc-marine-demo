@@ -7,6 +7,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ResolveClient, QueryResponse, DocumentList, KnowledgeBase } from '@/lib/sdk/resolve-sdk';
 
+// Extend function timeout for Pro plans (default is 10s for Hobby, 60s for Pro)
+export const maxDuration = 60;
+
 // Initialize client with API key from environment
 const getClient = () => {
   const apiKey = process.env.RESOLVE_API_KEY;
@@ -32,9 +35,10 @@ export async function POST(request: NextRequest) {
 
     switch (action) {
       case 'query': {
-        const { message, imageBase64, knowledgeBaseId, responseFormat } = params;
+        const { message, imageUrl, imageBase64, knowledgeBaseId, responseFormat } = params;
         const response: QueryResponse = await client.query(message, {
-          imageBase64,
+          imageUrl,      // Preferred: more efficient
+          imageBase64,   // Fallback for backward compatibility
           knowledgeBaseId,
           responseFormat: responseFormat || 'json',
         });
@@ -48,8 +52,10 @@ export async function POST(request: NextRequest) {
       }
 
       case 'analyze_image': {
-        const { imageBase64, message, knowledgeBaseId } = params;
-        const response = await client.analyzeImage(imageBase64, message, knowledgeBaseId);
+        const { imageUrl, imageBase64, message, knowledgeBaseId } = params;
+        // Prefer imageUrl over imageBase64 for efficiency
+        const image = imageUrl || imageBase64;
+        const response = await client.analyzeImage(image, message, knowledgeBaseId);
         return NextResponse.json(response);
       }
 

@@ -199,19 +199,21 @@ export class ResolveClient {
    * Query the knowledge base for troubleshooting help
    * 
    * @param message - The problem description or question
-   * @param options - Optional parameters
+   * @param options - Optional parameters (prefer imageUrl over imageBase64 for efficiency)
    * @returns Query response with answer and sources
    */
   async query(
     message: string,
     options: {
-      imageBase64?: string;
+      imageUrl?: string;      // Preferred: URL to image (more efficient)
+      imageBase64?: string;   // Fallback: base64 encoded image
       knowledgeBaseId?: string;
       responseFormat?: 'json' | 'text';
     } = {}
   ): Promise<QueryResponse> {
     return this.request<QueryResponse>('query', {
       message,
+      image_url: options.imageUrl,
       image_base64: options.imageBase64,
       knowledge_base_id: options.knowledgeBaseId,
       response_format: options.responseFormat || 'json'
@@ -231,14 +233,21 @@ export class ResolveClient {
 
   /**
    * Analyze an image for troubleshooting
+   * @param image - Either a URL string or base64 encoded image data
+   * @param message - Optional message/question about the image
+   * @param knowledgeBaseId - Optional knowledge base to search
    */
   async analyzeImage(
-    imageBase64: string,
+    image: string,
     message?: string,
     knowledgeBaseId?: string
   ): Promise<QueryResponse> {
+    // Detect if it's a URL or base64
+    const isUrl = image.startsWith('http://') || image.startsWith('https://');
+    
     return this.query(message || 'Please analyze this image and help me troubleshoot.', {
-      imageBase64,
+      imageUrl: isUrl ? image : undefined,
+      imageBase64: isUrl ? undefined : image,
       knowledgeBaseId,
       responseFormat: 'json'
     });

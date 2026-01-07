@@ -54,6 +54,7 @@ Create a `.env.local` file in the root directory:
 # Supabase Configuration (Required)
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key  # Optional: for image uploads
 
 # AI Configuration (Required for AI features)
 ANTHROPIC_API_KEY=your_anthropic_api_key
