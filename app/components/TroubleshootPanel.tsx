@@ -384,17 +384,12 @@ User Query: ${content.trim()}`;
       contextualContent = `${systemInstructions}User Query: ${content.trim()}`;
     }
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: content.trim() || 'Please analyze this image',
-      imagePreview: imagePreview || undefined,
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
-    setInput('');
+    // Capture file before clearing
     const capturedImageFile = selectedImageFile;
-    const capturedImagePreview = imagePreview;
+    const capturedBlobPreview = imagePreview;
+    
+    // Clear input immediately for better UX
+    setInput('');
     removeImage();
     setIsLoading(true);
 
@@ -413,10 +408,20 @@ User Query: ${content.trim()}`;
         }
       }
       
-      // Clean up preview URL
-      if (capturedImagePreview && capturedImagePreview.startsWith('blob:')) {
-        URL.revokeObjectURL(capturedImagePreview);
+      // Clean up blob preview URL
+      if (capturedBlobPreview && capturedBlobPreview.startsWith('blob:')) {
+        URL.revokeObjectURL(capturedBlobPreview);
       }
+
+      // Create user message with the permanent uploaded URL (not the blob)
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        role: 'user',
+        content: content.trim() || 'Please analyze this image',
+        imagePreview: imageUrl || undefined,  // Use uploaded URL, not blob
+      };
+
+      setMessages((prev) => [...prev, userMessage]);
 
       const response = await fetch('/api/troubleshoot', {
         method: 'POST',
