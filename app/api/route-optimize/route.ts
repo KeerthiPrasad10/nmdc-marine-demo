@@ -105,7 +105,11 @@ async function handleSingleRouteOptimization(body: {
       name: destination.name,
     },
     priorities,
-    constraints: body.constraints || {},
+    constraints: body.constraints ? {
+      ...body.constraints,
+      // Convert deadline string to Date if present
+      deadline: body.constraints.deadline ? new Date(body.constraints.deadline) : undefined,
+    } : {},
   };
 
   // Run optimization
