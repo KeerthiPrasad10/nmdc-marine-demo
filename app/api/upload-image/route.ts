@@ -3,22 +3,21 @@
  * 
  * Uploads images to Supabase Storage and returns a public URL.
  * This is more efficient than sending base64 encoded images in API requests.
+ * 
+ * Uses the Resolve Supabase project for storage (same as the troubleshooting API).
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// Create a Supabase client - uses service role key if available, falls back to anon key
+// Resolve project Supabase configuration (same project as the troubleshooting API)
+// This is a public anon key, safe to embed
+const RESOLVE_SUPABASE_URL = 'https://mecgxrlfinjcwhsdjoce.supabase.co';
+const RESOLVE_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1lY2d4cmxmaW5qY3doc2Rqb2NlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQzNjE5OTUsImV4cCI6MjA3OTkzNzk5NX0.Uk1BVs7aUyKzNFtzHGPJ1qkTEvtCymJsMAXhxL4b3xg';
+
+// Create a Supabase client for the Resolve project storage
 const getStorageClient = () => {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  // Prefer service role key for server-side operations, fall back to anon key
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Supabase configuration missing. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.');
-  }
-  
-  return createClient(supabaseUrl, supabaseKey);
+  return createClient(RESOLVE_SUPABASE_URL, RESOLVE_SUPABASE_ANON_KEY);
 };
 
 const BUCKET_NAME = 'troubleshoot-images';
