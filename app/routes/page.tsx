@@ -46,14 +46,14 @@ export default function RoutesPage() {
 
   const fetchVessels = useCallback(async () => {
     try {
-      let vesselsData: Vessel[] | null = null;
+      let vesselsData: Pick<Vessel, 'id' | 'name' | 'type'>[] | null = null;
       
       if (isSupabaseConfigured) {
         const { data } = await supabase
           .from('vessels')
           .select('id, name, type')
           .order('name');
-        vesselsData = data;
+        vesselsData = data as Pick<Vessel, 'id' | 'name' | 'type'>[] | null;
       }
 
       if (!vesselsData || vesselsData.length === 0) {
