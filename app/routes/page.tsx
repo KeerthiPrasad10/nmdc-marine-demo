@@ -47,39 +47,12 @@ export default function RoutesPage() {
   // ============================================================================
 
   const fetchVessels = useCallback(async () => {
-    try {
-      let vesselsData: Pick<Vessel, 'id' | 'name' | 'type'>[] | null = null;
-      
-      if (isSupabaseConfigured) {
-        const { data } = await supabase
-          .from('vessels')
-          .select('id, name, type')
-          .order('name');
-        vesselsData = data as Pick<Vessel, 'id' | 'name' | 'type'>[] | null;
-      }
-
-      if (!vesselsData || vesselsData.length === 0) {
-        // Use NMDC fleet data
-        setVessels(NMDC_FLEET.map(v => ({
-          id: v.mmsi,
-          name: v.name,
-          type: v.type,
-        })));
-      } else {
-        setVessels(vesselsData.map(v => ({
-          id: v.id,
-          name: v.name,
-          type: v.type,
-        })));
-      }
-    } catch (error) {
-      console.error('Error fetching vessels:', error);
-      setVessels(NMDC_FLEET.map(v => ({
-        id: v.mmsi,
-        name: v.name,
-        type: v.type,
-      })));
-    }
+    // Always use NMDC fleet data for this demo
+    setVessels(NMDC_FLEET.map(v => ({
+      id: v.mmsi,
+      name: v.name,
+      type: v.type,
+    })));
   }, []);
 
   const fetchRoutes = useCallback(async () => {

@@ -81,40 +81,27 @@ export default function ESGPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        let data: Vessel[] | null = null;
-        
-        // Try to fetch vessels from Supabase if configured
-        if (isSupabaseConfigured) {
-          const result = await supabase
-            .from('vessels')
-            .select('*')
-            .order('name');
-          data = result.data;
-        }
-
-        // Fall back to NMDC fleet data if Supabase is not configured or returns empty
-        if (!data || data.length === 0) {
-          data = NMDC_FLEET.map((v) => ({
-            id: v.mmsi,
-            name: v.name,
-            type: v.type,
-            mmsi: v.mmsi,
-            imo: v.imo || null,
-            status: 'operational',
-            current_lat: 24.5 + Math.random() * 0.5,
-            current_lng: 54.0 + Math.random() * 0.5,
-            heading: Math.floor(Math.random() * 360),
-            speed: 5 + Math.random() * 10,
-            destination: v.project || 'Abu Dhabi',
-            eta: new Date(Date.now() + Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
-            last_update: new Date().toISOString(),
-            crew_count: v.crewCount || 20,
-            engine_status: 'operational',
-            fuel_level: 70 + Math.random() * 25,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })) as unknown as Vessel[];
-        }
+        // Always use NMDC fleet data for this demo
+        const data = NMDC_FLEET.map((v) => ({
+          id: v.mmsi,
+          name: v.name,
+          type: v.type,
+          mmsi: v.mmsi,
+          imo: v.imo || null,
+          status: 'operational',
+          current_lat: 24.5 + Math.random() * 0.5,
+          current_lng: 54.0 + Math.random() * 0.5,
+          heading: Math.floor(Math.random() * 360),
+          speed: 5 + Math.random() * 10,
+          destination: v.project || 'Abu Dhabi',
+          eta: new Date(Date.now() + Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
+          last_update: new Date().toISOString(),
+          crew_count: v.crewCount || 20,
+          engine_status: 'operational',
+          fuel_level: 70 + Math.random() * 25,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })) as unknown as Vessel[];
 
         setVessels(data);
 
