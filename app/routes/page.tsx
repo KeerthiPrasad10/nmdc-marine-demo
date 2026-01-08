@@ -15,8 +15,10 @@ import { Route } from '@/lib/routes/types';
 import { RoutePlanningPanel, RouteCard } from '@/app/components/routes';
 import { supabase, isSupabaseConfigured, Vessel } from '@/lib/supabase';
 import { NMDC_FLEET } from '@/lib/nmdc/fleet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import type L from 'leaflet';
+
+// Leaflet types - actual import happens client-side only
+let leafletModule: typeof import('leaflet') | null = null;
 
 // ============================================================================
 // Main Page Component
@@ -112,32 +114,52 @@ export default function RoutesPage() {
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
-    const map = L.map(mapContainerRef.current, {
-      center: [24.8, 54.0],
-      zoom: 7,
-      zoomControl: true,
-      attributionControl: false,
-    });
+    // Dynamically import Leaflet to avoid SSR issues
+    const initMap = async () => {
+      const L = await import('leaflet');
+      // CSS is imported via a style tag to avoid TypeScript issues
+      if (!document.getElementById('leaflet-css')) {
+        const link = document.createElement('link');
+        link.id = 'leaflet-css';
+        link.rel = 'stylesheet';
+        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+        document.head.appendChild(link);
+      }
+      leafletModule = L;
 
-    // Dark map tiles
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      maxZoom: 19,
-    }).addTo(map);
+      if (!mapContainerRef.current || mapRef.current) return;
 
-    // OpenSeaMap overlay
-    L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      opacity: 0.7,
-    }).addTo(map);
+      const map = L.map(mapContainerRef.current, {
+        center: [24.8, 54.0],
+        zoom: 7,
+        zoomControl: true,
+        attributionControl: false,
+      });
 
-    // Create layer group for routes
-    routeLayerRef.current = L.layerGroup().addTo(map);
+      // Dark map tiles
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19,
+      }).addTo(map);
 
-    mapRef.current = map;
+      // OpenSeaMap overlay
+      L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        opacity: 0.7,
+      }).addTo(map);
+
+      // Create layer group for routes
+      routeLayerRef.current = L.layerGroup().addTo(map);
+
+      mapRef.current = map;
+    };
+
+    initMap();
 
     return () => {
-      map.remove();
-      mapRef.current = null;
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
     };
   }, []);
 
@@ -146,7 +168,9 @@ export default function RoutesPage() {
   // ============================================================================
 
   useEffect(() => {
-    if (!mapRef.current || !routeLayerRef.current) return;
+    if (!mapRef.current || !routeLayerRef.current || !leafletModule) return;
+
+    const L = leafletModule;
 
     // Clear existing route layer
     routeLayerRef.current.clearLayers();
