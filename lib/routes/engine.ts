@@ -182,31 +182,50 @@ const UAE_OFFSHORE_WAYPOINTS = [
 ];
 
 /**
- * Check if a point is likely over land (simplified for UAE region)
+ * Check if a point is likely over land (simplified for UAE/Gulf region)
+ * Uses a polygon-based approach for key landmasses
  */
 function isOverLand(lat: number, lon: number): boolean {
-  // UAE mainland rough bounds
-  if (lat >= 22.5 && lat <= 26.5 && lon >= 51.5 && lon <= 56.5) {
-    // Check if point is inland (east of the coastline)
-    // Simplified: UAE coast roughly follows these boundaries
-    
-    // Qatar peninsula
-    if (lat >= 24.5 && lat <= 26.2 && lon >= 50.7 && lon <= 51.6) return true;
-    
-    // UAE mainland - rough coastline approximation
-    // Abu Dhabi region
-    if (lat >= 23.5 && lat <= 24.6 && lon >= 53.5 && lon <= 55.5) {
-      // Inland areas
-      if (lon > 54.0 + (lat - 24.0) * 0.5) return true;
+  // Qatar peninsula (major obstacle in the Gulf)
+  if (lat >= 24.4 && lat <= 26.2 && lon >= 50.7 && lon <= 51.7) {
+    return true;
+  }
+  
+  // Bahrain
+  if (lat >= 25.8 && lat <= 26.3 && lon >= 50.3 && lon <= 50.8) {
+    return true;
+  }
+  
+  // UAE mainland - Abu Dhabi emirate coast
+  // The coast runs roughly from (24.0, 51.5) to (24.5, 54.5)
+  if (lat >= 23.5 && lat <= 25.5 && lon >= 53.5 && lon <= 56.5) {
+    // Simplified UAE coastal boundary
+    // Coast is roughly at lon = 54.0 to 54.5 depending on latitude
+    const coastLon = 54.0 + (lat - 24.0) * 0.3;
+    if (lon > coastLon) {
+      return true;
     }
-    
-    // Dubai/Northern Emirates
-    if (lat >= 24.8 && lat <= 26.0 && lon >= 55.0 && lon <= 56.3) {
-      if (lon > 55.3 && lat < 25.5) return true;
-    }
-    
-    // Musandam peninsula
-    if (lat >= 25.8 && lat <= 26.5 && lon >= 56.0 && lon <= 56.5) return true;
+  }
+  
+  // Dubai and northern emirates
+  if (lat >= 25.0 && lat <= 25.8 && lon >= 55.0 && lon <= 56.0) {
+    if (lon > 55.2) return true;
+  }
+  
+  // Musandam peninsula (Oman)
+  if (lat >= 25.8 && lat <= 26.5 && lon >= 56.0 && lon <= 56.6) {
+    return true;
+  }
+  
+  // Iranian coast (northern Gulf)
+  if (lat >= 26.5 && lat <= 30.0 && lon >= 51.0 && lon <= 56.5) {
+    // Rough southern Iran coast - land is north of ~27.0 lat
+    if (lat > 27.0) return true;
+  }
+  
+  // Saudi Arabia eastern coast
+  if (lat >= 24.0 && lat <= 28.0 && lon >= 49.0 && lon <= 50.5) {
+    if (lon < 50.0) return true;
   }
   
   return false;
@@ -231,6 +250,22 @@ function findNearestOffshorePoint(lat: number, lon: number): { lat: number; lon:
 }
 
 /**
+ * Check if a route path crosses land by sampling multiple points
+ */
+function doesRouteCrossLand(fromLat: number, fromLon: number, toLat: number, toLon: number): boolean {
+  // Check 10 points along the route
+  for (let i = 1; i < 10; i++) {
+    const t = i / 10;
+    const lat = fromLat + (toLat - fromLat) * t;
+    const lon = fromLon + (toLon - fromLon) * t;
+    if (isOverLand(lat, lon)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Generate a fallback route when Datalastic is unavailable
  * Creates intermediate waypoints that avoid cutting across land
  */
@@ -245,61 +280,68 @@ function generateFallbackRoute(
   // Start point
   waypoints.push({ lat: fromLat, lon: fromLon });
   
-  // Check if direct path would cross land
-  const midLat = (fromLat + toLat) / 2;
-  const midLon = (fromLon + toLon) / 2;
-  const crossesLand = isOverLand(midLat, midLon);
+  // Check if direct path would cross land by sampling multiple points
+  const crossesLand = doesRouteCrossLand(fromLat, fromLon, toLat, toLon);
+  
+  console.log('[RouteEngine] Generating fallback route:', { fromLat, fromLon, toLat, toLon, crossesLand });
   
   if (crossesLand) {
     // Route needs to go around land - find offshore waypoints
     console.log('[RouteEngine] Direct path crosses land, generating offshore route');
     
-    // Find offshore points near origin and destination
-    const offshoreStart = findNearestOffshorePoint(fromLat, fromLon);
-    const offshoreEnd = findNearestOffshorePoint(toLat, toLon);
+    // For UAE routes, always push waypoints offshore into the Persian Gulf
+    // Find the best offshore corridor based on origin and destination
+    const avgLon = (fromLon + toLon) / 2;
     
-    // Add offshore waypoints if they're different from the endpoints
-    if (Math.abs(offshoreStart.lat - fromLat) > 0.1 || Math.abs(offshoreStart.lon - fromLon) > 0.1) {
-      waypoints.push({ lat: offshoreStart.lat, lon: offshoreStart.lon });
-    }
+    // Sort offshore waypoints by how well they serve as intermediates
+    const sortedWaypoints = [...UAE_OFFSHORE_WAYPOINTS].sort((a, b) => {
+      // Prefer waypoints between origin and destination longitudes
+      const aInRange = a.lon >= Math.min(fromLon, toLon) - 0.5 && a.lon <= Math.max(fromLon, toLon) + 0.5;
+      const bInRange = b.lon >= Math.min(fromLon, toLon) - 0.5 && b.lon <= Math.max(fromLon, toLon) + 0.5;
+      if (aInRange && !bInRange) return -1;
+      if (!aInRange && bInRange) return 1;
+      
+      // Then sort by distance to average longitude
+      return Math.abs(a.lon - avgLon) - Math.abs(b.lon - avgLon);
+    });
     
-    // If start and end offshore points are different, add intermediate offshore points
-    if (Math.abs(offshoreStart.lat - offshoreEnd.lat) > 0.5 || Math.abs(offshoreStart.lon - offshoreEnd.lon) > 0.5) {
-      // Find intermediate offshore waypoints
-      const relevantWaypoints = UAE_OFFSHORE_WAYPOINTS.filter(wp => {
-        const isOnPath = (
-          (wp.lon >= Math.min(offshoreStart.lon, offshoreEnd.lon) - 0.5 &&
-           wp.lon <= Math.max(offshoreStart.lon, offshoreEnd.lon) + 0.5) ||
-          (wp.lat >= Math.min(offshoreStart.lat, offshoreEnd.lat) - 0.5 &&
-           wp.lat <= Math.max(offshoreStart.lat, offshoreEnd.lat) + 0.5)
-        );
-        return isOnPath;
-      });
+    // Add 1-3 offshore waypoints to create a water-only route
+    const usedWaypoints: SeaRouteWaypoint[] = [];
+    for (const wp of sortedWaypoints) {
+      // Check if adding this waypoint keeps the route over water
+      const prevPoint = usedWaypoints.length > 0 
+        ? usedWaypoints[usedWaypoints.length - 1] 
+        : { lat: fromLat, lon: fromLon };
       
-      // Sort by distance from start
-      relevantWaypoints.sort((a, b) => {
-        const distA = Math.sqrt(Math.pow(a.lat - offshoreStart.lat, 2) + Math.pow(a.lon - offshoreStart.lon, 2));
-        const distB = Math.sqrt(Math.pow(b.lat - offshoreStart.lat, 2) + Math.pow(b.lon - offshoreStart.lon, 2));
-        return distA - distB;
-      });
+      const toWpCrossesLand = doesRouteCrossLand(prevPoint.lat, prevPoint.lon, wp.lat, wp.lon);
+      const wpToEndCrossesLand = doesRouteCrossLand(wp.lat, wp.lon, toLat, toLon);
       
-      // Add intermediate waypoints
-      for (const wp of relevantWaypoints.slice(0, 3)) {
-        waypoints.push({ lat: wp.lat, lon: wp.lon });
+      if (!toWpCrossesLand) {
+        usedWaypoints.push({ lat: wp.lat, lon: wp.lon });
+        
+        // If the rest of the route is clear, we're done
+        if (!wpToEndCrossesLand) {
+          break;
+        }
       }
+      
+      // Max 3 intermediate waypoints
+      if (usedWaypoints.length >= 3) break;
     }
     
-    if (Math.abs(offshoreEnd.lat - toLat) > 0.1 || Math.abs(offshoreEnd.lon - toLon) > 0.1) {
-      waypoints.push({ lat: offshoreEnd.lat, lon: offshoreEnd.lon });
+    // Add the selected waypoints
+    for (const wp of usedWaypoints) {
+      waypoints.push(wp);
     }
   } else {
-    // Direct path is over water - add intermediate points along curve
-    const numPoints = Math.max(3, Math.ceil(calculateDistanceNm(fromLat, fromLon, toLat, toLon) / 30));
+    // Direct path is over water - add intermediate points along a gentle curve
+    const distance = calculateDistanceNm(fromLat, fromLon, toLat, toLon);
+    const numPoints = Math.max(2, Math.ceil(distance / 40));
     
     for (let i = 1; i < numPoints; i++) {
       const t = i / numPoints;
-      // Add a slight curve to make the route look more natural
-      const curveFactor = Math.sin(t * Math.PI) * 0.05; // Slight offshore curve
+      // Add a slight offshore curve (negative longitude = more west = more offshore in UAE)
+      const curveFactor = Math.sin(t * Math.PI) * 0.03;
       const lat = fromLat + (toLat - fromLat) * t;
       const lon = fromLon + (toLon - fromLon) * t - curveFactor;
       waypoints.push({ lat, lon });
@@ -317,6 +359,8 @@ function generateFallbackRoute(
       waypoints[i + 1].lat, waypoints[i + 1].lon
     );
   }
+  
+  console.log('[RouteEngine] Generated fallback route with', waypoints.length, 'waypoints, distance:', totalDistance.toFixed(1), 'nm');
   
   return { waypoints, distance: totalDistance };
 }
