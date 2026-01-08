@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   Navigation,
   MapPin,
@@ -83,6 +83,23 @@ export function RoutePlanningPanel({
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<RouteOptimizationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Update map markers when origin/destination changes
+  useEffect(() => {
+    if (onWaypointsChange) {
+      const waypoints: Array<{ lat: number; lng: number }> = [];
+      if (origin) {
+        waypoints.push({ lat: origin.lat, lng: origin.lng });
+      }
+      intermediateStops.forEach(stop => {
+        waypoints.push({ lat: stop.lat, lng: stop.lng });
+      });
+      if (destination) {
+        waypoints.push({ lat: destination.lat, lng: destination.lng });
+      }
+      onWaypointsChange(waypoints);
+    }
+  }, [origin, destination, intermediateStops, onWaypointsChange]);
 
   // Common UAE ports for quick selection
   const commonPorts = [

@@ -41,6 +41,7 @@ export default function RoutesPage() {
   const [filterStatus, setFilterStatus] = useState<'all' | 'planned' | 'active' | 'completed'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentRouteWaypoints, setCurrentRouteWaypoints] = useState<Array<{ lat: number; lng: number }>>([]);
+  const [mapReady, setMapReady] = useState(false);
 
   // ============================================================================
   // Data Fetching
@@ -124,6 +125,7 @@ export default function RoutesPage() {
       routeLayerRef.current = L.layerGroup().addTo(map);
 
       mapRef.current = map;
+      setMapReady(true);
     };
 
     initMap();
@@ -148,69 +150,84 @@ export default function RoutesPage() {
     // Clear existing route layer
     routeLayerRef.current.clearLayers();
 
-    if (currentRouteWaypoints.length > 1) {
-      // Draw route polyline
-      const latLngs = currentRouteWaypoints.map(wp => [wp.lat, wp.lng] as [number, number]);
-      
-      const routeLine = L.polyline(latLngs, {
-        color: '#5b8a8a',
-        weight: 3,
-        opacity: 0.8,
-        smoothFactor: 1,
-        lineCap: 'round',
-        lineJoin: 'round',
-        dashArray: '10, 5',
-      });
-      
-      routeLayerRef.current.addLayer(routeLine);
+    if (currentRouteWaypoints.length === 0) return;
 
-      // Add markers for origin and destination
-      if (currentRouteWaypoints.length >= 2) {
-        const originMarker = L.circleMarker(
-          [currentRouteWaypoints[0].lat, currentRouteWaypoints[0].lng],
-          {
-            radius: 8,
-            fillColor: '#22c55e',
-            fillOpacity: 1,
-            color: '#000',
-            weight: 2,
-          }
-        );
-        
-        const destMarker = L.circleMarker(
-          [currentRouteWaypoints[currentRouteWaypoints.length - 1].lat, currentRouteWaypoints[currentRouteWaypoints.length - 1].lng],
-          {
-            radius: 8,
-            fillColor: '#ef4444',
-            fillOpacity: 1,
-            color: '#000',
-            weight: 2,
-          }
-        );
-        
-        routeLayerRef.current.addLayer(originMarker);
-        routeLayerRef.current.addLayer(destMarker);
-
-        // Add intermediate waypoint markers
-        for (let i = 1; i < currentRouteWaypoints.length - 1; i++) {
-          const waypointMarker = L.circleMarker(
-            [currentRouteWaypoints[i].lat, currentRouteWaypoints[i].lng],
-            {
-              radius: 4,
-              fillColor: '#5b8a8a',
-              fillOpacity: 1,
-              color: '#000',
-              weight: 1,
-            }
-          );
-          routeLayerRef.current.addLayer(waypointMarker);
+    // Single waypoint (just origin selected)
+    if (currentRouteWaypoints.length === 1) {
+      const originMarker = L.circleMarker(
+        [currentRouteWaypoints[0].lat, currentRouteWaypoints[0].lng],
+        {
+          radius: 10,
+          fillColor: '#22c55e',
+          fillOpacity: 1,
+          color: '#000',
+          weight: 2,
         }
-      }
-
-      // Fit map to route bounds
-      mapRef.current.fitBounds(routeLine.getBounds(), { padding: [50, 50] });
+      );
+      routeLayerRef.current.addLayer(originMarker);
+      mapRef.current.setView([currentRouteWaypoints[0].lat, currentRouteWaypoints[0].lng], 10);
+      return;
     }
-  }, [currentRouteWaypoints]);
+
+    // Multiple waypoints - draw route polyline
+    const latLngs = currentRouteWaypoints.map(wp => [wp.lat, wp.lng] as [number, number]);
+    
+    const routeLine = L.polyline(latLngs, {
+      color: '#5b8a8a',
+      weight: 3,
+      opacity: 0.8,
+      smoothFactor: 1,
+      lineCap: 'round',
+      lineJoin: 'round',
+      dashArray: '10, 5',
+    });
+    
+    routeLayerRef.current.addLayer(routeLine);
+
+    // Add markers for origin and destination
+    const originMarker = L.circleMarker(
+      [currentRouteWaypoints[0].lat, currentRouteWaypoints[0].lng],
+      {
+        radius: 10,
+        fillColor: '#22c55e',
+        fillOpacity: 1,
+        color: '#000',
+        weight: 2,
+      }
+    );
+    
+    const destMarker = L.circleMarker(
+      [currentRouteWaypoints[currentRouteWaypoints.length - 1].lat, currentRouteWaypoints[currentRouteWaypoints.length - 1].lng],
+      {
+        radius: 10,
+        fillColor: '#ef4444',
+        fillOpacity: 1,
+        color: '#000',
+        weight: 2,
+      }
+    );
+    
+    routeLayerRef.current.addLayer(originMarker);
+    routeLayerRef.current.addLayer(destMarker);
+
+    // Add intermediate waypoint markers
+    for (let i = 1; i < currentRouteWaypoints.length - 1; i++) {
+      const waypointMarker = L.circleMarker(
+        [currentRouteWaypoints[i].lat, currentRouteWaypoints[i].lng],
+        {
+          radius: 6,
+          fillColor: '#5b8a8a',
+          fillOpacity: 1,
+          color: '#000',
+          weight: 1,
+        }
+      );
+      routeLayerRef.current.addLayer(waypointMarker);
+    }
+
+    // Fit map to route bounds
+    mapRef.current.fitBounds(routeLine.getBounds(), { padding: [50, 50] });
+  }, [currentRouteWaypoints, mapReady]);
 
   // ============================================================================
   // Handlers
