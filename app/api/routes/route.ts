@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { Route } from '@/lib/routes/types';
 
+// Type assertion helper for routes table (not in generated types yet)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const routesTable = () => supabase.from('routes' as any);
+
 /**
  * Routes API - CRUD operations for saved routes
  * 
@@ -32,8 +36,7 @@ export async function GET(request: NextRequest) {
 
     // List routes with optional filters
     if (isSupabaseConfigured) {
-      let query = supabase
-        .from('routes')
+      let query = routesTable()
         .select('*')
         .order('created_at', { ascending: false });
 
@@ -92,8 +95,7 @@ export async function GET(request: NextRequest) {
 
 async function getRouteById(routeId: string) {
   if (isSupabaseConfigured) {
-    const { data, error } = await supabase
-      .from('routes')
+    const { data, error } = await routesTable()
       .select('*')
       .eq('id', routeId)
       .single();
@@ -174,8 +176,7 @@ export async function POST(request: NextRequest) {
         created_at: routeToSave.createdAt,
       };
 
-      const { data, error } = await supabase
-        .from('routes')
+      const { data, error } = await routesTable()
         .insert(dbRoute)
         .select()
         .single();
@@ -243,8 +244,7 @@ export async function PUT(request: NextRequest) {
       if (updates.weatherRisk !== undefined) dbUpdates.weather_risk = updates.weatherRisk;
       if (updates.cost !== undefined) dbUpdates.cost = updates.cost;
 
-      const { data, error } = await supabase
-        .from('routes')
+      const { data, error } = await routesTable()
         .update(dbUpdates)
         .eq('id', id)
         .select()
@@ -311,8 +311,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     if (isSupabaseConfigured) {
-      const { error } = await supabase
-        .from('routes')
+      const { error } = await routesTable()
         .delete()
         .eq('id', id);
 
