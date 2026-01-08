@@ -370,3 +370,5 @@ export function getScenarioById(id: string): CrisisScenario | undefined {
   return allScenarios.find(s => s.id === id);
 }
 
+
+

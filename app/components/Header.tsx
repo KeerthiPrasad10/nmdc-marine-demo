@@ -16,6 +16,7 @@ import {
   Anchor,
   Wrench,
   FileText,
+  Navigation,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -86,6 +87,13 @@ export function Header({
             >
               <Radio className="w-4 h-4" />
               Live AIS
+            </Link>
+            <Link
+              href="/routes"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-white/60 hover:text-white hover:bg-white/5 transition-colors"
+            >
+              <Navigation className="w-4 h-4" />
+              Routes
             </Link>
             {!hideSecondaryNav && (
               <Link

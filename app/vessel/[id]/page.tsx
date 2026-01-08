@@ -45,7 +45,9 @@ import {
   Lightbulb,
   TrendingUp,
   Calendar,
+  Route,
 } from 'lucide-react';
+import { RoutePlanningPanel } from '@/app/components/routes';
 import dynamic from 'next/dynamic';
 
 // Dynamically import DigitalTwin to avoid SSR issues with Three.js
@@ -84,6 +86,7 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [selectedSystem, setSelectedSystem] = useState<VesselSystem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showRoutePlanning, setShowRoutePlanning] = useState(false);
   const [datasheets, setDatasheets] = useState<Array<{
     id: string;
     title: string;
@@ -337,6 +340,17 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
               <div className="w-px h-6 bg-white/10" />
 
               {/* Action Buttons */}
+              <button
+                onClick={() => setShowRoutePlanning(!showRoutePlanning)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border transition-colors ${
+                  showRoutePlanning
+                    ? 'bg-primary-500/20 text-primary-400 border-primary-500/30'
+                    : 'bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 hover:text-cyan-300 border-cyan-500/20'
+                }`}
+              >
+                <Route className="w-3.5 h-3.5" />
+                <span className="hidden xl:inline">Plan</span> Route
+              </button>
               <Link
                 href={`/troubleshoot?vessel=${vesselId}&name=${encodeURIComponent(vessel.name)}&equipment=${encodeURIComponent(vessel.type || '')}&project=${encodeURIComponent(fleetVessel?.nmdc?.project || '')}&mmsi=${fleetVessel?.mmsi || ''}`}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 hover:text-amber-300 transition-colors text-sm border border-amber-500/20"
@@ -623,6 +637,25 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
 
             {/* Right Column - Quick Actions & Alerts */}
             <div className="space-y-6">
+              {/* Route Planning Panel */}
+              {showRoutePlanning && (
+                <RoutePlanningPanel
+                  vesselId={vessel.id}
+                  vesselName={vessel.name}
+                  vesselType={vessel.type}
+                  initialOrigin={
+                    vessel.position_lat && vessel.position_lng
+                      ? { lat: vessel.position_lat, lng: vessel.position_lng, name: 'Current Position' }
+                      : undefined
+                  }
+                  onRouteGenerated={(route) => {
+                    console.log('Route generated:', route);
+                    // Could show toast or navigate to routes page
+                  }}
+                  compact
+                />
+              )}
+
               {/* Documentation Links */}
               {profile?.docs && (
                 <div className="rounded-xl bg-white/[0.02] border border-white/8 p-6">

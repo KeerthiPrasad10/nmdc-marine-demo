@@ -6,10 +6,19 @@ import 'leaflet/dist/leaflet.css';
 import { Vessel } from '@/lib/supabase';
 import { getWeatherAtLocation, getWeatherIcon, getRiskColor } from '@/lib/weather';
 
+interface PlannedRoute {
+  vesselId: string;
+  waypoints: Array<{ lat: number; lng: number }>;
+  origin: { lat: number; lng: number; name?: string };
+  destination: { lat: number; lng: number; name?: string };
+}
+
 interface FleetMapClientProps {
   vessels: Vessel[];
   selectedVessel: string | null;
   onSelectVessel: (id: string | null) => void;
+  plannedRoutes?: PlannedRoute[];
+  onPlanRoute?: (vesselId: string) => void;
 }
 
 // Mapbox token from environment
@@ -149,11 +158,18 @@ function createVesselIcon(vessel: Vessel, isSelected: boolean): L.DivIcon {
   });
 }
 
-export function FleetMapClient({ vessels, selectedVessel, onSelectVessel }: FleetMapClientProps) {
+export function FleetMapClient({ 
+  vessels, 
+  selectedVessel, 
+  onSelectVessel,
+  plannedRoutes = [],
+  onPlanRoute,
+}: FleetMapClientProps) {
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
   const routesRef = useRef<Map<string, L.Polyline>>(new Map());
   const routeHistoryRef = useRef<Map<string, [number, number][]>>(new Map());
+  const plannedRoutesLayerRef = useRef<L.LayerGroup | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const initAttemptRef = useRef(0);
 
@@ -213,6 +229,9 @@ export function FleetMapClient({ vessels, selectedVessel, onSelectVessel }: Flee
 
       mapRef.current = map;
 
+      // Create layer group for planned routes
+      plannedRoutesLayerRef.current = L.layerGroup().addTo(map);
+
       // Invalidate size after tiles load
       setTimeout(() => {
         map.invalidateSize();
@@ -228,6 +247,72 @@ export function FleetMapClient({ vessels, selectedVessel, onSelectVessel }: Flee
       }
     };
   }, []);
+
+  // Render planned routes
+  useEffect(() => {
+    const map = mapRef.current;
+    const layer = plannedRoutesLayerRef.current;
+    if (!map || !layer) return;
+
+    // Clear existing planned routes
+    layer.clearLayers();
+
+    // Draw each planned route
+    plannedRoutes.forEach((route) => {
+      if (route.waypoints.length < 2) return;
+
+      const latLngs = route.waypoints.map(wp => [wp.lat, wp.lng] as [number, number]);
+      const vesselColor = vesselColors[vessels.find(v => v.id === route.vesselId)?.type || 'supply_vessel'] || '#5b8a8a';
+
+      // Draw dashed route line
+      const routeLine = L.polyline(latLngs, {
+        color: vesselColor,
+        weight: 3,
+        opacity: 0.7,
+        dashArray: '8, 6',
+        lineCap: 'round',
+        lineJoin: 'round',
+      });
+      layer.addLayer(routeLine);
+
+      // Add destination marker
+      if (route.destination) {
+        const destMarker = L.circleMarker(
+          [route.destination.lat, route.destination.lng],
+          {
+            radius: 6,
+            fillColor: vesselColor,
+            fillOpacity: 0.8,
+            color: '#000',
+            weight: 2,
+          }
+        );
+        
+        destMarker.bindTooltip(route.destination.name || 'Destination', {
+          permanent: false,
+          direction: 'top',
+          className: 'route-tooltip',
+        });
+        
+        layer.addLayer(destMarker);
+      }
+
+      // Add intermediate waypoint markers
+      for (let i = 1; i < route.waypoints.length - 1; i++) {
+        const wpMarker = L.circleMarker(
+          [route.waypoints[i].lat, route.waypoints[i].lng],
+          {
+            radius: 3,
+            fillColor: vesselColor,
+            fillOpacity: 0.6,
+            color: '#000',
+            weight: 1,
+          }
+        );
+        layer.addLayer(wpMarker);
+      }
+    });
+  }, [plannedRoutes, vessels]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -353,10 +438,58 @@ export function FleetMapClient({ vessels, selectedVessel, onSelectVessel }: Flee
                 </div>
               </div>
             </div>
+
+            ${onPlanRoute ? `
+            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1);">
+              <button 
+                class="plan-route-btn" 
+                data-vessel-id="${vessel.id}"
+                style="
+                  width: 100%;
+                  padding: 8px 12px;
+                  background: rgba(91, 138, 138, 0.2);
+                  border: 1px solid rgba(91, 138, 138, 0.4);
+                  border-radius: 6px;
+                  color: #5b8a8a;
+                  font-size: 11px;
+                  font-weight: 500;
+                  cursor: pointer;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  gap: 6px;
+                  transition: all 0.2s;
+                "
+                onmouseover="this.style.background='rgba(91, 138, 138, 0.3)'"
+                onmouseout="this.style.background='rgba(91, 138, 138, 0.2)'"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 11l18-9-9 18-3-6-6-3z"/>
+                </svg>
+                Plan Route
+              </button>
+            </div>
+            ` : ''}
           </div>
         `, {
           className: 'vessel-popup',
         });
+
+        // Add click handler for Plan Route button
+        if (onPlanRoute) {
+          marker.on('popupopen', () => {
+            setTimeout(() => {
+              const btn = document.querySelector(`.plan-route-btn[data-vessel-id="${vessel.id}"]`);
+              if (btn) {
+                btn.addEventListener('click', (e) => {
+                  e.stopPropagation();
+                  onPlanRoute(vessel.id);
+                  marker.closePopup();
+                });
+              }
+            }, 100);
+          });
+        }
 
         marker.on('click', () => {
           onSelectVessel(vessel.id);
@@ -421,6 +554,18 @@ export function FleetMapClient({ vessels, selectedVessel, onSelectVessel }: Flee
         }
         .vessel-popup .leaflet-popup-tip {
           background: rgba(20, 20, 25, 0.95);
+        }
+        .route-tooltip {
+          background: rgba(20, 20, 25, 0.95) !important;
+          border: 1px solid rgba(255,255,255,0.2) !important;
+          border-radius: 4px !important;
+          color: white !important;
+          font-size: 11px !important;
+          padding: 4px 8px !important;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+        }
+        .route-tooltip::before {
+          border-top-color: rgba(20, 20, 25, 0.95) !important;
         }
         @keyframes pulse {
           0%, 100% { opacity: 0.4; transform: scale(1); }

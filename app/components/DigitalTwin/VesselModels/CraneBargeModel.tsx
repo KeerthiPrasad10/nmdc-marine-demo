@@ -202,3 +202,5 @@ export function CraneBargeModel({ healthScore, isSelected = false, craneCapacity
 
 export default CraneBargeModel;
 
+
+

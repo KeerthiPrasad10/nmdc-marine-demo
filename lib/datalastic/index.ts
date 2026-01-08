@@ -12,6 +12,7 @@
  */
 
 const DATALASTIC_API_BASE = 'https://api.datalastic.com/api/v0';
+const DATALASTIC_SANDBOX_BASE = 'https://api.datalastic.com/api/sandbox';
 
 // ============================================================================
 // Types for Datalastic API Responses
@@ -156,6 +157,40 @@ export interface DatalasticError {
 }
 
 // ============================================================================
+// Sea Routes API Types
+// ============================================================================
+
+export interface SeaRouteWaypoint {
+  lat: number;
+  lon: number;
+}
+
+export interface SeaRouteResponse {
+  data: {
+    route: SeaRouteWaypoint[];
+    distance: number; // Distance in nautical miles
+    duration?: number; // Estimated duration in hours
+  };
+  meta?: {
+    success: boolean;
+    duration: number;
+  };
+}
+
+export interface SeaRouteRequest {
+  // Origin - use either coordinates or port identifiers
+  lat_from?: number;
+  lon_from?: number;
+  port_uuid_from?: string;
+  port_unlocode_from?: string;
+  // Destination - use either coordinates or port identifiers
+  lat_to?: number;
+  lon_to?: number;
+  port_uuid_to?: string;
+  port_unlocode_to?: string;
+}
+
+// ============================================================================
 // Vessel Type Mappings
 // ============================================================================
 
@@ -212,10 +247,12 @@ export const NAV_STATUS_MAP: Record<number, string> = {
 class DatalasticAPI {
   private apiKey: string;
   private baseUrl: string;
+  private sandboxUrl: string;
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
     this.baseUrl = DATALASTIC_API_BASE;
+    this.sandboxUrl = DATALASTIC_SANDBOX_BASE;
   }
 
   /**
@@ -251,6 +288,53 @@ class DatalasticAPI {
       }
       // Handle different error message formats
       let errorMessage = `Datalastic API error: ${response.status} ${response.statusText}`;
+      if (errorData.meta?.message) {
+        errorMessage = typeof errorData.meta.message === 'string' 
+          ? errorData.meta.message 
+          : JSON.stringify(errorData.meta.message);
+      } else if (errorData.message) {
+        errorMessage = typeof errorData.message === 'string'
+          ? errorData.message
+          : JSON.stringify(errorData.message);
+      }
+      throw new Error(errorMessage);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Make an authenticated request to the Datalastic Sandbox API (for sea routes)
+   */
+  private async sandboxRequest<T>(endpoint: string, params: Record<string, string | number> = {}): Promise<T> {
+    const url = new URL(`${this.sandboxUrl}${endpoint}`);
+    url.searchParams.set('api-key', this.apiKey);
+    
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        url.searchParams.set(key, String(value));
+      }
+    });
+
+    console.log('[Datalastic Sandbox] Requesting:', url.toString().replace(this.apiKey, '***'));
+
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[Datalastic Sandbox] Error response:', errorText);
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { message: errorText };
+      }
+      let errorMessage = `Datalastic Sandbox API error: ${response.status} ${response.statusText}`;
       if (errorData.meta?.message) {
         errorMessage = typeof errorData.meta.message === 'string' 
           ? errorData.meta.message 
@@ -480,6 +564,70 @@ class DatalasticAPI {
   async getPortsByCountry(countryCode: string, limit: number = 100): Promise<DatalasticPort[]> {
     const result = await this.searchPorts({ country_iso: countryCode, limit });
     return result.data;
+  }
+
+  // ==========================================================================
+  // Sea Routes
+  // ==========================================================================
+
+  /**
+   * Get optimal sea route between two points
+   * Endpoint: /route (sandbox API)
+   * Returns realistic maritime routes that avoid land
+   * 
+   * Points can be specified using:
+   * - Coordinates (lat_from, lon_from, lat_to, lon_to)
+   * - Port UUIDs (port_uuid_from, port_uuid_to)
+   * - UN/LOCODEs (port_unlocode_from, port_unlocode_to)
+   */
+  async getSeaRoute(params: SeaRouteRequest): Promise<SeaRouteResponse> {
+    const queryParams: Record<string, string | number> = {};
+    
+    // Origin
+    if (params.lat_from !== undefined) queryParams.lat_from = params.lat_from;
+    if (params.lon_from !== undefined) queryParams.lon_from = params.lon_from;
+    if (params.port_uuid_from) queryParams.port_uuid_from = params.port_uuid_from;
+    if (params.port_unlocode_from) queryParams.port_unlocode_from = params.port_unlocode_from;
+    
+    // Destination
+    if (params.lat_to !== undefined) queryParams.lat_to = params.lat_to;
+    if (params.lon_to !== undefined) queryParams.lon_to = params.lon_to;
+    if (params.port_uuid_to) queryParams.port_uuid_to = params.port_uuid_to;
+    if (params.port_unlocode_to) queryParams.port_unlocode_to = params.port_unlocode_to;
+
+    return this.sandboxRequest<SeaRouteResponse>('/route', queryParams);
+  }
+
+  /**
+   * Get sea route between two coordinate points
+   * Convenience method for coordinate-based routing
+   */
+  async getSeaRouteByCoordinates(
+    fromLat: number,
+    fromLon: number,
+    toLat: number,
+    toLon: number
+  ): Promise<SeaRouteResponse> {
+    return this.getSeaRoute({
+      lat_from: fromLat,
+      lon_from: fromLon,
+      lat_to: toLat,
+      lon_to: toLon,
+    });
+  }
+
+  /**
+   * Get sea route between two ports by UNLOCODE
+   * Convenience method for port-based routing
+   */
+  async getSeaRouteBetweenPorts(
+    fromUnlocode: string,
+    toUnlocode: string
+  ): Promise<SeaRouteResponse> {
+    return this.getSeaRoute({
+      port_unlocode_from: fromUnlocode,
+      port_unlocode_to: toUnlocode,
+    });
   }
 
   // ==========================================================================
