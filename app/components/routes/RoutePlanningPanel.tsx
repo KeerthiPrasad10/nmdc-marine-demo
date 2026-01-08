@@ -81,7 +81,9 @@ export function RoutePlanningPanel({
 
   // Result state
   const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<RouteOptimizationResult | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [result, setResult] = useState<RouteOptimizationResult | any>(null);
+  const [resultMode, setResultMode] = useState<'single' | 'multi-stop' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Update map markers when origin/destination changes
@@ -157,20 +159,57 @@ export function RoutePlanningPanel({
       }
 
       setResult(data.result);
+      setResultMode(data.mode);
 
-      // Notify parent of generated route
-      if (onRouteGenerated && data.result.recommendedRoute) {
-        onRouteGenerated(data.result.recommendedRoute);
-      }
+      // Handle different result formats
+      if (data.mode === 'multi-stop') {
+        // Multi-stop route result
+        const multiStopResult = data.result;
+        
+        // Build waypoints from optimized order
+        if (onWaypointsChange && multiStopResult.optimizedOrder) {
+          const waypoints = multiStopResult.optimizedOrder.map((stop: { lat: number; lng: number }) => ({
+            lat: stop.lat,
+            lng: stop.lng,
+          }));
+          onWaypointsChange(waypoints);
+        }
+        
+        // Notify parent of first route for route card display
+        if (onRouteGenerated && multiStopResult.routes && multiStopResult.routes.length > 0) {
+          // Create a combined route from all legs
+          const firstRoute = multiStopResult.routes[0];
+          const lastRoute = multiStopResult.routes[multiStopResult.routes.length - 1];
+          const combinedRoute = {
+            ...firstRoute,
+            name: `Multi-stop: ${firstRoute.origin.name} → ${lastRoute.destination.name}`,
+            destination: lastRoute.destination,
+            totalDistance: multiStopResult.totalDistance,
+            estimatedTime: multiStopResult.totalTime,
+            fuelConsumption: multiStopResult.totalFuel,
+            waypoints: multiStopResult.optimizedOrder.slice(1).map((stop: { lat: number; lng: number; name: string }) => ({
+              lat: stop.lat,
+              lng: stop.lng,
+              name: stop.name,
+            })),
+          };
+          onRouteGenerated(combinedRoute);
+        }
+      } else {
+        // Single route result
+        if (onRouteGenerated && data.result.recommendedRoute) {
+          onRouteGenerated(data.result.recommendedRoute);
+        }
 
-      // Notify parent of waypoints for map visualization
-      if (onWaypointsChange && data.result.recommendedRoute) {
-        const waypoints = [
-          { lat: data.result.recommendedRoute.origin.lat, lng: data.result.recommendedRoute.origin.lng },
-          ...data.result.recommendedRoute.waypoints.map((wp: { lat: number; lng: number }) => ({ lat: wp.lat, lng: wp.lng })),
-          { lat: data.result.recommendedRoute.destination.lat, lng: data.result.recommendedRoute.destination.lng },
-        ];
-        onWaypointsChange(waypoints);
+        // Notify parent of waypoints for map visualization
+        if (onWaypointsChange && data.result.recommendedRoute) {
+          const waypoints = [
+            { lat: data.result.recommendedRoute.origin.lat, lng: data.result.recommendedRoute.origin.lng },
+            ...data.result.recommendedRoute.waypoints.map((wp: { lat: number; lng: number }) => ({ lat: wp.lat, lng: wp.lng })),
+            { lat: data.result.recommendedRoute.destination.lat, lng: data.result.recommendedRoute.destination.lng },
+          ];
+          onWaypointsChange(waypoints);
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to optimize route');
@@ -204,6 +243,7 @@ export function RoutePlanningPanel({
     setDestination(null);
     setIntermediateStops([]);
     setResult(null);
+    setResultMode(null);
     setError(null);
     setPriorities({ time: 50, fuel: 50, cost: 50, emissions: 50, safety: 70 });
   };
@@ -409,8 +449,8 @@ export function RoutePlanningPanel({
           )}
         </button>
 
-        {/* Results */}
-        {result && result.recommendedRoute && (
+        {/* Results - Single Route */}
+        {result && resultMode === 'single' && result.recommendedRoute && (
           <div className="space-y-3 pt-2">
             <div className="flex items-center gap-2 text-emerald-400">
               <CheckCircle className="w-4 h-4" />
@@ -449,7 +489,7 @@ export function RoutePlanningPanel({
                   <span className="text-xs font-medium text-amber-400">Risk Factors</span>
                 </div>
                 <ul className="space-y-1">
-                  {result.riskAssessment.factors.map((factor, i) => (
+                  {result.riskAssessment.factors.map((factor: { description: string }, i: number) => (
                     <li key={i} className="text-[10px] text-white/60">
                       • {factor.description}
                     </li>
@@ -466,7 +506,7 @@ export function RoutePlanningPanel({
                   <span className="px-2 py-1 rounded bg-emerald-500/20 text-emerald-400">
                     {result.recommendedRoute.origin.name}
                   </span>
-                  {result.recommendedRoute.waypoints.slice(0, 3).map((wp, i) => (
+                  {result.recommendedRoute.waypoints.slice(0, 3).map((wp: { name: string }, i: number) => (
                     <div key={i} className="flex items-center gap-1">
                       <ArrowRight className="w-3 h-3 text-white/30" />
                       <span className="px-2 py-1 rounded bg-white/10 text-white/70">
@@ -481,6 +521,76 @@ export function RoutePlanningPanel({
                   <span className="px-2 py-1 rounded bg-rose-500/20 text-rose-400">
                     {result.recommendedRoute.destination.name}
                   </span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Results - Multi-Stop Route */}
+        {result && resultMode === 'multi-stop' && result.optimizedOrder && (
+          <div className="space-y-3 pt-2">
+            <div className="flex items-center gap-2 text-emerald-400">
+              <CheckCircle className="w-4 h-4" />
+              <span className="text-xs font-medium">Multi-Stop Route Optimized</span>
+            </div>
+
+            {/* Route Summary */}
+            <div className="grid grid-cols-2 gap-2">
+              <MetricCard
+                label="Distance"
+                value={`${result.totalDistance.toFixed(1)} nm`}
+                icon={<Navigation className="w-3 h-3" />}
+              />
+              <MetricCard
+                label="Duration"
+                value={formatDuration(result.totalTime)}
+                icon={<Clock className="w-3 h-3" />}
+              />
+              <MetricCard
+                label="Fuel"
+                value={`${Math.round(result.totalFuel)} L`}
+                icon={<Fuel className="w-3 h-3" />}
+              />
+              <MetricCard
+                label="Saved"
+                value={`${result.savings.percentImprovement.toFixed(1)}%`}
+                icon={<TrendingDown className="w-3 h-3" />}
+              />
+            </div>
+
+            {/* Savings Info */}
+            {result.savings.distanceSaved > 0 && (
+              <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
+                <div className="flex items-center gap-2 mb-2">
+                  <TrendingDown className="w-3 h-3 text-emerald-400" />
+                  <span className="text-xs font-medium text-emerald-400">Optimization Savings</span>
+                </div>
+                <div className="text-[10px] text-white/60 space-y-1">
+                  <p>• {result.savings.distanceSaved.toFixed(1)} nm distance saved</p>
+                  <p>• {formatDuration(result.savings.timeSaved)} time saved</p>
+                  <p>• {Math.round(result.savings.fuelSaved)} L fuel saved</p>
+                </div>
+              </div>
+            )}
+
+            {/* Optimized Route Order */}
+            {!compact && (
+              <div className="space-y-1">
+                <span className="text-xs text-white/50">Optimized Stop Order</span>
+                <div className="flex items-center gap-1 flex-wrap text-xs">
+                  {result.optimizedOrder.map((stop: { name: string }, i: number) => (
+                    <div key={i} className="flex items-center gap-1">
+                      {i > 0 && <ArrowRight className="w-3 h-3 text-white/30" />}
+                      <span className={`px-2 py-1 rounded ${
+                        i === 0 ? 'bg-emerald-500/20 text-emerald-400' :
+                        i === result.optimizedOrder.length - 1 ? 'bg-rose-500/20 text-rose-400' :
+                        'bg-white/10 text-white/70'
+                      }`}>
+                        {stop.name}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
