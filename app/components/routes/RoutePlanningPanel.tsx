@@ -127,14 +127,15 @@ export function RoutePlanningPanel({
     { name: '🇶🇦 Mesaieed', lat: 24.93598, lng: 51.59607 },
     { name: '🇶🇦 Hamad Port', lat: 25.02946, lng: 51.6245 },
     { name: '🇶🇦 Halul Island', lat: 25.6635, lng: 52.4175 },
-    // === Saudi Arabia Ports ===
+    // === Saudi Arabia Ports (Gulf Coast) ===
     { name: '🇸🇦 Dammam', lat: 26.441, lng: 50.1485 },
     { name: '🇸🇦 Ras Tanura', lat: 26.67255, lng: 50.1219 },
     { name: '🇸🇦 Al Jubail', lat: 27.035, lng: 49.6795 },
     { name: '🇸🇦 Ras Al Khair', lat: 27.55828, lng: 49.18322 },
-    { name: '🇸🇦 Jeddah', lat: 21.48182, lng: 39.14713 },
-    { name: '🇸🇦 Yanbu', lat: 24.0665, lng: 38.0675 },
-    { name: '🇸🇦 King Abdullah', lat: 22.52477, lng: 39.09416 },
+    // Note: Red Sea ports below - routing from Gulf will fail
+    { name: '🇸🇦 Jeddah (Red Sea)', lat: 21.48182, lng: 39.14713 },
+    { name: '🇸🇦 Yanbu (Red Sea)', lat: 24.0665, lng: 38.0675 },
+    { name: '🇸🇦 King Abdullah (Red Sea)', lat: 22.52477, lng: 39.09416 },
     // === Kuwait Ports ===
     { name: '🇰🇼 Kuwait', lat: 29.3663, lng: 48.00172 },
     { name: '🇰🇼 Shuwaikh', lat: 29.359635, lng: 47.923489 },
