@@ -1066,12 +1066,16 @@ function formatInfoMessage(data: { title?: string; message: string; details?: st
   html += formatMarkdown(data.message);
   
   // Handle details array if present
-  if (data.details && data.details.length > 0) {
-    html += '<div class="mt-3 pt-3 border-t border-white/10 space-y-1">';
-    data.details.forEach((detail) => {
-      html += `<p class="text-[10px] text-white/40">${detail}</p>`;
-    });
-    html += '</div>';
+  if (data.details) {
+    const detailsArray = Array.isArray(data.details) ? data.details : [data.details];
+    if (detailsArray.length > 0) {
+      html += '<div class="mt-3 pt-3 border-t border-white/10 space-y-1">';
+      detailsArray.forEach((detail) => {
+        const detailText = typeof detail === 'string' ? detail : JSON.stringify(detail);
+        html += `<p class="text-[10px] text-white/40">${detailText}</p>`;
+      });
+      html += '</div>';
+    }
   }
   
   return html;
