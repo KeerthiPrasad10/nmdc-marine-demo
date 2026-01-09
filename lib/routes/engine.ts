@@ -1,11 +1,16 @@
 /**
- * Route Engine - Core route calculation using Datalastic Sea Routes API
+ * Route Engine - Core route calculation using Searoute.js
  * 
  * Provides realistic maritime routing that avoids land, with integrated
  * fuel consumption, emissions, and weather risk calculations.
+ * 
+ * Uses searoute-ts library for proper maritime routing that follows
+ * shipping lanes and navigates around landmasses.
  */
 
-import { getDatalasticClient, isDatalasticConfigured, SeaRouteWaypoint, calculateDistanceNm, calculateBearing } from '@/lib/datalastic';
+import { seaRoute } from 'searoute-ts';
+import type { Feature, Point, LineString } from 'geojson';
+import { SeaRouteWaypoint, calculateDistanceNm, calculateBearing } from '@/lib/datalastic';
 import { getWeatherAtLocation } from '@/lib/weather';
 import { 
   Route, 
@@ -118,11 +123,25 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
 };
 
 // ============================================================================
-// Route Fetching from Datalastic
+// Route Fetching using Searoute.js
 // ============================================================================
 
 /**
- * Fetch a realistic sea route from Datalastic API
+ * Create a GeoJSON Point Feature for searoute-ts
+ */
+function createGeoJSONPoint(lon: number, lat: number): Feature<Point> {
+  return {
+    type: 'Feature',
+    properties: {},
+    geometry: {
+      type: 'Point',
+      coordinates: [lon, lat], // GeoJSON uses [longitude, latitude]
+    },
+  };
+}
+
+/**
+ * Fetch a realistic sea route using searoute-ts library
  * Returns waypoints that follow shipping lanes and avoid land
  */
 export async function fetchSeaRoute(
@@ -131,40 +150,59 @@ export async function fetchSeaRoute(
   toLat: number,
   toLon: number
 ): Promise<{ waypoints: SeaRouteWaypoint[]; distance: number }> {
-  const apiConfigured = isDatalasticConfigured();
-  console.log('[RouteEngine] Datalastic configured:', apiConfigured);
-  console.log('[RouteEngine] Fetching sea route:', { fromLat, fromLon, toLat, toLon });
-  
-  if (!apiConfigured) {
-    console.warn('[RouteEngine] DATALASTIC_API_KEY not set, using fallback route');
-    return generateFallbackRoute(fromLat, fromLon, toLat, toLon);
-  }
+  console.log('[RouteEngine] Calculating sea route with searoute-ts:', { fromLat, fromLon, toLat, toLon });
 
   try {
-    const client = getDatalasticClient();
-    console.log('[RouteEngine] Calling Datalastic Sea Route API...');
-    const response = await client.getSeaRouteByCoordinates(fromLat, fromLon, toLat, toLon);
+    // Create GeoJSON Point features for origin and destination
+    const origin = createGeoJSONPoint(fromLon, fromLat);
+    const destination = createGeoJSONPoint(toLon, toLat);
     
-    console.log('[RouteEngine] Sea route received:', {
-      distance: response.data.distance,
-      waypointCount: response.data.route?.length || 0,
-    });
+    // Calculate route using searoute-ts (returns nautical miles by default)
+    const routeResult = seaRoute(origin, destination, 'nm') as Feature<LineString>;
     
-    if (!response.data.route || response.data.route.length === 0) {
-      console.warn('[RouteEngine] Empty route returned, using fallback');
+    if (!routeResult || !routeResult.geometry || !routeResult.geometry.coordinates) {
+      console.warn('[RouteEngine] Searoute returned no result, using fallback');
       return generateFallbackRoute(fromLat, fromLon, toLat, toLon);
     }
     
-    return {
-      waypoints: response.data.route,
-      distance: response.data.distance,
-    };
+    // Extract coordinates from the LineString result
+    // GeoJSON coordinates are [lon, lat], we need {lat, lon}
+    const coordinates = routeResult.geometry.coordinates;
+    const waypoints: SeaRouteWaypoint[] = coordinates.map(coord => ({
+      lat: coord[1],
+      lon: coord[0],
+    }));
+    
+    // Get distance from properties (searoute-ts adds length property)
+    const distance = (routeResult.properties?.length as number) || 
+      calculateTotalDistance(waypoints);
+    
+    console.log('[RouteEngine] Sea route calculated:', {
+      distance: distance.toFixed(1),
+      waypointCount: waypoints.length,
+    });
+    
+    return { waypoints, distance };
   } catch (error) {
-    console.error('[RouteEngine] Failed to fetch sea route:', error);
+    console.error('[RouteEngine] Searoute calculation failed:', error);
     console.error('[RouteEngine] Error details:', error instanceof Error ? error.message : String(error));
-    // Fallback to improved offshore route
+    // Fallback to basic route
     return generateFallbackRoute(fromLat, fromLon, toLat, toLon);
   }
+}
+
+/**
+ * Calculate total distance from waypoints
+ */
+function calculateTotalDistance(waypoints: SeaRouteWaypoint[]): number {
+  let total = 0;
+  for (let i = 0; i < waypoints.length - 1; i++) {
+    total += calculateDistanceNm(
+      waypoints[i].lat, waypoints[i].lon,
+      waypoints[i + 1].lat, waypoints[i + 1].lon
+    );
+  }
+  return total;
 }
 
 /**
