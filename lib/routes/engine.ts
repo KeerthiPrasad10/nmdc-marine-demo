@@ -138,53 +138,123 @@ interface NetworkNode {
 }
 
 // Define the maritime network for Persian Gulf / Gulf of Oman / Arabian Sea
+// Dense network with waypoints every ~30-50nm for smooth routing
 // All coordinates use 3 decimal places for ~100m precision
 const MARITIME_NETWORK: NetworkNode[] = [
-  // Persian Gulf - Southern Lane (main UAE shipping lane, stays south of Qatar)
-  { id: 'PG_S1', lat: 24.250, lon: 54.350, name: 'Abu Dhabi Offshore', connections: ['PG_S2', 'PG_C1'] },
-  { id: 'PG_S2', lat: 24.050, lon: 53.500, name: 'West Abu Dhabi', connections: ['PG_S1', 'PG_S3', 'PG_C2'] },
-  { id: 'PG_S3', lat: 24.000, lon: 52.600, name: 'Zirku Area', connections: ['PG_S2', 'PG_S4', 'PG_C2'] },
-  { id: 'PG_S4', lat: 24.100, lon: 51.600, name: 'South Qatar', connections: ['PG_S3', 'PG_S5', 'PG_W1'] },
-  { id: 'PG_S5', lat: 24.250, lon: 50.850, name: 'SW Qatar', connections: ['PG_S4', 'PG_W2'] },
+  // ============================================================================
+  // UAE COAST - Abu Dhabi to Dubai offshore lane
+  // ============================================================================
+  { id: 'UAE_01', lat: 24.300, lon: 54.200, name: 'Abu Dhabi Approach', connections: ['UAE_02', 'UAE_03'] },
+  { id: 'UAE_02', lat: 24.400, lon: 54.600, name: 'Abu Dhabi NE', connections: ['UAE_01', 'UAE_04'] },
+  { id: 'UAE_03', lat: 24.150, lon: 53.800, name: 'Abu Dhabi SW', connections: ['UAE_01', 'UAE_05'] },
+  { id: 'UAE_04', lat: 24.700, lon: 54.900, name: 'Jebel Ali Approach', connections: ['UAE_02', 'UAE_06', 'UAE_07'] },
+  { id: 'UAE_05', lat: 24.050, lon: 53.300, name: 'Ruwais Offshore', connections: ['UAE_03', 'UAE_08'] },
+  { id: 'UAE_06', lat: 25.100, lon: 55.200, name: 'Dubai Offshore', connections: ['UAE_04', 'UAE_09'] },
+  { id: 'UAE_07', lat: 24.500, lon: 54.400, name: 'Das Island Area', connections: ['UAE_04', 'UAE_08', 'CENT_01'] },
+  { id: 'UAE_08', lat: 24.200, lon: 53.000, name: 'Zirku Island Area', connections: ['UAE_05', 'UAE_07', 'CENT_02'] },
+  { id: 'UAE_09', lat: 25.400, lon: 55.400, name: 'Sharjah Offshore', connections: ['UAE_06', 'UAE_10'] },
+  { id: 'UAE_10', lat: 25.600, lon: 55.800, name: 'Ajman Offshore', connections: ['UAE_09', 'HORM_01'] },
   
-  // Persian Gulf - Central Lane
-  { id: 'PG_C1', lat: 25.050, lon: 54.750, name: 'Dubai Offshore', connections: ['PG_S1', 'PG_C2', 'PG_N1'] },
-  { id: 'PG_C2', lat: 25.200, lon: 53.100, name: 'Central Gulf', connections: ['PG_S2', 'PG_S3', 'PG_C1', 'PG_C3'] },
-  { id: 'PG_C3', lat: 25.500, lon: 52.100, name: 'Halul Area', connections: ['PG_C2', 'PG_W1', 'PG_N2'] },
+  // ============================================================================
+  // CENTRAL PERSIAN GULF - main shipping lanes
+  // ============================================================================
+  { id: 'CENT_01', lat: 24.800, lon: 53.800, name: 'Central Gulf 1', connections: ['UAE_07', 'CENT_02', 'CENT_03'] },
+  { id: 'CENT_02', lat: 24.600, lon: 53.200, name: 'Central Gulf 2', connections: ['UAE_08', 'CENT_01', 'CENT_04'] },
+  { id: 'CENT_03', lat: 25.200, lon: 53.400, name: 'Central Gulf 3', connections: ['CENT_01', 'CENT_05', 'IRAN_01'] },
+  { id: 'CENT_04', lat: 24.400, lon: 52.600, name: 'Central Gulf 4', connections: ['CENT_02', 'CENT_05', 'SQAT_01'] },
+  { id: 'CENT_05', lat: 25.000, lon: 52.800, name: 'Central Gulf 5', connections: ['CENT_03', 'CENT_04', 'CENT_06'] },
+  { id: 'CENT_06', lat: 25.400, lon: 52.200, name: 'Halul Island Area', connections: ['CENT_05', 'QNOR_01', 'QEAS_01'] },
   
-  // Persian Gulf - Western Lane (Qatar/Bahrain/Saudi)
-  { id: 'PG_W1', lat: 25.050, lon: 51.350, name: 'East Doha', connections: ['PG_S4', 'PG_C3', 'PG_W2', 'PG_W3'] },
-  { id: 'PG_W2', lat: 25.550, lon: 50.550, name: 'West Doha', connections: ['PG_S5', 'PG_W1', 'PG_W3', 'PG_W4'] },
-  { id: 'PG_W3', lat: 26.050, lon: 51.050, name: 'North Qatar', connections: ['PG_W1', 'PG_W2', 'PG_N2', 'PG_W4'] },
-  { id: 'PG_W4', lat: 26.350, lon: 50.350, name: 'Bahrain East', connections: ['PG_W2', 'PG_W3', 'PG_W5'] },
-  { id: 'PG_W5', lat: 26.750, lon: 50.050, name: 'Dammam Approach', connections: ['PG_W4', 'PG_NW1'] },
+  // ============================================================================
+  // SOUTH OF QATAR - main route avoiding Qatar peninsula
+  // ============================================================================
+  { id: 'SQAT_01', lat: 24.200, lon: 52.200, name: 'South Qatar 1', connections: ['CENT_04', 'SQAT_02'] },
+  { id: 'SQAT_02', lat: 24.100, lon: 51.700, name: 'South Qatar 2', connections: ['SQAT_01', 'SQAT_03', 'QEAS_01'] },
+  { id: 'SQAT_03', lat: 24.150, lon: 51.200, name: 'South Qatar 3', connections: ['SQAT_02', 'SQAT_04'] },
+  { id: 'SQAT_04', lat: 24.300, lon: 50.700, name: 'SW Qatar', connections: ['SQAT_03', 'QWES_01', 'SAUD_01'] },
   
-  // Persian Gulf - Northern Lane (toward Kuwait/Iraq)
-  { id: 'PG_N1', lat: 25.850, lon: 55.050, name: 'Sharjah Offshore', connections: ['PG_C1', 'PG_N2', 'HORMUZ_S'] },
-  { id: 'PG_N2', lat: 26.250, lon: 53.050, name: 'North Central Gulf', connections: ['PG_C3', 'PG_W3', 'PG_N1', 'PG_N3'] },
-  { id: 'PG_N3', lat: 26.850, lon: 52.050, name: 'NE Gulf', connections: ['PG_N2', 'PG_NW1', 'PG_N4'] },
-  { id: 'PG_N4', lat: 27.550, lon: 51.050, name: 'Iran South', connections: ['PG_N3', 'PG_NW1'] },
+  // ============================================================================
+  // EAST OF QATAR - Doha approach
+  // ============================================================================
+  { id: 'QEAS_01', lat: 24.800, lon: 51.800, name: 'SE Qatar', connections: ['SQAT_02', 'CENT_06', 'QEAS_02'] },
+  { id: 'QEAS_02', lat: 25.200, lon: 51.600, name: 'E Doha', connections: ['QEAS_01', 'QNOR_01'] },
   
-  // Persian Gulf - Northwest (Kuwait/Iraq)
-  { id: 'PG_NW1', lat: 28.550, lon: 49.550, name: 'Kuwait Approach', connections: ['PG_W5', 'PG_N3', 'PG_N4', 'PG_NW2'] },
-  { id: 'PG_NW2', lat: 29.550, lon: 48.550, name: 'Kuwait/Basra', connections: ['PG_NW1'] },
+  // ============================================================================
+  // NORTH OF QATAR - route to Bahrain/Saudi
+  // ============================================================================
+  { id: 'QNOR_01', lat: 25.800, lon: 51.800, name: 'NE Qatar', connections: ['CENT_06', 'QEAS_02', 'QNOR_02'] },
+  { id: 'QNOR_02', lat: 26.200, lon: 51.400, name: 'N Qatar', connections: ['QNOR_01', 'QWES_02', 'BAHR_01'] },
   
-  // Strait of Hormuz
-  { id: 'HORMUZ_S', lat: 26.050, lon: 56.050, name: 'Hormuz South', connections: ['PG_N1', 'HORMUZ_C'] },
-  { id: 'HORMUZ_C', lat: 26.350, lon: 56.550, name: 'Hormuz Center', connections: ['HORMUZ_S', 'HORMUZ_N'] },
-  { id: 'HORMUZ_N', lat: 26.550, lon: 57.050, name: 'Hormuz North', connections: ['HORMUZ_C', 'OMAN_N'] },
+  // ============================================================================
+  // WEST OF QATAR - Bahrain approach
+  // ============================================================================
+  { id: 'QWES_01', lat: 25.000, lon: 50.400, name: 'W Qatar S', connections: ['SQAT_04', 'QWES_02', 'SAUD_02'] },
+  { id: 'QWES_02', lat: 25.600, lon: 50.300, name: 'W Qatar N', connections: ['QWES_01', 'QNOR_02', 'BAHR_01'] },
   
-  // Gulf of Oman
-  { id: 'OMAN_N', lat: 25.550, lon: 57.550, name: 'Fujairah Offshore', connections: ['HORMUZ_N', 'OMAN_C'] },
-  { id: 'OMAN_C', lat: 24.550, lon: 58.550, name: 'Gulf of Oman Central', connections: ['OMAN_N', 'OMAN_S', 'OMAN_E'] },
-  { id: 'OMAN_S', lat: 23.550, lon: 58.550, name: 'Muscat Offshore', connections: ['OMAN_C', 'OMAN_SE'] },
-  { id: 'OMAN_E', lat: 24.050, lon: 60.050, name: 'East Gulf of Oman', connections: ['OMAN_C', 'OMAN_SE', 'ARAB_N'] },
-  { id: 'OMAN_SE', lat: 22.550, lon: 60.050, name: 'Sur Offshore', connections: ['OMAN_S', 'OMAN_E', 'ARAB_N'] },
+  // ============================================================================
+  // BAHRAIN AREA
+  // ============================================================================
+  { id: 'BAHR_01', lat: 26.300, lon: 50.700, name: 'Bahrain E', connections: ['QNOR_02', 'QWES_02', 'BAHR_02'] },
+  { id: 'BAHR_02', lat: 26.500, lon: 50.300, name: 'Bahrain N', connections: ['BAHR_01', 'SAUD_03'] },
   
-  // Arabian Sea
-  { id: 'ARAB_N', lat: 21.050, lon: 62.050, name: 'North Arabian Sea', connections: ['OMAN_E', 'OMAN_SE', 'ARAB_C'] },
-  { id: 'ARAB_C', lat: 19.050, lon: 60.050, name: 'Central Arabian Sea', connections: ['ARAB_N', 'ARAB_S'] },
-  { id: 'ARAB_S', lat: 17.050, lon: 55.050, name: 'Salalah Offshore', connections: ['ARAB_C'] },
+  // ============================================================================
+  // SAUDI ARABIA COAST
+  // ============================================================================
+  { id: 'SAUD_01', lat: 24.500, lon: 50.200, name: 'Saudi S', connections: ['SQAT_04', 'SAUD_02'] },
+  { id: 'SAUD_02', lat: 25.500, lon: 49.900, name: 'Saudi Central', connections: ['SAUD_01', 'QWES_01', 'SAUD_03'] },
+  { id: 'SAUD_03', lat: 26.600, lon: 49.800, name: 'Dammam Approach', connections: ['SAUD_02', 'BAHR_02', 'SAUD_04'] },
+  { id: 'SAUD_04', lat: 27.200, lon: 49.600, name: 'Jubail Approach', connections: ['SAUD_03', 'KWAI_01'] },
+  
+  // ============================================================================
+  // IRAN COAST (southern)
+  // ============================================================================
+  { id: 'IRAN_01', lat: 26.000, lon: 53.500, name: 'Iran SW', connections: ['CENT_03', 'IRAN_02'] },
+  { id: 'IRAN_02', lat: 26.500, lon: 53.000, name: 'Iran S Central', connections: ['IRAN_01', 'IRAN_03'] },
+  { id: 'IRAN_03', lat: 27.000, lon: 52.200, name: 'Iran SE', connections: ['IRAN_02', 'IRAN_04', 'KWAI_02'] },
+  { id: 'IRAN_04', lat: 27.200, lon: 51.400, name: 'Kangan Area', connections: ['IRAN_03', 'KWAI_02'] },
+  
+  // ============================================================================
+  // KUWAIT / IRAQ
+  // ============================================================================
+  { id: 'KWAI_01', lat: 28.200, lon: 49.200, name: 'Kuwait S', connections: ['SAUD_04', 'KWAI_02', 'KWAI_03'] },
+  { id: 'KWAI_02', lat: 28.000, lon: 50.200, name: 'Kuwait E', connections: ['IRAN_03', 'IRAN_04', 'KWAI_01'] },
+  { id: 'KWAI_03', lat: 29.000, lon: 48.800, name: 'Kuwait Port', connections: ['KWAI_01', 'KWAI_04'] },
+  { id: 'KWAI_04', lat: 29.800, lon: 48.400, name: 'Basra Approach', connections: ['KWAI_03'] },
+  
+  // ============================================================================
+  // STRAIT OF HORMUZ - detailed shipping lane
+  // ============================================================================
+  { id: 'HORM_01', lat: 25.900, lon: 56.100, name: 'Hormuz Approach', connections: ['UAE_10', 'HORM_02'] },
+  { id: 'HORM_02', lat: 26.100, lon: 56.400, name: 'Hormuz W', connections: ['HORM_01', 'HORM_03', 'IRAN_05'] },
+  { id: 'HORM_03', lat: 26.000, lon: 56.800, name: 'Hormuz Center', connections: ['HORM_02', 'HORM_04'] },
+  { id: 'HORM_04', lat: 25.700, lon: 57.100, name: 'Hormuz E', connections: ['HORM_03', 'GOOM_01'] },
+  { id: 'IRAN_05', lat: 26.500, lon: 56.600, name: 'Bandar Abbas S', connections: ['HORM_02', 'IRAN_06'] },
+  { id: 'IRAN_06', lat: 26.800, lon: 57.200, name: 'Bandar Abbas E', connections: ['IRAN_05', 'GOOM_02'] },
+  
+  // ============================================================================
+  // GULF OF OMAN - staying well offshore
+  // ============================================================================
+  { id: 'GOOM_01', lat: 25.200, lon: 57.600, name: 'Gulf of Oman NW', connections: ['HORM_04', 'GOOM_02', 'GOOM_03'] },
+  { id: 'GOOM_02', lat: 25.800, lon: 58.200, name: 'Gulf of Oman N', connections: ['GOOM_01', 'IRAN_06', 'GOOM_04'] },
+  { id: 'GOOM_03', lat: 24.600, lon: 58.000, name: 'Fujairah Offshore', connections: ['GOOM_01', 'GOOM_04', 'GOOM_05'] },
+  { id: 'GOOM_04', lat: 25.000, lon: 58.800, name: 'Gulf of Oman Central N', connections: ['GOOM_02', 'GOOM_03', 'GOOM_06'] },
+  { id: 'GOOM_05', lat: 24.000, lon: 58.500, name: 'Gulf of Oman W', connections: ['GOOM_03', 'GOOM_06', 'GOOM_07'] },
+  { id: 'GOOM_06', lat: 24.200, lon: 59.300, name: 'Gulf of Oman Central', connections: ['GOOM_04', 'GOOM_05', 'GOOM_08'] },
+  { id: 'GOOM_07', lat: 23.400, lon: 59.000, name: 'Muscat Offshore', connections: ['GOOM_05', 'GOOM_08', 'ARAB_01'] },
+  { id: 'GOOM_08', lat: 23.600, lon: 59.800, name: 'Gulf of Oman E', connections: ['GOOM_06', 'GOOM_07', 'ARAB_02'] },
+  
+  // ============================================================================
+  // ARABIAN SEA - open ocean
+  // ============================================================================
+  { id: 'ARAB_01', lat: 22.500, lon: 59.500, name: 'Arabian Sea NW', connections: ['GOOM_07', 'ARAB_02', 'ARAB_03'] },
+  { id: 'ARAB_02', lat: 22.800, lon: 60.500, name: 'Arabian Sea N', connections: ['GOOM_08', 'ARAB_01', 'ARAB_04'] },
+  { id: 'ARAB_03', lat: 21.500, lon: 59.500, name: 'Sur Offshore', connections: ['ARAB_01', 'ARAB_04', 'ARAB_05'] },
+  { id: 'ARAB_04', lat: 22.000, lon: 61.000, name: 'Arabian Sea NE', connections: ['ARAB_02', 'ARAB_03', 'ARAB_06'] },
+  { id: 'ARAB_05', lat: 20.000, lon: 59.000, name: 'Arabian Sea Central W', connections: ['ARAB_03', 'ARAB_06', 'ARAB_07'] },
+  { id: 'ARAB_06', lat: 20.500, lon: 61.500, name: 'Arabian Sea Central', connections: ['ARAB_04', 'ARAB_05', 'ARAB_08'] },
+  { id: 'ARAB_07', lat: 18.000, lon: 57.000, name: 'Duqm Offshore', connections: ['ARAB_05', 'ARAB_09'] },
+  { id: 'ARAB_08', lat: 19.000, lon: 62.500, name: 'Arabian Sea E', connections: ['ARAB_06'] },
+  { id: 'ARAB_09', lat: 17.000, lon: 55.500, name: 'Salalah Offshore', connections: ['ARAB_07'] },
 ];
 
 // Build adjacency map for faster lookups
