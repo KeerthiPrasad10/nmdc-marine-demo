@@ -403,13 +403,36 @@ Use 'info_message' for diagnosis and work order details
 
 `;
     
-    if (hasContext) {
+    // Check if image is being sent
+    const hasImage = !!selectedImageFile;
+    
+    if (hasContext || hasImage) {
       // Format context as a structured block the AI can understand
-      const contextBlock = `${systemInstructions}<app_context>
+      let contextBlock = systemInstructions;
+      
+      if (hasContext) {
+        contextBlock += `<app_context>
 ${JSON.stringify(appContext, null, 2)}
 </app_context>
 
-User Query: ${content.trim()}`;
+`;
+      }
+      
+      if (hasImage) {
+        contextBlock += `<image_attached>
+An image has been uploaded with this query. You MUST:
+1. DESCRIBE what you see in the image (equipment type, visible components, condition)
+2. IDENTIFY any visible issues (wear, damage, misalignment, corrosion, leaks)
+3. CORRELATE the image with the user's reported symptom ("${content.trim()}")
+4. If you cannot see the image or it's unclear, say so explicitly
+
+DO NOT ignore the image. Your analysis must reference specific visual details.
+</image_attached>
+
+`;
+      }
+      
+      contextBlock += `User Query: ${content.trim() || 'Please analyze this image'}`;
       contextualContent = contextBlock;
     } else {
       contextualContent = `${systemInstructions}User Query: ${content.trim()}`;

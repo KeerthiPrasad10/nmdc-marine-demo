@@ -65,6 +65,17 @@ export async function POST(request: NextRequest) {
         const { imageUrl, imageBase64, message, knowledgeBaseId } = params;
         // Prefer imageUrl over imageBase64 for efficiency
         const image = imageUrl || imageBase64;
+        
+        // Debug: Log analyze_image request
+        console.log('[Troubleshoot API] analyze_image:', {
+          hasImage: !!image,
+          imageUrlPreview: imageUrl?.substring(0, 50),
+          hasMessage: !!message,
+          messagePreview: message?.substring(0, 100),
+          hasAppContext: message?.includes('<app_context>'),
+          knowledgeBaseId,
+        });
+        
         const response = await client.analyzeImage(image, message, knowledgeBaseId);
         return NextResponse.json(response);
       }
