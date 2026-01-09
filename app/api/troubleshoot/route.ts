@@ -36,6 +36,16 @@ export async function POST(request: NextRequest) {
     switch (action) {
       case 'query': {
         const { message, imageUrl, imageBase64, knowledgeBaseId, responseFormat } = params;
+        
+        // Debug: Log the full message being sent (includes context)
+        console.log('[Troubleshoot API] Query message preview:', {
+          hasAppContext: message?.includes('<app_context>'),
+          hasSystemInstructions: message?.includes('<system_instructions>'),
+          messageLength: message?.length,
+          knowledgeBaseId,
+          hasImageUrl: !!imageUrl,
+        });
+        
         const response: QueryResponse = await client.query(message, {
           imageUrl,      // Preferred: more efficient
           imageBase64,   // Fallback for backward compatibility

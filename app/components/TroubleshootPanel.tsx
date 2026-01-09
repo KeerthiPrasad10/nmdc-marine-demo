@@ -243,15 +243,20 @@ export function TroubleshootPanel({
     if (selectedVessel) {
       // Use type assertion for properties that may exist in runtime but not in strict type
       const v = selectedVessel as Record<string, unknown>;
+      
+      // Support both position_lat/lng (from NMDC) and current_lat/lng (legacy)
+      const lat = typeof v.position_lat === 'number' ? v.position_lat : 
+                  typeof v.current_lat === 'number' ? v.current_lat : undefined;
+      const lng = typeof v.position_lng === 'number' ? v.position_lng : 
+                  typeof v.current_lng === 'number' ? v.current_lng : undefined;
+      
       context.vessel = {
         name: selectedVessel.name,
         type: selectedVessel.type,
         status: typeof v.status === 'string' ? v.status : undefined,
         fuelLevel: typeof v.fuel_level === 'number' ? v.fuel_level : undefined,
         engineStatus: typeof v.engine_status === 'string' ? v.engine_status : undefined,
-        location: typeof v.current_lat === 'number' && typeof v.current_lng === 'number'
-          ? { lat: v.current_lat, lng: v.current_lng }
-          : undefined,
+        location: lat !== undefined && lng !== undefined ? { lat, lng } : undefined,
         speed: typeof v.speed === 'number' ? v.speed : undefined,
         heading: typeof v.heading === 'number' ? v.heading : undefined,
       };
@@ -312,18 +317,44 @@ export function TroubleshootPanel({
     const appContext = buildAppContext();
     const hasContext = Object.keys(appContext).length > 0;
     
+    // Debug: Log context being sent
+    console.log('[TroubleshootPanel] Context being sent:', {
+      hasVessel: !!appContext.vessel,
+      vesselName: appContext.vessel?.name,
+      hasAlerts: !!appContext.activeAlerts?.length,
+      hasWeather: !!appContext.weather,
+      hasFleetStatus: !!appContext.fleetStatus,
+      equipment: appContext.equipment,
+    });
+    
     let contextualContent = content.trim();
     
     // Build system instructions for action-oriented troubleshooting
     const systemInstructions = `<system_instructions>
 You are a marine equipment troubleshooting assistant. Your goal is to QUICKLY DIAGNOSE the issue and provide ACTIONABLE RESOLUTION.
 
+## CRITICAL: USE THE APP_CONTEXT
+The <app_context> block contains REAL-TIME DATA about the vessel you are troubleshooting:
+- **vessel.name**: The specific vessel (e.g., "NMDC Atlas") - ALWAYS reference by name
+- **vessel.type**: Vessel type (dredger, tugboat, etc.) - tailor advice accordingly
+- **vessel.fuelLevel**: Current fuel percentage
+- **vessel.speed/heading**: Current navigation status
+- **vessel.location**: GPS coordinates
+- **activeAlerts**: Current warnings/faults on this vessel
+- **equipment**: The specific system selected (if any)
+- **weather**: Current conditions affecting operations
+
+**You MUST acknowledge the vessel context in your response.** For example:
+- "For the NMDC Atlas (dredger currently at 85% fuel)..."
+- "Given the active engine temperature warning on this vessel..."
+- "Based on the current weather conditions (12 knot winds)..."
+
 ## TROUBLESHOOTING FLOW (Follow strictly):
 
 ### PHASE 1: QUICK TRIAGE (1-2 questions max)
-- Review app_context for vessel/equipment info
+- Review app_context for vessel/equipment info - MENTION THE VESSEL NAME
 - Ask ONE selection question to narrow down the symptom category
-- Example: "Select the primary symptom: [Noise/Vibration] [Overheating] [Pressure Loss] [No Output] [Intermittent Operation]"
+- Example: "For the [vessel.name], select the primary symptom: [Noise/Vibration] [Overheating] [Pressure Loss] [No Output] [Intermittent Operation]"
 
 ### PHASE 2: PINPOINT FAULT (1 question max)  
 - Based on selection, identify the MOST LIKELY fault

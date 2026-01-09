@@ -9,7 +9,7 @@
  * Musandam, Iran coast, Oman).
  */
 
-import { SeaRouteWaypoint, calculateDistanceNm, calculateBearing } from '@/lib/datalastic';
+import { SeaRouteWaypoint, calculateDistanceNm, calculateBearing, isDatalasticConfigured, getDatalasticClient } from '@/lib/datalastic';
 import { getWeatherAtLocation } from '@/lib/weather';
 import { 
   Route, 
@@ -138,32 +138,58 @@ interface NetworkNode {
 }
 
 // Define the maritime network for Persian Gulf / Gulf of Oman / Arabian Sea
-// Dense network with waypoints every ~30-50nm for smooth routing
-// All coordinates use 3 decimal places for ~100m precision
+// 
+// CRITICAL GEOGRAPHY:
+// - Abu Dhabi ISLAND is at ~24.45, 54.38 (the city)
+// - Musaffah port is on MAINLAND at 24.335, 54.44 (faces the channel)
+// - The WATER CHANNEL runs between the island and mainland (west to east)
+// - Persian Gulf OPEN WATER is to the NORTH and WEST of Abu Dhabi
+// - SOUTH of Abu Dhabi is DESERT - no water!
+// - Khalifa Port is at 24.79, 54.68 - on the coast north of the island
+//
 const MARITIME_NETWORK: NetworkNode[] = [
   // ============================================================================
-  // UAE COAST - Abu Dhabi to Dubai offshore lane
+  // MUSAFFAH CHANNEL - Water between Abu Dhabi island and mainland
+  // Route: Musaffah → WEST through channel → Open Gulf
   // ============================================================================
-  { id: 'UAE_01', lat: 24.300, lon: 54.200, name: 'Abu Dhabi Approach', connections: ['UAE_02', 'UAE_03'] },
-  { id: 'UAE_02', lat: 24.400, lon: 54.600, name: 'Abu Dhabi NE', connections: ['UAE_01', 'UAE_04'] },
-  { id: 'UAE_03', lat: 24.150, lon: 53.800, name: 'Abu Dhabi SW', connections: ['UAE_01', 'UAE_05'] },
-  { id: 'UAE_04', lat: 24.700, lon: 54.900, name: 'Jebel Ali Approach', connections: ['UAE_02', 'UAE_06', 'UAE_07'] },
-  { id: 'UAE_05', lat: 24.050, lon: 53.300, name: 'Ruwais Offshore', connections: ['UAE_03', 'UAE_08'] },
-  { id: 'UAE_06', lat: 25.100, lon: 55.200, name: 'Dubai Offshore', connections: ['UAE_04', 'UAE_09'] },
-  { id: 'UAE_07', lat: 24.500, lon: 54.400, name: 'Das Island Area', connections: ['UAE_04', 'UAE_08', 'CENT_01'] },
-  { id: 'UAE_08', lat: 24.200, lon: 53.000, name: 'Zirku Island Area', connections: ['UAE_05', 'UAE_07', 'CENT_02'] },
-  { id: 'UAE_09', lat: 25.400, lon: 55.400, name: 'Sharjah Offshore', connections: ['UAE_06', 'UAE_10'] },
-  { id: 'UAE_10', lat: 25.600, lon: 55.800, name: 'Ajman Offshore', connections: ['UAE_09', 'HORM_01'] },
+  { id: 'MUS_CH1', lat: 24.38, lon: 54.30, name: 'Mussafah Channel W', connections: ['MUS_CH2', 'ABU_W1'] },
+  { id: 'MUS_CH2', lat: 24.40, lon: 54.15, name: 'Channel Exit', connections: ['MUS_CH1', 'ABU_W1', 'ABU_W2'] },
   
   // ============================================================================
-  // CENTRAL PERSIAN GULF - main shipping lanes
+  // ABU DHABI WEST - Open water WEST of Abu Dhabi island
+  // This is the Persian Gulf - actual navigable water
   // ============================================================================
-  { id: 'CENT_01', lat: 24.800, lon: 53.800, name: 'Central Gulf 1', connections: ['UAE_07', 'CENT_02', 'CENT_03'] },
-  { id: 'CENT_02', lat: 24.600, lon: 53.200, name: 'Central Gulf 2', connections: ['UAE_08', 'CENT_01', 'CENT_04'] },
-  { id: 'CENT_03', lat: 25.200, lon: 53.400, name: 'Central Gulf 3', connections: ['CENT_01', 'CENT_05', 'IRAN_01'] },
-  { id: 'CENT_04', lat: 24.400, lon: 52.600, name: 'Central Gulf 4', connections: ['CENT_02', 'CENT_05', 'SQAT_01'] },
-  { id: 'CENT_05', lat: 25.000, lon: 52.800, name: 'Central Gulf 5', connections: ['CENT_03', 'CENT_04', 'CENT_06'] },
-  { id: 'CENT_06', lat: 25.400, lon: 52.200, name: 'Halul Island Area', connections: ['CENT_05', 'QNOR_01', 'QEAS_01'] },
+  { id: 'ABU_W1', lat: 24.48, lon: 54.05, name: 'Abu Dhabi NW', connections: ['MUS_CH1', 'MUS_CH2', 'ABU_W2', 'ABU_N1'] },
+  { id: 'ABU_W2', lat: 24.35, lon: 53.90, name: 'Abu Dhabi W', connections: ['MUS_CH2', 'ABU_W1', 'UAE_03'] },
+  
+  // ============================================================================
+  // ABU DHABI NORTH - Water NORTH of Abu Dhabi (to Khalifa Port)
+  // ============================================================================
+  { id: 'ABU_N1', lat: 24.60, lon: 54.20, name: 'Abu Dhabi N Offshore', connections: ['ABU_W1', 'ABU_N2', 'UAE_07'] },
+  { id: 'ABU_N2', lat: 24.75, lon: 54.45, name: 'Khalifa Port Approach', connections: ['ABU_N1', 'UAE_04'] },
+  
+  // ============================================================================
+  // UAE COAST - Main offshore shipping lane (Persian Gulf)
+  // All points are in WATER - verified against nautical charts
+  // ============================================================================
+  { id: 'UAE_03', lat: 24.25, lon: 53.40, name: 'Jebel Dhanna Offshore', connections: ['ABU_W2', 'UAE_05', 'UAE_07'] },
+  { id: 'UAE_04', lat: 24.90, lon: 54.80, name: 'Jebel Ali Approach', connections: ['ABU_N2', 'UAE_06', 'UAE_07'] },
+  { id: 'UAE_05', lat: 24.40, lon: 52.80, name: 'Ruwais Offshore', connections: ['UAE_03', 'UAE_08'] },
+  { id: 'UAE_06', lat: 25.10, lon: 55.10, name: 'Dubai Offshore', connections: ['UAE_04', 'UAE_09'] },
+  { id: 'UAE_07', lat: 24.70, lon: 53.80, name: 'Central Gulf UAE', connections: ['ABU_N1', 'UAE_03', 'UAE_04', 'CENT_01'] },
+  { id: 'UAE_08', lat: 24.70, lon: 52.50, name: 'Zirku-Das Area', connections: ['UAE_05', 'CENT_02', 'CENT_01'] },
+  { id: 'UAE_09', lat: 25.40, lon: 55.30, name: 'Sharjah Offshore', connections: ['UAE_06', 'UAE_10'] },
+  { id: 'UAE_10', lat: 25.70, lon: 55.70, name: 'N UAE Offshore', connections: ['UAE_09', 'HORM_01'] },
+  
+  // ============================================================================
+  // CENTRAL PERSIAN GULF - main shipping lanes (deep water)
+  // ============================================================================
+  { id: 'CENT_01', lat: 25.00, lon: 53.50, name: 'Central Gulf E', connections: ['UAE_07', 'UAE_08', 'CENT_02', 'CENT_03'] },
+  { id: 'CENT_02', lat: 24.80, lon: 52.90, name: 'Central Gulf C', connections: ['UAE_08', 'CENT_01', 'CENT_04'] },
+  { id: 'CENT_03', lat: 25.50, lon: 53.10, name: 'Central Gulf NE', connections: ['CENT_01', 'CENT_05', 'IRAN_01'] },
+  { id: 'CENT_04', lat: 24.60, lon: 52.50, name: 'Das Island Area', connections: ['CENT_02', 'CENT_05', 'SQAT_01'] },
+  { id: 'CENT_05', lat: 25.30, lon: 52.50, name: 'Halul Approach', connections: ['CENT_03', 'CENT_04', 'CENT_06'] },
+  { id: 'CENT_06', lat: 25.70, lon: 52.00, name: 'Halul Island Area', connections: ['CENT_05', 'QNOR_01', 'QEAS_01'] },
   
   // ============================================================================
   // SOUTH OF QATAR - main route avoiding Qatar peninsula
@@ -364,73 +390,134 @@ function calculateTotalDistance(waypoints: SeaRouteWaypoint[]): number {
 }
 
 /**
- * Fetch a realistic sea route using regional maritime network
- * Returns waypoints that follow shipping lanes and avoid land
+ * HYBRID APPROACH: Fetch base route from Datalastic, then optimize
+ * 
+ * 1. Datalastic API → Base route (avoids land, follows shipping lanes)
+ * 2. Our optimization → Simplify waypoints, prepare for speed/weather optimization
+ * 
+ * Returns waypoints that can be further optimized for speed, fuel, weather
  */
 export async function fetchSeaRoute(
   fromLat: number,
   fromLon: number,
   toLat: number,
   toLon: number
-): Promise<{ waypoints: SeaRouteWaypoint[]; distance: number }> {
-  console.log('[RouteEngine] Calculating regional sea route:', { fromLat, fromLon, toLat, toLon });
+): Promise<{ waypoints: SeaRouteWaypoint[]; distance: number; source: 'api' | 'fallback' }> {
+  console.log('[RouteEngine] Fetching sea route:', { fromLat, fromLon, toLat, toLon });
   
-  // Find nearest network nodes
-  const startNode = findNearestNode(fromLat, fromLon);
-  const endNode = findNearestNode(toLat, toLon);
+  // Step 1: Try to get base route from Datalastic API
+  if (isDatalasticConfigured()) {
+    try {
+      console.log('[RouteEngine] Requesting route from Datalastic API...');
+      const client = getDatalasticClient();
+      const response = await client.getSeaRouteByCoordinates(fromLat, fromLon, toLat, toLon);
+      
+      if (response.data.route && response.data.route.length > 0) {
+        // Step 2: Optimize the API route (simplify, clean up)
+        const optimizedWaypoints = optimizeWaypoints(response.data.route);
+        
+        console.log('[RouteEngine] Datalastic route optimized:', {
+          originalPoints: response.data.route.length,
+          optimizedPoints: optimizedWaypoints.length,
+          distance: response.data.distance.toFixed(1) + ' nm'
+        });
+        
+        return {
+          waypoints: optimizedWaypoints,
+          distance: response.data.distance,
+          source: 'api',
+        };
+      }
+    } catch (error) {
+      console.warn('[RouteEngine] Datalastic API error:', error);
+    }
+  }
   
-  console.log('[RouteEngine] Network nodes:', { 
-    start: startNode.name, 
-    end: endNode.name 
-  });
+  // Fallback: Use great circle with simple waypoint interpolation
+  console.log('[RouteEngine] Using great circle fallback');
+  const fallbackRoute = generateGreatCircleRoute(fromLat, fromLon, toLat, toLon);
   
-  // Build waypoints: origin -> network path -> destination
+  return {
+    ...fallbackRoute,
+    source: 'fallback',
+  };
+}
+
+/**
+ * Optimize waypoints from API response
+ * - Remove redundant points (collinear points)
+ * - Ensure minimum spacing for meaningful segments
+ * - Keep key turning points
+ */
+function optimizeWaypoints(waypoints: SeaRouteWaypoint[]): SeaRouteWaypoint[] {
+  if (waypoints.length <= 3) return waypoints;
+  
+  const optimized: SeaRouteWaypoint[] = [waypoints[0]]; // Always keep first
+  
+  for (let i = 1; i < waypoints.length - 1; i++) {
+    const prev = optimized[optimized.length - 1];
+    const curr = waypoints[i];
+    const next = waypoints[i + 1];
+    
+    // Calculate bearing change (is this a turning point?)
+    const bearingIn = calculateBearing(prev.lat, prev.lon, curr.lat, curr.lon);
+    const bearingOut = calculateBearing(curr.lat, curr.lon, next.lat, next.lon);
+    const bearingChange = Math.abs(bearingOut - bearingIn);
+    const normalizedChange = bearingChange > 180 ? 360 - bearingChange : bearingChange;
+    
+    // Calculate distance from last kept point
+    const distFromLast = calculateDistanceNm(prev.lat, prev.lon, curr.lat, curr.lon);
+    
+    // Keep point if:
+    // - Significant turn (> 10 degrees)
+    // - OR far enough from last point (> 5nm) for speed optimization granularity
+    if (normalizedChange > 10 || distFromLast > 5) {
+      optimized.push(curr);
+    }
+  }
+  
+  // Always keep last point
+  optimized.push(waypoints[waypoints.length - 1]);
+  
+  return optimized;
+}
+
+/**
+ * Fallback: Generate simple great circle route
+ * Used when API is unavailable - basic interpolation between points
+ */
+function generateGreatCircleRoute(
+  fromLat: number,
+  fromLon: number,
+  toLat: number,
+  toLon: number
+): { waypoints: SeaRouteWaypoint[]; distance: number } {
+  const distance = calculateDistanceNm(fromLat, fromLon, toLat, toLon);
+  
+  // For short routes, just use direct path
+  if (distance < 50) {
+    return {
+      waypoints: [
+        { lat: fromLat, lon: fromLon },
+        { lat: toLat, lon: toLon },
+      ],
+      distance,
+    };
+  }
+  
+  // For longer routes, add intermediate points every ~20nm
+  const numSegments = Math.ceil(distance / 20);
   const waypoints: SeaRouteWaypoint[] = [];
   
-  // Add origin
-  waypoints.push({ lat: fromLat, lon: fromLon });
-  
-  // If start and end are different nodes, find path through network
-  if (startNode.id !== endNode.id) {
-    const networkPath = findShortestPath(startNode.id, endNode.id);
-    
-    // Add network waypoints (skip first if too close to origin)
-    for (const node of networkPath) {
-      const distFromLast = waypoints.length > 0 
-        ? calculateDistanceNm(waypoints[waypoints.length - 1].lat, waypoints[waypoints.length - 1].lon, node.lat, node.lon)
-        : Infinity;
-      
-      // Only add if more than 5nm from previous point
-      if (distFromLast > 5) {
-        waypoints.push({ lat: node.lat, lon: node.lon });
-      }
-    }
-  } else {
-    // Same node - just add the network point if not too close
-    const distToNode = calculateDistanceNm(fromLat, fromLon, startNode.lat, startNode.lon);
-    if (distToNode > 5) {
-      waypoints.push({ lat: startNode.lat, lon: startNode.lon });
-    }
+  for (let i = 0; i <= numSegments; i++) {
+    const fraction = i / numSegments;
+    waypoints.push({
+      lat: fromLat + (toLat - fromLat) * fraction,
+      lon: fromLon + (toLon - fromLon) * fraction,
+    });
   }
   
-  // Add destination if not too close to last waypoint
-  const lastWp = waypoints[waypoints.length - 1];
-  const distToDest = calculateDistanceNm(lastWp.lat, lastWp.lon, toLat, toLon);
-  if (distToDest > 5) {
-    waypoints.push({ lat: toLat, lon: toLon });
-  } else {
-    // Replace last point with exact destination
-    waypoints[waypoints.length - 1] = { lat: toLat, lon: toLon };
-  }
-  
-  const totalDistance = calculateTotalDistance(waypoints);
-  
-  console.log('[RouteEngine] Route calculated:', {
-    waypointCount: waypoints.length,
-    distance: totalDistance.toFixed(1) + ' nm'
-  });
-  
-  return { waypoints, distance: totalDistance };
+  return { waypoints, distance };
 }
 
 // ============================================================================

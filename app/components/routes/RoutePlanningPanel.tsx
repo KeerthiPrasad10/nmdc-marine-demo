@@ -17,6 +17,20 @@ import {
   Loader2,
   CheckCircle,
   GripVertical,
+  Waves,
+  Wind,
+  DollarSign,
+  Shield,
+  Sparkles,
+  Ship,
+  Calendar,
+  Timer,
+  Gauge,
+  Leaf,
+  Info,
+  ChevronDown,
+  ChevronUp,
+  Lightbulb,
 } from 'lucide-react';
 import { Route, RouteOptimizationResult } from '@/lib/routes/types';
 
@@ -70,20 +84,44 @@ export function RoutePlanningPanel({
   const [intermediateStops, setIntermediateStops] = useState<Waypoint[]>([]);
   const [returnToOrigin, setReturnToOrigin] = useState(false);
 
-  // Priorities (0-100)
-  const [priorities, setPriorities] = useState({
-    time: 50,
-    fuel: 50,
-    cost: 50,
-    emissions: 50,
-    safety: 70,
+  // Optimization mode
+  const [useSmartMode, setUseSmartMode] = useState(true);
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+
+  // Smart Priorities - all optimized by default
+  const priorities = {
+    fuel: 70,
+    time: 60,
+    emissions: 70,
+    cost: 60,
+    safety: 80,
+    comfort: 50,
+  };
+
+  // Smart optimization options
+  const [departureTime, setDepartureTime] = useState<string>('');
+  const [arrivalWindow, setArrivalWindow] = useState({
+    enabled: false,
+    earliest: '',
+    latest: '',
+    preferredTime: '',
+  });
+  const [portConditions, setPortConditions] = useState({
+    enabled: false,
+    berthAvailable: true,
+    expectedBerthTime: '',
+    congestionLevel: 'low' as 'low' | 'medium' | 'high',
+  });
+  const [preferences, setPreferences] = useState({
+    maxWaveHeight: 3.0,
+    maxWindSpeed: 25,
   });
 
   // Result state
   const [isLoading, setIsLoading] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [result, setResult] = useState<RouteOptimizationResult | any>(null);
-  const [resultMode, setResultMode] = useState<'single' | 'multi-stop' | null>(null);
+  const [resultMode, setResultMode] = useState<'single' | 'multi-stop' | 'smart' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Update map markers when origin/destination changes
@@ -180,12 +218,12 @@ export function RoutePlanningPanel({
     try {
       const isMultiStop = intermediateStops.length > 0;
       
-      const response = await fetch('/api/route-optimize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(
-          isMultiStop
-            ? {
+      // Build request body based on mode
+      let requestBody;
+      
+      if (isMultiStop) {
+        // Multi-stop mode
+        requestBody = {
                 vesselId,
                 vesselName,
                 vesselType,
@@ -195,16 +233,59 @@ export function RoutePlanningPanel({
                   { name: destination.name, lat: destination.lat, lng: destination.lng },
                 ],
                 returnToOrigin,
-              }
-            : {
+        };
+      } else if (useSmartMode) {
+        // Smart optimization mode
+        requestBody = {
+          mode: 'smart',
                 vesselId,
                 vesselName,
                 vesselType,
                 origin: { lat: origin.lat, lng: origin.lng, name: origin.name },
                 destination: { lat: destination.lat, lng: destination.lng, name: destination.name },
                 priorities,
-              }
-        ),
+          ...(departureTime && { departureTime }),
+          ...(arrivalWindow.enabled && {
+            arrivalWindow: {
+              earliest: arrivalWindow.earliest,
+              latest: arrivalWindow.latest,
+              ...(arrivalWindow.preferredTime && { preferredTime: arrivalWindow.preferredTime }),
+            },
+          }),
+          ...(portConditions.enabled && {
+            portConditions: {
+              berthAvailable: portConditions.berthAvailable,
+              ...(portConditions.expectedBerthTime && { expectedBerthTime: portConditions.expectedBerthTime }),
+              congestionLevel: portConditions.congestionLevel,
+            },
+          }),
+          preferences: {
+            maxWaveHeight: preferences.maxWaveHeight,
+            maxWindSpeed: preferences.maxWindSpeed,
+          },
+        };
+      } else {
+        // Basic optimization mode
+        requestBody = {
+          vesselId,
+          vesselName,
+          vesselType,
+          origin: { lat: origin.lat, lng: origin.lng, name: origin.name },
+          destination: { lat: destination.lat, lng: destination.lng, name: destination.name },
+          priorities: {
+            time: priorities.time,
+            fuel: priorities.fuel,
+            cost: priorities.cost,
+            emissions: priorities.emissions,
+            safety: priorities.safety,
+          },
+        };
+      }
+      
+      const response = await fetch('/api/route-optimize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
       });
 
       const data = await response.json();
@@ -250,6 +331,21 @@ export function RoutePlanningPanel({
           };
           onRouteGenerated(combinedRoute);
         }
+      } else if (data.mode === 'smart') {
+        // Smart optimization result
+        if (onRouteGenerated && data.result.recommendedRoute) {
+          onRouteGenerated(data.result.recommendedRoute);
+        }
+
+        // Notify parent of waypoints for map visualization
+        if (onWaypointsChange && data.result.recommendedRoute) {
+          const waypoints = [
+            { lat: data.result.recommendedRoute.origin.lat, lng: data.result.recommendedRoute.origin.lng },
+            ...data.result.recommendedRoute.waypoints.map((wp: { lat: number; lng: number }) => ({ lat: wp.lat, lng: wp.lng })),
+            { lat: data.result.recommendedRoute.destination.lat, lng: data.result.recommendedRoute.destination.lng },
+          ];
+          onWaypointsChange(waypoints);
+        }
       } else {
         // Single route result
         if (onRouteGenerated && data.result.recommendedRoute) {
@@ -271,7 +367,7 @@ export function RoutePlanningPanel({
     } finally {
       setIsLoading(false);
     }
-  }, [origin, destination, intermediateStops, returnToOrigin, priorities, vesselId, vesselName, vesselType, onRouteGenerated, onWaypointsChange]);
+  }, [origin, destination, intermediateStops, returnToOrigin, priorities, vesselId, vesselName, vesselType, onRouteGenerated, onWaypointsChange, useSmartMode, departureTime, arrivalWindow, portConditions, preferences]);
 
   const addIntermediateStop = () => {
     const newStop: Waypoint = {
@@ -300,7 +396,10 @@ export function RoutePlanningPanel({
     setResult(null);
     setResultMode(null);
     setError(null);
-    setPriorities({ time: 50, fuel: 50, cost: 50, emissions: 50, safety: 70 });
+    setDepartureTime('');
+    setArrivalWindow({ enabled: false, earliest: '', latest: '', preferredTime: '' });
+    setPortConditions({ enabled: false, berthAvailable: true, expectedBerthTime: '', congestionLevel: 'low' });
+    setShowAdvancedOptions(false);
   };
 
   return (
@@ -439,42 +538,211 @@ export function RoutePlanningPanel({
           </label>
         )}
 
-        {/* Priority Sliders */}
+        {/* Smart Mode Toggle */}
         {!compact && intermediateStops.length === 0 && (
-          <div className="space-y-3 pt-2">
-            <label className="block text-xs text-white/50">Optimization Priorities</label>
-            
-            <PrioritySlider
-              label="Speed"
-              value={priorities.time}
-              onChange={(v) => setPriorities({ ...priorities, time: v })}
-              icon={<Clock className="w-3 h-3" />}
-              color="cyan"
-            />
-            
-            <PrioritySlider
-              label="Fuel Efficiency"
-              value={priorities.fuel}
-              onChange={(v) => setPriorities({ ...priorities, fuel: v })}
-              icon={<Fuel className="w-3 h-3" />}
-              color="amber"
-            />
-            
-            <PrioritySlider
-              label="Low Emissions"
-              value={priorities.emissions}
-              onChange={(v) => setPriorities({ ...priorities, emissions: v })}
-              icon={<TrendingDown className="w-3 h-3" />}
-              color="emerald"
-            />
-            
-            <PrioritySlider
-              label="Safety"
-              value={priorities.safety}
-              onChange={(v) => setPriorities({ ...priorities, safety: v })}
-              icon={<AlertTriangle className="w-3 h-3" />}
-              color="rose"
-            />
+          <div className="pt-2">
+            {/* Mode Toggle */}
+            <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-violet-500/10 to-cyan-500/10 border border-violet-500/20 mb-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-violet-400" />
+                <div>
+                  <span className="text-xs font-medium text-white">Smart Optimization</span>
+                  <p className="text-[10px] text-white/50">Weather, currents, speed profiles</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setUseSmartMode(!useSmartMode)}
+                className={`relative w-11 h-6 rounded-full transition-colors ${
+                  useSmartMode ? 'bg-violet-500' : 'bg-white/20'
+                }`}
+              >
+                <div
+                  className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                    useSmartMode ? 'left-6' : 'left-1'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Smart Optimization - What will be optimized */}
+            {useSmartMode && (
+              <div className="space-y-4">
+                {/* Optimization Factors - Simple icon grid */}
+                <div>
+                  <label className="block text-xs text-white/50 mb-2">Optimizing for:</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <OptimizationFactor icon={<Fuel className="w-4 h-4" />} label="Fuel" color="amber" />
+                    <OptimizationFactor icon={<Gauge className="w-4 h-4" />} label="Speed" color="cyan" />
+                    <OptimizationFactor icon={<Leaf className="w-4 h-4" />} label="Emissions" color="emerald" />
+                    <OptimizationFactor icon={<DollarSign className="w-4 h-4" />} label="Cost" color="yellow" />
+                    <OptimizationFactor icon={<Shield className="w-4 h-4" />} label="Safety" color="rose" />
+                    <OptimizationFactor icon={<Waves className="w-4 h-4" />} label="Comfort" color="blue" />
+                  </div>
+                </div>
+
+                {/* Departure Time */}
+                <div>
+                  <label className="block text-xs text-white/50 mb-1.5 flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    Departure Time <span className="text-white/30">(optional)</span>
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={departureTime}
+                    onChange={(e) => setDepartureTime(e.target.value)}
+                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-violet-500"
+                  />
+                </div>
+
+                {/* Advanced Options Toggle */}
+                <button
+                  onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
+                >
+                  <span className="text-xs text-white/70">Advanced Options</span>
+                  {showAdvancedOptions ? (
+                    <ChevronUp className="w-4 h-4 text-white/50" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-white/50" />
+                  )}
+                </button>
+
+                {/* Advanced Options */}
+                {showAdvancedOptions && (
+                  <div className="space-y-4 p-3 rounded-lg bg-white/5 border border-white/10">
+                    {/* Arrival Window */}
+                    <div>
+                      <label className="flex items-center gap-2 mb-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={arrivalWindow.enabled}
+                          onChange={(e) => setArrivalWindow({ ...arrivalWindow, enabled: e.target.checked })}
+                          className="w-4 h-4 rounded border-white/20 bg-white/5 text-violet-500 focus:ring-violet-500"
+                        />
+                        <span className="text-xs text-white/70 flex items-center gap-1">
+                          <Timer className="w-3 h-3" />
+                          Arrival Window (Just-in-Time)
+                        </span>
+                      </label>
+                      
+                      {arrivalWindow.enabled && (
+                        <div className="grid grid-cols-2 gap-2 mt-2">
+                          <div>
+                            <label className="block text-[10px] text-white/40 mb-1">Earliest</label>
+                            <input
+                              type="datetime-local"
+                              value={arrivalWindow.earliest}
+                              onChange={(e) => setArrivalWindow({ ...arrivalWindow, earliest: e.target.value })}
+                              className="w-full px-2 py-1.5 bg-white/5 border border-white/10 rounded text-xs text-white focus:outline-none focus:border-violet-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] text-white/40 mb-1">Latest</label>
+                            <input
+                              type="datetime-local"
+                              value={arrivalWindow.latest}
+                              onChange={(e) => setArrivalWindow({ ...arrivalWindow, latest: e.target.value })}
+                              className="w-full px-2 py-1.5 bg-white/5 border border-white/10 rounded text-xs text-white focus:outline-none focus:border-violet-500"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Port Conditions (Virtual Arrival) */}
+                    <div>
+                      <label className="flex items-center gap-2 mb-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={portConditions.enabled}
+                          onChange={(e) => setPortConditions({ ...portConditions, enabled: e.target.checked })}
+                          className="w-4 h-4 rounded border-white/20 bg-white/5 text-violet-500 focus:ring-violet-500"
+                        />
+                        <span className="text-xs text-white/70 flex items-center gap-1">
+                          <Ship className="w-3 h-3" />
+                          Port Conditions (Virtual Arrival)
+                        </span>
+                      </label>
+                      
+                      {portConditions.enabled && (
+                        <div className="space-y-2 mt-2">
+                          <div className="flex items-center gap-3">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={portConditions.berthAvailable}
+                                onChange={(e) => setPortConditions({ ...portConditions, berthAvailable: e.target.checked })}
+                                className="w-3 h-3 rounded border-white/20 bg-white/5 text-violet-500"
+                              />
+                              <span className="text-[10px] text-white/60">Berth Available</span>
+                            </label>
+                          </div>
+                          
+                          {!portConditions.berthAvailable && (
+                            <div>
+                              <label className="block text-[10px] text-white/40 mb-1">Expected Berth Time</label>
+                              <input
+                                type="datetime-local"
+                                value={portConditions.expectedBerthTime}
+                                onChange={(e) => setPortConditions({ ...portConditions, expectedBerthTime: e.target.value })}
+                                className="w-full px-2 py-1.5 bg-white/5 border border-white/10 rounded text-xs text-white focus:outline-none focus:border-violet-500"
+                              />
+                            </div>
+                          )}
+                          
+                          <div>
+                            <label className="block text-[10px] text-white/40 mb-1">Congestion Level</label>
+                            <select
+                              value={portConditions.congestionLevel}
+                              onChange={(e) => setPortConditions({ ...portConditions, congestionLevel: e.target.value as 'low' | 'medium' | 'high' })}
+                              className="w-full px-2 py-1.5 bg-white/5 border border-white/10 rounded text-xs text-white focus:outline-none focus:border-violet-500"
+                            >
+                              <option value="low">Low</option>
+                              <option value="medium">Medium</option>
+                              <option value="high">High</option>
+                            </select>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Weather Preferences */}
+                    <div>
+                      <label className="block text-xs text-white/70 mb-2 flex items-center gap-1">
+                        <Wind className="w-3 h-3" />
+                        Weather Limits
+                      </label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[10px] text-white/40 mb-1">Max Wave Height (m)</label>
+                          <input
+                            type="number"
+                            step="0.5"
+                            min="0.5"
+                            max="10"
+                            value={preferences.maxWaveHeight}
+                            onChange={(e) => setPreferences({ ...preferences, maxWaveHeight: parseFloat(e.target.value) })}
+                            className="w-full px-2 py-1.5 bg-white/5 border border-white/10 rounded text-xs text-white focus:outline-none focus:border-violet-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] text-white/40 mb-1">Max Wind (knots)</label>
+                          <input
+                            type="number"
+                            step="5"
+                            min="10"
+                            max="50"
+                            value={preferences.maxWindSpeed}
+                            onChange={(e) => setPreferences({ ...preferences, maxWindSpeed: parseInt(e.target.value) })}
+                            className="w-full px-2 py-1.5 bg-white/5 border border-white/10 rounded text-xs text-white focus:outline-none focus:border-violet-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -489,20 +757,246 @@ export function RoutePlanningPanel({
         <button
           onClick={handleOptimize}
           disabled={isLoading || !origin || !destination}
-          className="w-full py-3 rounded-lg bg-primary-500/80 hover:bg-primary-500 disabled:bg-white/10 disabled:text-white/30 text-white font-medium text-sm transition-colors flex items-center justify-center gap-2"
+          className={`w-full py-3 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-2 ${
+            useSmartMode && intermediateStops.length === 0
+              ? 'bg-gradient-to-r from-violet-500 to-cyan-500 hover:from-violet-600 hover:to-cyan-600 text-white shadow-lg shadow-violet-500/25'
+              : 'bg-primary-500/80 hover:bg-primary-500 text-white'
+          } disabled:bg-white/10 disabled:text-white/30 disabled:shadow-none`}
         >
           {isLoading ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              Calculating Route...
+              {useSmartMode ? 'Smart Analyzing...' : 'Calculating Route...'}
+            </>
+          ) : (
+            <>
+              {useSmartMode && intermediateStops.length === 0 ? (
+                <>
+                  <Sparkles className="w-4 h-4" />
+                  Smart Optimize Route
             </>
           ) : (
             <>
               <Zap className="w-4 h-4" />
               Optimize Route
+                </>
+              )}
             </>
           )}
         </button>
+
+        {/* Results - Smart Optimization */}
+        {result && resultMode === 'smart' && result.recommendedRoute && (
+          <div className="space-y-3 pt-2">
+            <div className="flex items-center gap-2 text-violet-400">
+              <Sparkles className="w-4 h-4" />
+              <span className="text-xs font-medium">Smart Route Optimized</span>
+            </div>
+
+            {/* Optimized Factors with Checkmarks */}
+            <div className="grid grid-cols-6 gap-1.5">
+              <OptimizationFactor icon={<Fuel className="w-3.5 h-3.5" />} label="Fuel" color="amber" optimized />
+              <OptimizationFactor icon={<Gauge className="w-3.5 h-3.5" />} label="Speed" color="cyan" optimized />
+              <OptimizationFactor icon={<Leaf className="w-3.5 h-3.5" />} label="CO₂" color="emerald" optimized />
+              <OptimizationFactor icon={<DollarSign className="w-3.5 h-3.5" />} label="Cost" color="yellow" optimized />
+              <OptimizationFactor icon={<Shield className="w-3.5 h-3.5" />} label="Safe" color="rose" optimized />
+              <OptimizationFactor icon={<Waves className="w-3.5 h-3.5" />} label="Comfort" color="blue" optimized />
+            </div>
+
+            {/* Route Summary */}
+            <div className="grid grid-cols-2 gap-2">
+              <MetricCard
+                label="Distance"
+                value={`${result.recommendedRoute.totalDistance.toFixed(1)} nm`}
+                icon={<Navigation className="w-3 h-3" />}
+              />
+              <MetricCard
+                label="Duration"
+                value={formatDuration(result.recommendedRoute.estimatedTime)}
+                icon={<Clock className="w-3 h-3" />}
+              />
+              <MetricCard
+                label="Fuel"
+                value={`${Math.round(result.metrics.totalFuel)} L`}
+                icon={<Fuel className="w-3 h-3" />}
+              />
+              <MetricCard
+                label="CO₂"
+                value={`${Math.round(result.metrics.totalEmissions.co2)} kg`}
+                icon={<Leaf className="w-3 h-3" />}
+              />
+            </div>
+
+            {/* Savings Highlight */}
+            {(result.metrics.fuelSaved > 0 || result.metrics.costSaved > 0) && (
+              <div className="p-3 rounded-lg bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border border-emerald-500/30">
+                <div className="flex items-center gap-2 mb-2">
+                  <TrendingDown className="w-3 h-3 text-emerald-400" />
+                  <span className="text-xs font-medium text-emerald-400">Smart Savings</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div>
+                    <div className="text-sm font-bold text-white">{Math.round(result.metrics.fuelSaved)} L</div>
+                    <div className="text-[10px] text-white/50">Fuel Saved</div>
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-white">${result.metrics.costSaved.toFixed(0)}</div>
+                    <div className="text-[10px] text-white/50">Cost Saved</div>
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-white">{Math.round(result.metrics.emissionsSaved.co2)} kg</div>
+                    <div className="text-[10px] text-white/50">CO₂ Reduced</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Virtual Arrival Recommendation */}
+            {result.timing.virtualArrivalRecommended && result.timing.virtualArrivalSavings && (
+              <div className="p-3 rounded-lg bg-violet-500/10 border border-violet-500/30">
+                <div className="flex items-center gap-2 mb-2">
+                  <Ship className="w-3 h-3 text-violet-400" />
+                  <span className="text-xs font-medium text-violet-400">Virtual Arrival Recommended</span>
+                </div>
+                <p className="text-[10px] text-white/60 mb-2">
+                  Slow down to arrive when berth is ready, avoiding anchoring wait time.
+                </p>
+                <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
+                  <div>
+                    <div className="text-xs font-medium text-white">{Math.round(result.timing.virtualArrivalSavings.fuelSaved)} L</div>
+                    <div className="text-white/40">Extra Fuel Saved</div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium text-white">{result.timing.virtualArrivalSavings.waitingReduced.toFixed(1)}h</div>
+                    <div className="text-white/40">Wait Reduced</div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium text-white">{Math.round(result.timing.virtualArrivalSavings.emissionsSaved)} kg</div>
+                    <div className="text-white/40">CO₂ Saved</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Speed Profile Summary */}
+            {result.speedProfile && result.speedProfile.length > 0 && (
+              <div className="p-3 rounded-lg bg-white/5 border border-white/10">
+                <div className="flex items-center gap-2 mb-2">
+                  <Gauge className="w-3 h-3 text-cyan-400" />
+                  <span className="text-xs font-medium text-white/80">Speed Profile</span>
+                </div>
+                <div className="flex items-center gap-1 overflow-x-auto pb-1">
+                  {result.speedProfile.slice(0, 6).map((profile: { recommendedSpeed: number; reason: string }, i: number) => (
+                    <div 
+                      key={i}
+                      className="flex-shrink-0 px-2 py-1 rounded bg-cyan-500/20 border border-cyan-500/30"
+                      title={profile.reason}
+                    >
+                      <div className="text-[10px] text-white/50">Seg {i + 1}</div>
+                      <div className="text-xs font-medium text-cyan-400">{profile.recommendedSpeed.toFixed(1)} kt</div>
+                    </div>
+                  ))}
+                  {result.speedProfile.length > 6 && (
+                    <div className="text-[10px] text-white/40 px-2">+{result.speedProfile.length - 6}</div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Weather Effects */}
+            {result.weatherRouting && (Math.abs(result.weatherRouting.currentAssist) > 0.1 || Math.abs(result.weatherRouting.windEffect) > 0.1) && (
+              <div className="flex gap-2">
+                {Math.abs(result.weatherRouting.currentAssist) > 0.1 && (
+                  <div className={`flex-1 p-2 rounded-lg border ${
+                    result.weatherRouting.currentAssist > 0 
+                      ? 'bg-emerald-500/10 border-emerald-500/30' 
+                      : 'bg-amber-500/10 border-amber-500/30'
+                  }`}>
+                    <div className="flex items-center gap-1 mb-1">
+                      <Waves className="w-3 h-3" />
+                      <span className="text-[10px] text-white/50">Current</span>
+                    </div>
+                    <span className={`text-xs font-medium ${
+                      result.weatherRouting.currentAssist > 0 ? 'text-emerald-400' : 'text-amber-400'
+                    }`}>
+                      {result.weatherRouting.currentAssist > 0 ? '+' : ''}{result.weatherRouting.currentAssist.toFixed(1)} kt
+                    </span>
+                  </div>
+                )}
+                {Math.abs(result.weatherRouting.windEffect) > 0.1 && (
+                  <div className={`flex-1 p-2 rounded-lg border ${
+                    result.weatherRouting.windEffect > 0 
+                      ? 'bg-emerald-500/10 border-emerald-500/30' 
+                      : 'bg-amber-500/10 border-amber-500/30'
+                  }`}>
+                    <div className="flex items-center gap-1 mb-1">
+                      <Wind className="w-3 h-3" />
+                      <span className="text-[10px] text-white/50">Wind</span>
+                    </div>
+                    <span className={`text-xs font-medium ${
+                      result.weatherRouting.windEffect > 0 ? 'text-emerald-400' : 'text-amber-400'
+                    }`}>
+                      {result.weatherRouting.windEffect > 0 ? '+' : ''}{result.weatherRouting.windEffect.toFixed(1)} kt
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Recommendations */}
+            {result.recommendations && result.recommendations.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-1 text-white/50">
+                  <Lightbulb className="w-3 h-3" />
+                  <span className="text-[10px]">Recommendations</span>
+                </div>
+                {result.recommendations.slice(0, 3).map((rec: { type: string; priority: string; title: string; description: string; potentialSavings?: { fuel?: number; cost?: number } }, i: number) => (
+                  <div 
+                    key={i}
+                    className={`p-2 rounded-lg border ${
+                      rec.priority === 'high' 
+                        ? 'bg-violet-500/10 border-violet-500/30' 
+                        : rec.priority === 'medium'
+                        ? 'bg-amber-500/10 border-amber-500/30'
+                        : 'bg-white/5 border-white/10'
+                    }`}
+                  >
+                    <div className="flex items-start gap-2">
+                      <Info className={`w-3 h-3 mt-0.5 flex-shrink-0 ${
+                        rec.priority === 'high' ? 'text-violet-400' :
+                        rec.priority === 'medium' ? 'text-amber-400' : 'text-white/50'
+                      }`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-medium text-white/90">{rec.title}</div>
+                        <div className="text-[10px] text-white/50 line-clamp-2">{rec.description}</div>
+                        {rec.potentialSavings && (rec.potentialSavings.fuel || rec.potentialSavings.cost) && (
+                          <div className="text-[10px] text-emerald-400 mt-1">
+                            {rec.potentialSavings.fuel && `${Math.round(rec.potentialSavings.fuel)}L fuel`}
+                            {rec.potentialSavings.fuel && rec.potentialSavings.cost && ' · '}
+                            {rec.potentialSavings.cost && `$${rec.potentialSavings.cost.toFixed(0)} saved`}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Arrival Time */}
+            {result.timing && (
+              <div className="flex items-center justify-between p-2 rounded-lg bg-white/5 border border-white/10">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-3 h-3 text-white/50" />
+                  <span className="text-xs text-white/70">Est. Arrival</span>
+                </div>
+                <span className="text-xs font-medium text-white">
+                  {new Date(result.timing.estimatedArrival).toLocaleString()}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Results - Single Route */}
         {result && resultMode === 'single' && result.recommendedRoute && (
@@ -660,43 +1154,46 @@ export function RoutePlanningPanel({
 // Helper Components
 // ============================================================================
 
-function PrioritySlider({
-  label,
-  value,
-  onChange,
+function OptimizationFactor({
   icon,
+  label,
   color,
+  optimized = false,
 }: {
-  label: string;
-  value: number;
-  onChange: (value: number) => void;
   icon: React.ReactNode;
-  color: 'cyan' | 'amber' | 'emerald' | 'rose';
+  label: string;
+  color: 'cyan' | 'amber' | 'emerald' | 'rose' | 'yellow' | 'blue' | 'violet';
+  optimized?: boolean;
 }) {
   const colorClasses = {
+    cyan: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30',
+    amber: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
+    emerald: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
+    rose: 'text-rose-400 bg-rose-500/10 border-rose-500/30',
+    yellow: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30',
+    blue: 'text-blue-400 bg-blue-500/10 border-blue-500/30',
+    violet: 'text-violet-400 bg-violet-500/10 border-violet-500/30',
+  };
+
+  const iconColorClasses = {
     cyan: 'text-cyan-400',
     amber: 'text-amber-400',
     emerald: 'text-emerald-400',
     rose: 'text-rose-400',
+    yellow: 'text-yellow-400',
+    blue: 'text-blue-400',
+    violet: 'text-violet-400',
   };
 
   return (
-    <div className="flex items-center gap-3">
-      <div className={`w-6 flex justify-center ${colorClasses[color]}`}>{icon}</div>
-      <div className="flex-1">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-[10px] text-white/50">{label}</span>
-          <span className="text-[10px] text-white/70">{value}%</span>
+    <div className={`relative p-2 rounded-lg border ${colorClasses[color]} flex flex-col items-center gap-1`}>
+      <div className={iconColorClasses[color]}>{icon}</div>
+      <span className="text-[10px] text-white/70">{label}</span>
+      {optimized && (
+        <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center">
+          <CheckCircle className="w-3 h-3 text-white" />
         </div>
-        <input
-          type="range"
-          min="0"
-          max="100"
-          value={value}
-          onChange={(e) => onChange(parseInt(e.target.value))}
-          className="w-full h-1 bg-white/10 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary-400"
-        />
-      </div>
+      )}
     </div>
   );
 }
