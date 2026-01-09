@@ -482,14 +482,18 @@ ${JSON.stringify(appContext, null, 2)}
       }
       
       if (hasImage) {
+        const userSymptom = content.trim() || 'analyze this equipment';
         contextBlock += `<image_attached>
-An image has been uploaded with this query. You MUST:
-1. DESCRIBE what you see in the image (equipment type, visible components, condition)
-2. IDENTIFY any visible issues (wear, damage, misalignment, corrosion, leaks)
-3. CORRELATE the image with the user's reported symptom ("${content.trim()}")
-4. If you cannot see the image or it's unclear, say so explicitly
+An image has been uploaded. The user's reported symptom is: "${userSymptom}"
 
-DO NOT ignore the image. Your analysis must reference specific visual details.
+CRITICAL INSTRUCTIONS:
+1. ANALYZE the image and describe what equipment/component you see
+2. FOCUS ON THE REPORTED SYMPTOM: "${userSymptom}" - do NOT ask about unrelated issues
+3. Based on the image + symptom, identify the MOST LIKELY cause
+4. If you see a pump and user says "grinding noise" → focus on bearing/impeller issues, NOT leaks
+5. If you cannot see the image clearly, say so - but still address the symptom
+
+DO NOT ask about symptoms the user didn't mention. Address what they reported: "${userSymptom}"
 </image_attached>
 
 `;
