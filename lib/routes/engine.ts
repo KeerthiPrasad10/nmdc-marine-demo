@@ -168,18 +168,10 @@ export async function fetchSeaRoute(
 }
 
 /**
- * UAE Offshore waypoints for routing around land
- * These are safe offshore points that routes can use to avoid crossing land
+ * Safe offshore latitude for routing in the Persian Gulf
+ * Routes that would cross land should arc through this latitude
  */
-const UAE_OFFSHORE_WAYPOINTS = [
-  { name: 'Abu Dhabi Offshore', lat: 24.35, lon: 53.90 },
-  { name: 'Das Island Approach', lat: 25.00, lon: 52.95 },
-  { name: 'Ruwais Offshore', lat: 24.20, lon: 52.50 },
-  { name: 'Dubai Offshore', lat: 25.10, lon: 55.20 },
-  { name: 'Fujairah Approach', lat: 25.20, lon: 56.50 },
-  { name: 'Strait of Hormuz', lat: 26.00, lon: 56.30 },
-  { name: 'Northern Gulf', lat: 26.50, lon: 53.50 },
-];
+const SAFE_OFFSHORE_LAT = 24.0; // South of most landmasses, in open water
 
 /**
  * Check if a point is likely over land (simplified for UAE/Gulf region)
@@ -232,24 +224,6 @@ function isOverLand(lat: number, lon: number): boolean {
 }
 
 /**
- * Find the nearest offshore waypoint for routing
- */
-function findNearestOffshorePoint(lat: number, lon: number): { lat: number; lon: number } {
-  let nearest = UAE_OFFSHORE_WAYPOINTS[0];
-  let minDist = Infinity;
-  
-  for (const wp of UAE_OFFSHORE_WAYPOINTS) {
-    const dist = Math.sqrt(Math.pow(lat - wp.lat, 2) + Math.pow(lon - wp.lon, 2));
-    if (dist < minDist) {
-      minDist = dist;
-      nearest = wp;
-    }
-  }
-  
-  return { lat: nearest.lat, lon: nearest.lon };
-}
-
-/**
  * Check if a route path crosses land by sampling multiple points
  */
 function doesRouteCrossLand(fromLat: number, fromLon: number, toLat: number, toLon: number): boolean {
@@ -268,6 +242,7 @@ function doesRouteCrossLand(fromLat: number, fromLon: number, toLat: number, toL
 /**
  * Generate a fallback route when Datalastic is unavailable
  * Creates intermediate waypoints that avoid cutting across land
+ * Uses a simple arc approach: if direct path crosses land, route through safe offshore latitude
  */
 function generateFallbackRoute(
   fromLat: number,
@@ -286,52 +261,34 @@ function generateFallbackRoute(
   console.log('[RouteEngine] Generating fallback route:', { fromLat, fromLon, toLat, toLon, crossesLand });
   
   if (crossesLand) {
-    // Route needs to go around land - find offshore waypoints
-    console.log('[RouteEngine] Direct path crosses land, generating offshore route');
+    // Route needs to go around land using offshore arc
+    console.log('[RouteEngine] Direct path crosses land, generating offshore arc');
     
-    // For UAE routes, always push waypoints offshore into the Persian Gulf
-    // Find the best offshore corridor based on origin and destination
-    const avgLon = (fromLon + toLon) / 2;
+    // Create an arc that goes through safe offshore waters
+    // The arc goes south into open Persian Gulf waters
+    const midLon = (fromLon + toLon) / 2;
     
-    // Sort offshore waypoints by how well they serve as intermediates
-    const sortedWaypoints = [...UAE_OFFSHORE_WAYPOINTS].sort((a, b) => {
-      // Prefer waypoints between origin and destination longitudes
-      const aInRange = a.lon >= Math.min(fromLon, toLon) - 0.5 && a.lon <= Math.max(fromLon, toLon) + 0.5;
-      const bInRange = b.lon >= Math.min(fromLon, toLon) - 0.5 && b.lon <= Math.max(fromLon, toLon) + 0.5;
-      if (aInRange && !bInRange) return -1;
-      if (!aInRange && bInRange) return 1;
-      
-      // Then sort by distance to average longitude
-      return Math.abs(a.lon - avgLon) - Math.abs(b.lon - avgLon);
-    });
+    // Calculate how much to arc south based on how far the route spans
+    const lonSpan = Math.abs(toLon - fromLon);
+    const arcDepth = Math.min(1.5, lonSpan * 0.3); // Arc south by up to 1.5 degrees
     
-    // Add 1-3 offshore waypoints to create a water-only route
-    const usedWaypoints: SeaRouteWaypoint[] = [];
-    for (const wp of sortedWaypoints) {
-      // Check if adding this waypoint keeps the route over water
-      const prevPoint = usedWaypoints.length > 0 
-        ? usedWaypoints[usedWaypoints.length - 1] 
-        : { lat: fromLat, lon: fromLon };
+    // Generate arc waypoints
+    const numArcPoints = 4;
+    for (let i = 1; i <= numArcPoints; i++) {
+      const t = i / (numArcPoints + 1);
       
-      const toWpCrossesLand = doesRouteCrossLand(prevPoint.lat, prevPoint.lon, wp.lat, wp.lon);
-      const wpToEndCrossesLand = doesRouteCrossLand(wp.lat, wp.lon, toLat, toLon);
+      // Linear interpolation for longitude
+      const lon = fromLon + (toLon - fromLon) * t;
       
-      if (!toWpCrossesLand) {
-        usedWaypoints.push({ lat: wp.lat, lon: wp.lon });
-        
-        // If the rest of the route is clear, we're done
-        if (!wpToEndCrossesLand) {
-          break;
-        }
-      }
+      // Arc south in the middle of the route
+      const arcFactor = Math.sin(t * Math.PI);
+      const baseLat = fromLat + (toLat - fromLat) * t;
+      const lat = Math.min(baseLat, SAFE_OFFSHORE_LAT + arcFactor * 0.5);
       
-      // Max 3 intermediate waypoints
-      if (usedWaypoints.length >= 3) break;
-    }
-    
-    // Add the selected waypoints
-    for (const wp of usedWaypoints) {
-      waypoints.push(wp);
+      // Make sure the arc stays south of UAE coast
+      const safeLat = Math.min(baseLat - arcDepth * arcFactor, lat);
+      
+      waypoints.push({ lat: safeLat, lon });
     }
   } else {
     // Direct path is over water - add intermediate points along a gentle curve
@@ -340,9 +297,9 @@ function generateFallbackRoute(
     
     for (let i = 1; i < numPoints; i++) {
       const t = i / numPoints;
-      // Add a slight offshore curve (negative longitude = more west = more offshore in UAE)
-      const curveFactor = Math.sin(t * Math.PI) * 0.03;
-      const lat = fromLat + (toLat - fromLat) * t;
+      // Add a slight offshore curve (south/west = more offshore in UAE)
+      const curveFactor = Math.sin(t * Math.PI) * 0.05;
+      const lat = fromLat + (toLat - fromLat) * t - curveFactor;
       const lon = fromLon + (toLon - fromLon) * t - curveFactor;
       waypoints.push({ lat, lon });
     }
