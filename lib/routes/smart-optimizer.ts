@@ -843,6 +843,7 @@ export async function smartOptimizeRoute(
 // Utility Exports
 // ============================================================================
 
+// Export functions
 export {
   calculateFuelRateAtSpeed,
   findOptimalSpeed,
@@ -851,6 +852,10 @@ export {
   calculateWaveResistance,
   calculateVirtualArrival,
   optimizeForArrivalWindow,
+};
+
+// Export types
+export type {
   FuelModel,
   EnvironmentalConditions,
   VirtualArrivalResult,

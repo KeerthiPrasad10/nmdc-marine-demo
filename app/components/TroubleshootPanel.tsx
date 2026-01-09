@@ -318,13 +318,16 @@ export function TroubleshootPanel({
     const hasContext = Object.keys(appContext).length > 0;
     
     // Debug: Log context being sent
-    console.log('[TroubleshootPanel] Context being sent:', {
+    console.log('[TroubleshootPanel] Context:', {
       hasVessel: !!appContext.vessel,
       vesselName: appContext.vessel?.name,
       hasAlerts: !!appContext.activeAlerts?.length,
       hasWeather: !!appContext.weather,
       hasFleetStatus: !!appContext.fleetStatus,
       equipment: appContext.equipment,
+      hasImage: !!selectedImageFile,
+      imageFileName: selectedImageFile?.name,
+      contextLength: JSON.stringify(appContext).length,
     });
     
     let contextualContent = content.trim();
@@ -454,6 +457,12 @@ DO NOT ignore the image. Your analysis must reference specific visual details.
         setIsUploading(true);
         try {
           imageUrl = await uploadImage(capturedImageFile);
+          console.log('[TroubleshootPanel] Image uploaded:', {
+            url: imageUrl,
+            fileName: capturedImageFile.name,
+            fileSize: capturedImageFile.size,
+            fileType: capturedImageFile.type,
+          });
         } catch (uploadError) {
           console.error('Image upload failed:', uploadError);
           throw new Error('Failed to upload image. Please try again.');
