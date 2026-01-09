@@ -13,6 +13,7 @@
 
 const DATALASTIC_API_BASE = 'https://api.datalastic.com/api/v0';
 const DATALASTIC_SANDBOX_BASE = 'https://api.datalastic.com/api/sandbox';
+const DATALASTIC_EXT_BASE = 'https://api.datalastic.com/api/ext';
 
 // ============================================================================
 // Types for Datalastic API Responses
@@ -248,11 +249,13 @@ class DatalasticAPI {
   private apiKey: string;
   private baseUrl: string;
   private sandboxUrl: string;
+  private extUrl: string;
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
     this.baseUrl = DATALASTIC_API_BASE;
     this.sandboxUrl = DATALASTIC_SANDBOX_BASE;
+    this.extUrl = DATALASTIC_EXT_BASE;
   }
 
   /**
@@ -335,6 +338,53 @@ class DatalasticAPI {
         errorData = { message: errorText };
       }
       let errorMessage = `Datalastic Sandbox API error: ${response.status} ${response.statusText}`;
+      if (errorData.meta?.message) {
+        errorMessage = typeof errorData.meta.message === 'string' 
+          ? errorData.meta.message 
+          : JSON.stringify(errorData.meta.message);
+      } else if (errorData.message) {
+        errorMessage = typeof errorData.message === 'string'
+          ? errorData.message
+          : JSON.stringify(errorData.message);
+      }
+      throw new Error(errorMessage);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Make an authenticated request to the Datalastic Ext API (for sea routes)
+   */
+  private async extRequest<T>(endpoint: string, params: Record<string, string | number> = {}): Promise<T> {
+    const url = new URL(`${this.extUrl}${endpoint}`);
+    url.searchParams.set('api-key', this.apiKey);
+    
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        url.searchParams.set(key, String(value));
+      }
+    });
+
+    console.log('[Datalastic Ext] Requesting:', url.toString().replace(this.apiKey, '***'));
+
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[Datalastic Ext] Error response:', errorText);
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { message: errorText };
+      }
+      let errorMessage = `Datalastic Ext API error: ${response.status} ${response.statusText}`;
       if (errorData.meta?.message) {
         errorMessage = typeof errorData.meta.message === 'string' 
           ? errorData.meta.message 
@@ -572,7 +622,7 @@ class DatalasticAPI {
 
   /**
    * Get optimal sea route between two points
-   * Endpoint: /route (sandbox API)
+   * Endpoint: /route (ext API)
    * Returns realistic maritime routes that avoid land
    * 
    * Points can be specified using:
@@ -595,7 +645,48 @@ class DatalasticAPI {
     if (params.port_uuid_to) queryParams.port_uuid_to = params.port_uuid_to;
     if (params.port_unlocode_to) queryParams.port_unlocode_to = params.port_unlocode_to;
 
-    return this.sandboxRequest<SeaRouteResponse>('/route', queryParams);
+    // Call ext API which returns GeoJSON format
+    interface ExtRouteResponse {
+      data: {
+        from: {
+          type: string;
+          geometry: { type: string; coordinates: [number, number] };
+          properties: { type: string };
+        };
+        route: {
+          type: string;
+          geometry: { type: string; coordinates: [number, number][] };
+          properties: { total_dist: number; total_dist_nm: number };
+        };
+        to: {
+          type: string;
+          geometry: { type: string; coordinates: [number, number] };
+          properties: { type: string };
+        };
+      };
+      meta: { duration: number; endpoint: string; success: boolean };
+    }
+
+    const extResponse = await this.extRequest<ExtRouteResponse>('/route', queryParams);
+    
+    // Convert GeoJSON coordinates [lon, lat] to our format { lat, lon }
+    const coordinates = extResponse.data.route.geometry.coordinates;
+    const waypoints: SeaRouteWaypoint[] = coordinates.map(([lon, lat]) => ({
+      lat,
+      lon,
+    }));
+
+    // Return in our standard format
+    return {
+      data: {
+        route: waypoints,
+        distance: extResponse.data.route.properties.total_dist_nm,
+      },
+      meta: {
+        success: extResponse.meta.success,
+        duration: extResponse.meta.duration,
+      },
+    };
   }
 
   /**
