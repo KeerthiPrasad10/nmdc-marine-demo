@@ -216,10 +216,78 @@ export function TroubleshootPanel({
     }
   }, [imagePreview]);
 
+  // Compress image to stay under Claude's 5MB base64 limit (~3.75MB raw)
+  const compressImage = async (file: File, maxSizeMB: number = 3.5): Promise<File> => {
+    // If already small enough, return as-is
+    if (file.size <= maxSizeMB * 1024 * 1024) {
+      return file;
+    }
+
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      img.onload = () => {
+        // Calculate new dimensions (max 2048px on longest side)
+        let { width, height } = img;
+        const maxDimension = 2048;
+        
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = (height / width) * maxDimension;
+            width = maxDimension;
+          } else {
+            width = (width / height) * maxDimension;
+            height = maxDimension;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        ctx?.drawImage(img, 0, 0, width, height);
+
+        // Compress with reducing quality until under limit
+        let quality = 0.8;
+        const tryCompress = () => {
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) {
+                reject(new Error('Failed to compress image'));
+                return;
+              }
+              
+              if (blob.size > maxSizeMB * 1024 * 1024 && quality > 0.3) {
+                quality -= 0.1;
+                tryCompress();
+              } else {
+                const compressedFile = new File([blob], file.name, {
+                  type: 'image/jpeg',
+                  lastModified: Date.now(),
+                });
+                console.log(`[TroubleshootPanel] Image compressed: ${(file.size / 1024 / 1024).toFixed(2)}MB → ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
+                resolve(compressedFile);
+              }
+            },
+            'image/jpeg',
+            quality
+          );
+        };
+        tryCompress();
+      };
+
+      img.onerror = () => reject(new Error('Failed to load image for compression'));
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
   // Upload image to storage and get URL
   const uploadImage = async (file: File): Promise<string> => {
+    // Compress if needed (Claude has 5MB base64 limit, so keep raw under 3.75MB)
+    const compressedFile = await compressImage(file, 3.5);
+    
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', compressedFile);
     
     const response = await fetch('/api/upload-image', {
       method: 'POST',
@@ -317,18 +385,10 @@ export function TroubleshootPanel({
     const appContext = buildAppContext();
     const hasContext = Object.keys(appContext).length > 0;
     
-    // Debug: Log context being sent
-    console.log('[TroubleshootPanel] Context:', {
-      hasVessel: !!appContext.vessel,
-      vesselName: appContext.vessel?.name,
-      hasAlerts: !!appContext.activeAlerts?.length,
-      hasWeather: !!appContext.weather,
-      hasFleetStatus: !!appContext.fleetStatus,
-      equipment: appContext.equipment,
-      hasImage: !!selectedImageFile,
-      imageFileName: selectedImageFile?.name,
-      contextLength: JSON.stringify(appContext).length,
-    });
+    // Debug: Log context being sent (stringified for visibility)
+    console.log('[TroubleshootPanel] Context - vesselName:', appContext.vessel?.name || 'NO VESSEL');
+    console.log('[TroubleshootPanel] Context - hasImage:', !!selectedImageFile);
+    console.log('[TroubleshootPanel] Context - length:', JSON.stringify(appContext).length);
     
     let contextualContent = content.trim();
     
