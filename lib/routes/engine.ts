@@ -1,15 +1,14 @@
 /**
- * Route Engine - Core route calculation using Searoute.js
+ * Route Engine - Maritime routing for Persian Gulf & Arabian Sea
  * 
- * Provides realistic maritime routing that avoids land, with integrated
- * fuel consumption, emissions, and weather risk calculations.
+ * Custom routing solution designed specifically for NMDC operations
+ * in the Persian Gulf, Gulf of Oman, and Arabian Sea.
  * 
- * Uses searoute-ts library for proper maritime routing that follows
- * shipping lanes and navigates around landmasses.
+ * Uses a graph-based approach with predefined shipping lane waypoints
+ * to ensure routes avoid all land masses (Qatar, Bahrain, UAE mainland,
+ * Musandam, Iran coast, Oman).
  */
 
-import { seaRoute } from 'searoute-ts';
-import type { Feature, Point, LineString } from 'geojson';
 import { SeaRouteWaypoint, calculateDistanceNm, calculateBearing } from '@/lib/datalastic';
 import { getWeatherAtLocation } from '@/lib/weather';
 import { 
@@ -123,72 +122,161 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
 };
 
 // ============================================================================
-// Route Fetching using Searoute.js
+// Persian Gulf & Arabian Sea Regional Routing
 // ============================================================================
 
 /**
- * Create a GeoJSON Point Feature for searoute-ts
+ * Shipping lane network nodes for the Persian Gulf region
+ * Each node represents a safe offshore waypoint in shipping lanes
  */
-function createGeoJSONPoint(lon: number, lat: number): Feature<Point> {
-  return {
-    type: 'Feature',
-    properties: {},
-    geometry: {
-      type: 'Point',
-      coordinates: [lon, lat], // GeoJSON uses [longitude, latitude]
-    },
-  };
+interface NetworkNode {
+  id: string;
+  lat: number;
+  lon: number;
+  name: string;
+  connections: string[]; // IDs of connected nodes
+}
+
+// Define the maritime network for Persian Gulf / Gulf of Oman / Arabian Sea
+// All coordinates use 3 decimal places for ~100m precision
+const MARITIME_NETWORK: NetworkNode[] = [
+  // Persian Gulf - Southern Lane (main UAE shipping lane, stays south of Qatar)
+  { id: 'PG_S1', lat: 24.250, lon: 54.350, name: 'Abu Dhabi Offshore', connections: ['PG_S2', 'PG_C1'] },
+  { id: 'PG_S2', lat: 24.050, lon: 53.500, name: 'West Abu Dhabi', connections: ['PG_S1', 'PG_S3', 'PG_C2'] },
+  { id: 'PG_S3', lat: 24.000, lon: 52.600, name: 'Zirku Area', connections: ['PG_S2', 'PG_S4', 'PG_C2'] },
+  { id: 'PG_S4', lat: 24.100, lon: 51.600, name: 'South Qatar', connections: ['PG_S3', 'PG_S5', 'PG_W1'] },
+  { id: 'PG_S5', lat: 24.250, lon: 50.850, name: 'SW Qatar', connections: ['PG_S4', 'PG_W2'] },
+  
+  // Persian Gulf - Central Lane
+  { id: 'PG_C1', lat: 25.050, lon: 54.750, name: 'Dubai Offshore', connections: ['PG_S1', 'PG_C2', 'PG_N1'] },
+  { id: 'PG_C2', lat: 25.200, lon: 53.100, name: 'Central Gulf', connections: ['PG_S2', 'PG_S3', 'PG_C1', 'PG_C3'] },
+  { id: 'PG_C3', lat: 25.500, lon: 52.100, name: 'Halul Area', connections: ['PG_C2', 'PG_W1', 'PG_N2'] },
+  
+  // Persian Gulf - Western Lane (Qatar/Bahrain/Saudi)
+  { id: 'PG_W1', lat: 25.050, lon: 51.350, name: 'East Doha', connections: ['PG_S4', 'PG_C3', 'PG_W2', 'PG_W3'] },
+  { id: 'PG_W2', lat: 25.550, lon: 50.550, name: 'West Doha', connections: ['PG_S5', 'PG_W1', 'PG_W3', 'PG_W4'] },
+  { id: 'PG_W3', lat: 26.050, lon: 51.050, name: 'North Qatar', connections: ['PG_W1', 'PG_W2', 'PG_N2', 'PG_W4'] },
+  { id: 'PG_W4', lat: 26.350, lon: 50.350, name: 'Bahrain East', connections: ['PG_W2', 'PG_W3', 'PG_W5'] },
+  { id: 'PG_W5', lat: 26.750, lon: 50.050, name: 'Dammam Approach', connections: ['PG_W4', 'PG_NW1'] },
+  
+  // Persian Gulf - Northern Lane (toward Kuwait/Iraq)
+  { id: 'PG_N1', lat: 25.850, lon: 55.050, name: 'Sharjah Offshore', connections: ['PG_C1', 'PG_N2', 'HORMUZ_S'] },
+  { id: 'PG_N2', lat: 26.250, lon: 53.050, name: 'North Central Gulf', connections: ['PG_C3', 'PG_W3', 'PG_N1', 'PG_N3'] },
+  { id: 'PG_N3', lat: 26.850, lon: 52.050, name: 'NE Gulf', connections: ['PG_N2', 'PG_NW1', 'PG_N4'] },
+  { id: 'PG_N4', lat: 27.550, lon: 51.050, name: 'Iran South', connections: ['PG_N3', 'PG_NW1'] },
+  
+  // Persian Gulf - Northwest (Kuwait/Iraq)
+  { id: 'PG_NW1', lat: 28.550, lon: 49.550, name: 'Kuwait Approach', connections: ['PG_W5', 'PG_N3', 'PG_N4', 'PG_NW2'] },
+  { id: 'PG_NW2', lat: 29.550, lon: 48.550, name: 'Kuwait/Basra', connections: ['PG_NW1'] },
+  
+  // Strait of Hormuz
+  { id: 'HORMUZ_S', lat: 26.050, lon: 56.050, name: 'Hormuz South', connections: ['PG_N1', 'HORMUZ_C'] },
+  { id: 'HORMUZ_C', lat: 26.350, lon: 56.550, name: 'Hormuz Center', connections: ['HORMUZ_S', 'HORMUZ_N'] },
+  { id: 'HORMUZ_N', lat: 26.550, lon: 57.050, name: 'Hormuz North', connections: ['HORMUZ_C', 'OMAN_N'] },
+  
+  // Gulf of Oman
+  { id: 'OMAN_N', lat: 25.550, lon: 57.550, name: 'Fujairah Offshore', connections: ['HORMUZ_N', 'OMAN_C'] },
+  { id: 'OMAN_C', lat: 24.550, lon: 58.550, name: 'Gulf of Oman Central', connections: ['OMAN_N', 'OMAN_S', 'OMAN_E'] },
+  { id: 'OMAN_S', lat: 23.550, lon: 58.550, name: 'Muscat Offshore', connections: ['OMAN_C', 'OMAN_SE'] },
+  { id: 'OMAN_E', lat: 24.050, lon: 60.050, name: 'East Gulf of Oman', connections: ['OMAN_C', 'OMAN_SE', 'ARAB_N'] },
+  { id: 'OMAN_SE', lat: 22.550, lon: 60.050, name: 'Sur Offshore', connections: ['OMAN_S', 'OMAN_E', 'ARAB_N'] },
+  
+  // Arabian Sea
+  { id: 'ARAB_N', lat: 21.050, lon: 62.050, name: 'North Arabian Sea', connections: ['OMAN_E', 'OMAN_SE', 'ARAB_C'] },
+  { id: 'ARAB_C', lat: 19.050, lon: 60.050, name: 'Central Arabian Sea', connections: ['ARAB_N', 'ARAB_S'] },
+  { id: 'ARAB_S', lat: 17.050, lon: 55.050, name: 'Salalah Offshore', connections: ['ARAB_C'] },
+];
+
+// Build adjacency map for faster lookups
+const networkMap = new Map<string, NetworkNode>();
+MARITIME_NETWORK.forEach(node => networkMap.set(node.id, node));
+
+/**
+ * Find the nearest network node to a given point
+ */
+function findNearestNode(lat: number, lon: number): NetworkNode {
+  let nearest = MARITIME_NETWORK[0];
+  let minDist = Infinity;
+  
+  for (const node of MARITIME_NETWORK) {
+    const dist = calculateDistanceNm(lat, lon, node.lat, node.lon);
+    if (dist < minDist) {
+      minDist = dist;
+      nearest = node;
+    }
+  }
+  
+  return nearest;
 }
 
 /**
- * Fetch a realistic sea route using searoute-ts library
- * Returns waypoints that follow shipping lanes and avoid land
+ * Dijkstra's algorithm to find shortest path between two network nodes
  */
-export async function fetchSeaRoute(
-  fromLat: number,
-  fromLon: number,
-  toLat: number,
-  toLon: number
-): Promise<{ waypoints: SeaRouteWaypoint[]; distance: number }> {
-  console.log('[RouteEngine] Calculating sea route with searoute-ts:', { fromLat, fromLon, toLat, toLon });
-
-  try {
-    // Create GeoJSON Point features for origin and destination
-    const origin = createGeoJSONPoint(fromLon, fromLat);
-    const destination = createGeoJSONPoint(toLon, toLat);
-    
-    // Calculate route using searoute-ts (returns nautical miles by default)
-    const routeResult = seaRoute(origin, destination, 'nm') as Feature<LineString>;
-    
-    if (!routeResult || !routeResult.geometry || !routeResult.geometry.coordinates) {
-      console.warn('[RouteEngine] Searoute returned no result, using fallback');
-      return generateFallbackRoute(fromLat, fromLon, toLat, toLon);
+function findShortestPath(startId: string, endId: string): NetworkNode[] {
+  // Verify nodes exist
+  if (!networkMap.has(startId) || !networkMap.has(endId)) {
+    return [];
+  }
+  
+  const distances = new Map<string, number>();
+  const previous = new Map<string, string | null>();
+  const unvisited = new Set<string>();
+  
+  // Initialize
+  for (const node of MARITIME_NETWORK) {
+    distances.set(node.id, Infinity);
+    previous.set(node.id, null);
+    unvisited.add(node.id);
+  }
+  distances.set(startId, 0);
+  
+  while (unvisited.size > 0) {
+    // Find node with minimum distance
+    let current: string | null = null;
+    let minDist = Infinity;
+    for (const id of unvisited) {
+      const dist = distances.get(id) ?? Infinity; // Use ?? not || because 0 is valid!
+      if (dist < minDist) {
+        minDist = dist;
+        current = id;
+      }
     }
     
-    // Extract coordinates from the LineString result
-    // GeoJSON coordinates are [lon, lat], we need {lat, lon}
-    const coordinates = routeResult.geometry.coordinates;
-    const waypoints: SeaRouteWaypoint[] = coordinates.map(coord => ({
-      lat: coord[1],
-      lon: coord[0],
-    }));
+    if (current === null || current === endId) break;
     
-    // Get distance from properties (searoute-ts adds length property)
-    const distance = (routeResult.properties?.length as number) || 
-      calculateTotalDistance(waypoints);
+    unvisited.delete(current);
+    const currentNode = networkMap.get(current);
+    if (!currentNode) continue;
     
-    console.log('[RouteEngine] Sea route calculated:', {
-      distance: distance.toFixed(1),
-      waypointCount: waypoints.length,
-    });
-    
-    return { waypoints, distance };
-  } catch (error) {
-    console.error('[RouteEngine] Searoute calculation failed:', error);
-    console.error('[RouteEngine] Error details:', error instanceof Error ? error.message : String(error));
-    // Fallback to basic route
-    return generateFallbackRoute(fromLat, fromLon, toLat, toLon);
+    // Update neighbors
+    for (const neighborId of currentNode.connections) {
+      if (!unvisited.has(neighborId)) continue;
+      
+      const neighbor = networkMap.get(neighborId);
+      if (!neighbor) continue;
+      
+      const edgeDist = calculateDistanceNm(currentNode.lat, currentNode.lon, neighbor.lat, neighbor.lon);
+      const newDist = (distances.get(current) ?? 0) + edgeDist;
+      
+      if (newDist < (distances.get(neighborId) ?? Infinity)) {
+        distances.set(neighborId, newDist);
+        previous.set(neighborId, current);
+      }
+    }
   }
+  
+  // Reconstruct path by backtracking from end to start
+  const path: NetworkNode[] = [];
+  let current: string | null = endId;
+  
+  while (current !== null) {
+    const node = networkMap.get(current);
+    if (node) path.unshift(node);
+    const prev = previous.get(current);
+    current = prev === undefined ? null : prev;
+  }
+  
+  return path;
 }
 
 /**
@@ -206,156 +294,71 @@ function calculateTotalDistance(waypoints: SeaRouteWaypoint[]): number {
 }
 
 /**
- * Safe offshore latitude for routing in the Persian Gulf
- * Routes that would cross land should arc through this latitude
+ * Fetch a realistic sea route using regional maritime network
+ * Returns waypoints that follow shipping lanes and avoid land
  */
-const SAFE_OFFSHORE_LAT = 24.0; // South of most landmasses, in open water
-
-/**
- * Check if a point is likely over land (simplified for UAE/Gulf region)
- * Uses a polygon-based approach for key landmasses
- */
-function isOverLand(lat: number, lon: number): boolean {
-  // Qatar peninsula (major obstacle in the Gulf)
-  if (lat >= 24.4 && lat <= 26.2 && lon >= 50.7 && lon <= 51.7) {
-    return true;
-  }
-  
-  // Bahrain
-  if (lat >= 25.8 && lat <= 26.3 && lon >= 50.3 && lon <= 50.8) {
-    return true;
-  }
-  
-  // UAE mainland - Abu Dhabi emirate coast
-  // The coast runs roughly from (24.0, 51.5) to (24.5, 54.5)
-  if (lat >= 23.5 && lat <= 25.5 && lon >= 53.5 && lon <= 56.5) {
-    // Simplified UAE coastal boundary
-    // Coast is roughly at lon = 54.0 to 54.5 depending on latitude
-    const coastLon = 54.0 + (lat - 24.0) * 0.3;
-    if (lon > coastLon) {
-      return true;
-    }
-  }
-  
-  // Dubai and northern emirates
-  if (lat >= 25.0 && lat <= 25.8 && lon >= 55.0 && lon <= 56.0) {
-    if (lon > 55.2) return true;
-  }
-  
-  // Musandam peninsula (Oman)
-  if (lat >= 25.8 && lat <= 26.5 && lon >= 56.0 && lon <= 56.6) {
-    return true;
-  }
-  
-  // Iranian coast (northern Gulf)
-  if (lat >= 26.5 && lat <= 30.0 && lon >= 51.0 && lon <= 56.5) {
-    // Rough southern Iran coast - land is north of ~27.0 lat
-    if (lat > 27.0) return true;
-  }
-  
-  // Saudi Arabia eastern coast
-  if (lat >= 24.0 && lat <= 28.0 && lon >= 49.0 && lon <= 50.5) {
-    if (lon < 50.0) return true;
-  }
-  
-  return false;
-}
-
-/**
- * Check if a route path crosses land by sampling multiple points
- */
-function doesRouteCrossLand(fromLat: number, fromLon: number, toLat: number, toLon: number): boolean {
-  // Check 10 points along the route
-  for (let i = 1; i < 10; i++) {
-    const t = i / 10;
-    const lat = fromLat + (toLat - fromLat) * t;
-    const lon = fromLon + (toLon - fromLon) * t;
-    if (isOverLand(lat, lon)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-/**
- * Generate a fallback route when Datalastic is unavailable
- * Creates intermediate waypoints that avoid cutting across land
- * Uses a simple arc approach: if direct path crosses land, route through safe offshore latitude
- */
-function generateFallbackRoute(
+export async function fetchSeaRoute(
   fromLat: number,
   fromLon: number,
   toLat: number,
   toLon: number
-): { waypoints: SeaRouteWaypoint[]; distance: number } {
+): Promise<{ waypoints: SeaRouteWaypoint[]; distance: number }> {
+  console.log('[RouteEngine] Calculating regional sea route:', { fromLat, fromLon, toLat, toLon });
+  
+  // Find nearest network nodes
+  const startNode = findNearestNode(fromLat, fromLon);
+  const endNode = findNearestNode(toLat, toLon);
+  
+  console.log('[RouteEngine] Network nodes:', { 
+    start: startNode.name, 
+    end: endNode.name 
+  });
+  
+  // Build waypoints: origin -> network path -> destination
   const waypoints: SeaRouteWaypoint[] = [];
   
-  // Start point
+  // Add origin
   waypoints.push({ lat: fromLat, lon: fromLon });
   
-  // Check if direct path would cross land by sampling multiple points
-  const crossesLand = doesRouteCrossLand(fromLat, fromLon, toLat, toLon);
-  
-  console.log('[RouteEngine] Generating fallback route:', { fromLat, fromLon, toLat, toLon, crossesLand });
-  
-  if (crossesLand) {
-    // Route needs to go around land using offshore arc
-    console.log('[RouteEngine] Direct path crosses land, generating offshore arc');
+  // If start and end are different nodes, find path through network
+  if (startNode.id !== endNode.id) {
+    const networkPath = findShortestPath(startNode.id, endNode.id);
     
-    // Create an arc that goes through safe offshore waters
-    // The arc goes south into open Persian Gulf waters
-    const midLon = (fromLon + toLon) / 2;
-    
-    // Calculate how much to arc south based on how far the route spans
-    const lonSpan = Math.abs(toLon - fromLon);
-    const arcDepth = Math.min(1.5, lonSpan * 0.3); // Arc south by up to 1.5 degrees
-    
-    // Generate arc waypoints
-    const numArcPoints = 4;
-    for (let i = 1; i <= numArcPoints; i++) {
-      const t = i / (numArcPoints + 1);
+    // Add network waypoints (skip first if too close to origin)
+    for (const node of networkPath) {
+      const distFromLast = waypoints.length > 0 
+        ? calculateDistanceNm(waypoints[waypoints.length - 1].lat, waypoints[waypoints.length - 1].lon, node.lat, node.lon)
+        : Infinity;
       
-      // Linear interpolation for longitude
-      const lon = fromLon + (toLon - fromLon) * t;
-      
-      // Arc south in the middle of the route
-      const arcFactor = Math.sin(t * Math.PI);
-      const baseLat = fromLat + (toLat - fromLat) * t;
-      const lat = Math.min(baseLat, SAFE_OFFSHORE_LAT + arcFactor * 0.5);
-      
-      // Make sure the arc stays south of UAE coast
-      const safeLat = Math.min(baseLat - arcDepth * arcFactor, lat);
-      
-      waypoints.push({ lat: safeLat, lon });
+      // Only add if more than 5nm from previous point
+      if (distFromLast > 5) {
+        waypoints.push({ lat: node.lat, lon: node.lon });
+      }
     }
   } else {
-    // Direct path is over water - add intermediate points along a gentle curve
-    const distance = calculateDistanceNm(fromLat, fromLon, toLat, toLon);
-    const numPoints = Math.max(2, Math.ceil(distance / 40));
-    
-    for (let i = 1; i < numPoints; i++) {
-      const t = i / numPoints;
-      // Add a slight offshore curve (south/west = more offshore in UAE)
-      const curveFactor = Math.sin(t * Math.PI) * 0.05;
-      const lat = fromLat + (toLat - fromLat) * t - curveFactor;
-      const lon = fromLon + (toLon - fromLon) * t - curveFactor;
-      waypoints.push({ lat, lon });
+    // Same node - just add the network point if not too close
+    const distToNode = calculateDistanceNm(fromLat, fromLon, startNode.lat, startNode.lon);
+    if (distToNode > 5) {
+      waypoints.push({ lat: startNode.lat, lon: startNode.lon });
     }
   }
   
-  // End point
-  waypoints.push({ lat: toLat, lon: toLon });
-  
-  // Calculate total distance
-  let totalDistance = 0;
-  for (let i = 0; i < waypoints.length - 1; i++) {
-    totalDistance += calculateDistanceNm(
-      waypoints[i].lat, waypoints[i].lon,
-      waypoints[i + 1].lat, waypoints[i + 1].lon
-    );
+  // Add destination if not too close to last waypoint
+  const lastWp = waypoints[waypoints.length - 1];
+  const distToDest = calculateDistanceNm(lastWp.lat, lastWp.lon, toLat, toLon);
+  if (distToDest > 5) {
+    waypoints.push({ lat: toLat, lon: toLon });
+  } else {
+    // Replace last point with exact destination
+    waypoints[waypoints.length - 1] = { lat: toLat, lon: toLon };
   }
   
-  console.log('[RouteEngine] Generated fallback route with', waypoints.length, 'waypoints, distance:', totalDistance.toFixed(1), 'nm');
+  const totalDistance = calculateTotalDistance(waypoints);
+  
+  console.log('[RouteEngine] Route calculated:', {
+    waypointCount: waypoints.length,
+    distance: totalDistance.toFixed(1) + ' nm'
+  });
   
   return { waypoints, distance: totalDistance };
 }
