@@ -103,14 +103,20 @@ export function RoutePlanningPanel({
     }
   }, [origin, destination, intermediateStops, onWaypointsChange]);
 
-  // Common UAE ports for quick selection
+  // Common ports for quick selection (UAE + regional)
   const commonPorts = [
+    // UAE Ports
     { name: 'Abu Dhabi Port', lat: 24.4539, lng: 54.3773 },
     { name: 'Khalifa Port', lat: 24.8029, lng: 54.5950 },
     { name: 'Das Island', lat: 25.1533, lng: 52.8722 },
     { name: 'Ruwais', lat: 24.1167, lng: 52.7333 },
     { name: 'Fujairah Port', lat: 25.1164, lng: 56.3481 },
     { name: 'Dubai (Jebel Ali)', lat: 24.9857, lng: 55.0272 },
+    // Regional ports (will demonstrate curved routing)
+    { name: 'Doha, Qatar', lat: 25.2854, lng: 51.5310 },
+    { name: 'Ras Laffan, Qatar', lat: 25.9300, lng: 51.5300 },
+    { name: 'Kuwait Port', lat: 29.3800, lng: 47.9900 },
+    { name: 'Dammam, Saudi', lat: 26.4500, lng: 50.1000 },
   ];
 
   const handleOptimize = useCallback(async () => {
