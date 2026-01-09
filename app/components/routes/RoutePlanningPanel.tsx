@@ -103,20 +103,25 @@ export function RoutePlanningPanel({
     }
   }, [origin, destination, intermediateStops, onWaypointsChange]);
 
-  // Common ports for quick selection (UAE + regional)
+  // Ports with accurate coordinates from Datalastic API
   const commonPorts = [
-    // UAE Ports
-    { name: 'Abu Dhabi Port', lat: 24.4539, lng: 54.3773 },
-    { name: 'Khalifa Port', lat: 24.8029, lng: 54.5950 },
-    { name: 'Das Island', lat: 25.1533, lng: 52.8722 },
-    { name: 'Ruwais', lat: 24.1167, lng: 52.7333 },
-    { name: 'Fujairah Port', lat: 25.1164, lng: 56.3481 },
-    { name: 'Dubai (Jebel Ali)', lat: 24.9857, lng: 55.0272 },
-    // Regional ports (will demonstrate curved routing)
-    { name: 'Doha, Qatar', lat: 25.2854, lng: 51.5310 },
-    { name: 'Ras Laffan, Qatar', lat: 25.9300, lng: 51.5300 },
-    { name: 'Kuwait Port', lat: 29.3800, lng: 47.9900 },
-    { name: 'Dammam, Saudi', lat: 26.4500, lng: 50.1000 },
+    // UAE Ports (from Datalastic port_find)
+    { name: 'Musaffah (NMDC)', lat: 24.33506, lng: 54.43968 },
+    { name: 'Abu Dhabi', lat: 24.4821, lng: 54.50214 },
+    { name: 'Khalifa Port', lat: 24.78751, lng: 54.67621 },
+    { name: 'Jebel Ali (Dubai)', lat: 25.00328, lng: 55.05206 },
+    { name: 'Das Island', lat: 25.1465, lng: 52.891 },
+    { name: 'Ruwais', lat: 24.15887, lng: 52.73211 },
+    { name: 'Jebel Dhanna', lat: 24.18434, lng: 52.59507 },
+    { name: 'Fujairah', lat: 25.16122, lng: 56.36583 },
+    { name: 'Zirku Island', lat: 24.87291, lng: 53.08971 },
+    // Qatar Ports
+    { name: 'Doha, Qatar', lat: 25.305, lng: 51.552 },
+    { name: 'Ras Laffan, Qatar', lat: 25.90255, lng: 51.61554 },
+    { name: 'Mesaieed, Qatar', lat: 24.93598, lng: 51.59607 },
+    // Other Gulf Ports
+    { name: 'Dammam, Saudi', lat: 26.441, lng: 50.1485 },
+    { name: 'Bahrain', lat: 26.2285, lng: 50.5822 },
   ];
 
   const handleOptimize = useCallback(async () => {
