@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, FormEvent, useCallback } from 'react';
 import { Vessel, Weather } from '@/lib/supabase';
 import type { QueryResponse, Source, KnowledgeBase } from '@/lib/sdk/resolve-sdk';
+import { NMDC_FLEET, getNMDCVesselByMMSI, getNMDCVesselTypeName, getNMDCCompanyName, type NMDCVessel } from '@/lib/nmdc/fleet';
 
 // Flexible alert type that works with both Supabase Alert and NMDCAlert
 interface FlexibleAlert {
@@ -17,30 +18,68 @@ interface FlexibleAlert {
   status?: string;
 }
 
-// Context that can be injected into troubleshooting queries
+// Comprehensive context for troubleshooting queries
 interface AppContext {
   vessel?: {
+    // Identity
     name: string;
+    mmsi?: string;
+    imo?: string;
     type: string;
+    subType?: string;
+    company?: string;
+    
+    // Current state
     status?: string;
     fuelLevel?: number;
     engineStatus?: string;
+    healthScore?: number;
     location?: { lat: number; lng: number };
     speed?: number;
     heading?: number;
+    
+    // Assignment
+    project?: string;
+    captain?: string;
+    crewCount?: number;
+    
+    // Specifications
+    specs?: {
+      length?: number;
+      breadth?: number;
+      depth?: number;
+      dredgingDepth?: number;
+      pumpPower?: string;
+      craneCapacity?: number;
+      accommodation?: number;
+      deckArea?: number;
+      yearBuilt?: number;
+      age?: number;
+    };
+    
+    // Documentation
+    datasheetUrl?: string;
   } | null;
+  
   activeAlerts?: Array<{
     severity: string;
     message: string;
     component?: string;
+    timestamp?: string;
   }>;
+  
   weather?: {
     condition?: string;
     windSpeed?: number;
+    windDirection?: number;
     waveHeight?: number;
+    visibility?: number;
     temperature?: number;
+    severity?: string;
   } | null;
+  
   equipment?: string;
+  
   fleetStatus?: {
     totalVessels: number;
     operationalCount: number;
@@ -303,14 +342,20 @@ export function TroubleshootPanel({
     return data.url;
   };
 
-  // Build structured context for the AI
+  // Build comprehensive context for the AI
   const buildAppContext = useCallback((): AppContext => {
     const context: AppContext = {};
 
-    // Vessel context
+    // Vessel context - combine runtime data with NMDC fleet config
     if (selectedVessel) {
-      // Use type assertion for properties that may exist in runtime but not in strict type
       const v = selectedVessel as Record<string, unknown>;
+      
+      // Get MMSI from vessel data
+      const mmsi = typeof v.mmsi === 'string' ? v.mmsi : 
+                   typeof v.id === 'string' && v.id.match(/^\d{9}$/) ? v.id : undefined;
+      
+      // Look up full NMDC vessel config for rich data
+      const nmdcVessel: NMDCVessel | undefined = mmsi ? getNMDCVesselByMMSI(mmsi) : undefined;
       
       // Support both position_lat/lng (from NMDC) and current_lat/lng (legacy)
       const lat = typeof v.position_lat === 'number' ? v.position_lat : 
@@ -318,15 +363,50 @@ export function TroubleshootPanel({
       const lng = typeof v.position_lng === 'number' ? v.position_lng : 
                   typeof v.current_lng === 'number' ? v.current_lng : undefined;
       
+      // Calculate vessel age
+      const yearBuilt = nmdcVessel?.specs?.yearBuilt;
+      const currentYear = new Date().getFullYear();
+      const age = yearBuilt ? currentYear - yearBuilt : undefined;
+      
       context.vessel = {
+        // Identity
         name: selectedVessel.name,
-        type: selectedVessel.type,
+        mmsi: mmsi,
+        imo: nmdcVessel?.imo || (typeof v.imo === 'string' ? v.imo : undefined),
+        type: nmdcVessel ? getNMDCVesselTypeName(nmdcVessel.type) : selectedVessel.type,
+        subType: nmdcVessel?.subType,
+        company: nmdcVessel ? getNMDCCompanyName(nmdcVessel.company) : undefined,
+        
+        // Current state
         status: typeof v.status === 'string' ? v.status : undefined,
         fuelLevel: typeof v.fuel_level === 'number' ? v.fuel_level : undefined,
         engineStatus: typeof v.engine_status === 'string' ? v.engine_status : undefined,
+        healthScore: typeof v.health_score === 'number' ? v.health_score : undefined,
         location: lat !== undefined && lng !== undefined ? { lat, lng } : undefined,
         speed: typeof v.speed === 'number' ? v.speed : undefined,
         heading: typeof v.heading === 'number' ? v.heading : undefined,
+        
+        // Assignment
+        project: nmdcVessel?.project || (typeof v.project === 'string' ? v.project : undefined),
+        captain: nmdcVessel?.captain,
+        crewCount: nmdcVessel?.crewCount || (typeof v.crew_count === 'number' ? v.crew_count : undefined),
+        
+        // Specifications
+        specs: nmdcVessel?.specs ? {
+          length: nmdcVessel.specs.length,
+          breadth: nmdcVessel.specs.breadth,
+          depth: nmdcVessel.specs.depth,
+          dredgingDepth: nmdcVessel.specs.dredgingDepth,
+          pumpPower: nmdcVessel.specs.pumpPower,
+          craneCapacity: nmdcVessel.specs.craneCapacity,
+          accommodation: nmdcVessel.specs.accommodation,
+          deckArea: nmdcVessel.specs.deckArea,
+          yearBuilt: nmdcVessel.specs.yearBuilt,
+          age: age,
+        } : undefined,
+        
+        // Documentation
+        datasheetUrl: nmdcVessel?.datasheetUrl,
       };
     }
 
@@ -349,13 +429,17 @@ export function TroubleshootPanel({
       }
     }
 
-    // Weather context
+    // Weather context - include all available data
     if (weather) {
+      const w = weather as Record<string, unknown>;
       context.weather = {
-        condition: weather.condition || undefined,
-        windSpeed: typeof weather.wind_speed === 'number' ? weather.wind_speed : undefined,
-        waveHeight: typeof weather.wave_height === 'number' ? weather.wave_height : undefined,
-        temperature: typeof weather.temperature === 'number' ? weather.temperature : undefined,
+        condition: typeof w.condition === 'string' ? w.condition : undefined,
+        windSpeed: typeof w.wind_speed === 'number' ? w.wind_speed : undefined,
+        windDirection: typeof w.wind_direction === 'number' ? w.wind_direction : undefined,
+        waveHeight: typeof w.wave_height === 'number' ? w.wave_height : undefined,
+        visibility: typeof w.visibility === 'number' ? w.visibility : undefined,
+        temperature: typeof w.temperature === 'number' ? w.temperature : undefined,
+        severity: typeof w.severity === 'string' ? w.severity : undefined,
       };
     }
 
@@ -385,124 +469,37 @@ export function TroubleshootPanel({
     const appContext = buildAppContext();
     const hasContext = Object.keys(appContext).length > 0;
     
-    // Debug: Log context being sent (stringified for visibility)
+    // Debug: Log context being sent
     console.log('[TroubleshootPanel] Context - vesselName:', appContext.vessel?.name || 'NO VESSEL');
     console.log('[TroubleshootPanel] Context - hasImage:', !!selectedImageFile);
-    console.log('[TroubleshootPanel] Context - length:', JSON.stringify(appContext).length);
-    
-    let contextualContent = content.trim();
-    
-    // Build system instructions for action-oriented troubleshooting
-    const systemInstructions = `<system_instructions>
-You are a marine equipment troubleshooting assistant. Your goal is to QUICKLY DIAGNOSE the issue and provide ACTIONABLE RESOLUTION.
-
-## CRITICAL: USE THE APP_CONTEXT
-The <app_context> block contains REAL-TIME DATA about the vessel you are troubleshooting:
-- **vessel.name**: The specific vessel (e.g., "NMDC Atlas") - ALWAYS reference by name
-- **vessel.type**: Vessel type (dredger, tugboat, etc.) - tailor advice accordingly
-- **vessel.fuelLevel**: Current fuel percentage
-- **vessel.speed/heading**: Current navigation status
-- **vessel.location**: GPS coordinates
-- **activeAlerts**: Current warnings/faults on this vessel
-- **equipment**: The specific system selected (if any)
-- **weather**: Current conditions affecting operations
-
-**You MUST acknowledge the vessel context in your response.** For example:
-- "For the NMDC Atlas (dredger currently at 85% fuel)..."
-- "Given the active engine temperature warning on this vessel..."
-- "Based on the current weather conditions (12 knot winds)..."
-
-## TROUBLESHOOTING FLOW (Follow strictly):
-
-### PHASE 1: QUICK TRIAGE (1-2 questions max)
-- Review app_context for vessel/equipment info - MENTION THE VESSEL NAME
-- Ask ONE selection question to narrow down the symptom category
-- Example: "For the [vessel.name], select the primary symptom: [Noise/Vibration] [Overheating] [Pressure Loss] [No Output] [Intermittent Operation]"
-
-### PHASE 2: PINPOINT FAULT (1 question max)  
-- Based on selection, identify the MOST LIKELY fault
-- If needed, ask ONE more specific question
-- Then COMMIT to a diagnosis - don't keep asking
-
-### PHASE 3: RESOLUTION (Always reach this)
-After 2-3 exchanges, you MUST provide a resolution with:
-
-1. **FAULT IDENTIFIED**: State the specific component/issue
-   - Example: "Bearing failure in pump impeller shaft"
-
-2. **SEVERITY & SAFETY**:
-   - CRITICAL: Immediate shutdown required
-   - HIGH: Complete within 24 hours  
-   - MEDIUM: Schedule for next maintenance window
-   - LOW: Monitor and address when convenient
-
-3. **LOTO REQUIREMENTS** (if applicable):
-   - Isolation points to lock out
-   - Energy sources to verify zero-energy state
-   - Required PPE
-
-4. **WORK ORDER DETAILS**:
-   - Task description
-   - Estimated time
-   - Parts/materials needed
-   - Skills required (mechanical, electrical, hydraulic)
-
-5. **STEP-BY-STEP REPAIR PROCEDURE**:
-   - Numbered checklist of actions
-   - Verification steps after repair
-
-## RULES:
-- NEVER ask more than 3 total questions before providing resolution
-- If user provides symptom + equipment, go directly to diagnosis
-- Don't ask for information already in app_context
-- Be decisive - pick the most probable cause, don't hedge
-- Always end with actionable next steps, never leave user hanging
-
-## RESPONSE FORMAT:
-Use 'checklist' type for repair procedures
-Use 'selection' type ONLY for initial triage (max 2 times)
-Use 'info_message' for diagnosis and work order details
-</system_instructions>
-
-`;
+    console.log('[TroubleshootPanel] Context - knowledgeBase:', selectedKnowledgeBase);
     
     // Check if image is being sent
     const hasImage = !!selectedImageFile;
     
+    // Build the message with full context - let Resolve's rules handle the response format
+    let contextualContent = content.trim();
+    
     if (hasContext || hasImage) {
-      // Format context as a structured block the AI can understand
-      let contextBlock = systemInstructions;
+      // Send structured context as JSON for Resolve to parse
+      // This gives the AI all vessel information to reference
+      let contextBlock = '';
       
       if (hasContext) {
-        contextBlock += `<app_context>
+        contextBlock += `<vessel_context>
 ${JSON.stringify(appContext, null, 2)}
-</app_context>
+</vessel_context>
 
 `;
       }
       
       if (hasImage) {
-        const userSymptom = content.trim() || 'analyze this equipment';
-        contextBlock += `<image_attached>
-An image has been uploaded. The user's reported symptom is: "${userSymptom}"
-
-CRITICAL INSTRUCTIONS:
-1. ANALYZE the image and describe what equipment/component you see
-2. FOCUS ON THE REPORTED SYMPTOM: "${userSymptom}" - do NOT ask about unrelated issues
-3. Based on the image + symptom, identify the MOST LIKELY cause
-4. If you see a pump and user says "grinding noise" → focus on bearing/impeller issues, NOT leaks
-5. If you cannot see the image clearly, say so - but still address the symptom
-
-DO NOT ask about symptoms the user didn't mention. Address what they reported: "${userSymptom}"
-</image_attached>
+        contextBlock += `[Image attached for analysis]
 
 `;
       }
       
-      contextBlock += `User Query: ${content.trim() || 'Please analyze this image'}`;
-      contextualContent = contextBlock;
-    } else {
-      contextualContent = `${systemInstructions}User Query: ${content.trim()}`;
+      contextualContent = contextBlock + (content.trim() || 'Please analyze this image and help troubleshoot');
     }
 
     // Capture file before clearing

@@ -302,19 +302,45 @@ export function RoutePlanningPanel({
         // Multi-stop route result
         const multiStopResult = data.result;
         
-        // Build waypoints from optimized order
-        if (onWaypointsChange && multiStopResult.optimizedOrder) {
-          const waypoints = multiStopResult.optimizedOrder.map((stop: { lat: number; lng: number }) => ({
-            lat: stop.lat,
-            lng: stop.lng,
-          }));
-          onWaypointsChange(waypoints);
-        }
-        
-        // Notify parent of first route for route card display
-        if (onRouteGenerated && multiStopResult.routes && multiStopResult.routes.length > 0) {
-          // Create a combined route from all legs
+        // Combine all leg waypoints for proper sea route visualization
+        // This includes all the intermediate waypoints from each leg, not just the stops
+        if (multiStopResult.routes && multiStopResult.routes.length > 0) {
+          const allWaypoints: Array<{ lat: number; lng: number; name?: string }> = [];
+          
+          // Start with origin
           const firstRoute = multiStopResult.routes[0];
+          allWaypoints.push({
+            lat: firstRoute.origin.lat,
+            lng: firstRoute.origin.lng,
+            name: firstRoute.origin.name,
+          });
+          
+          // Add all waypoints from each leg
+          for (const route of multiStopResult.routes) {
+            // Add intermediate waypoints from this leg (these are the sea route waypoints)
+            if (route.waypoints && route.waypoints.length > 0) {
+              for (const wp of route.waypoints) {
+                allWaypoints.push({
+                  lat: wp.lat,
+                  lng: wp.lng,
+                  name: wp.name,
+                });
+              }
+            }
+            // Add destination of this leg
+            allWaypoints.push({
+              lat: route.destination.lat,
+              lng: route.destination.lng,
+              name: route.destination.name,
+            });
+          }
+          
+          // Notify parent of all waypoints for map visualization
+          if (onWaypointsChange) {
+            onWaypointsChange(allWaypoints);
+          }
+          
+          // Create a combined route for route card display
           const lastRoute = multiStopResult.routes[multiStopResult.routes.length - 1];
           const combinedRoute = {
             ...firstRoute,
@@ -323,13 +349,12 @@ export function RoutePlanningPanel({
             totalDistance: multiStopResult.totalDistance,
             estimatedTime: multiStopResult.totalTime,
             fuelConsumption: multiStopResult.totalFuel,
-            waypoints: multiStopResult.optimizedOrder.slice(1).map((stop: { lat: number; lng: number; name: string }) => ({
-              lat: stop.lat,
-              lng: stop.lng,
-              name: stop.name,
-            })),
+            waypoints: allWaypoints.slice(1), // All waypoints except origin
           };
-          onRouteGenerated(combinedRoute);
+          
+          if (onRouteGenerated) {
+            onRouteGenerated(combinedRoute);
+          }
         }
       } else if (data.mode === 'smart') {
         // Smart optimization result
