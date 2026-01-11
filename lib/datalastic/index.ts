@@ -164,6 +164,8 @@ export interface DatalasticError {
 export interface SeaRouteWaypoint {
   lat: number;
   lon: number;
+  name?: string;
+  note?: string;
 }
 
 export interface SeaRouteResponse {

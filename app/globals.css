@@ -377,3 +377,151 @@ body {
   white-space: nowrap;
   border-width: 0;
 }
+
+/* ===========================
+   Troubleshoot Panel Response Styling
+   =========================== */
+.troubleshoot-response {
+  line-height: 1.6;
+}
+
+.troubleshoot-response > p:first-child {
+  margin-top: 0;
+}
+
+.troubleshoot-response > p:last-child {
+  margin-bottom: 0;
+}
+
+/* Section dividers */
+.troubleshoot-response > div + div {
+  margin-top: 0.75rem;
+}
+
+/* Links in responses */
+.troubleshoot-response a {
+  color: rgba(147, 197, 253, 0.9);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.troubleshoot-response a:hover {
+  color: rgba(191, 219, 254, 1);
+}
+
+/* Code blocks in responses */
+.troubleshoot-response pre {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 12px;
+  overflow-x: auto;
+  margin: 12px 0;
+}
+
+.troubleshoot-response pre code {
+  background: none;
+  padding: 0;
+  font-size: 12px;
+}
+
+/* Tables in responses */
+.troubleshoot-response table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: 13px;
+}
+
+.troubleshoot-response th {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 8px 12px;
+  text-align: left;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.troubleshoot-response td {
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Work order card styling */
+.troubleshoot-response .work-order-card,
+.troubleshoot-response .loto-procedure,
+.troubleshoot-response .equipment-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 16px;
+  margin: 8px 0;
+}
+
+/* Selection option hover effects */
+.troubleshoot-response [data-option-value] {
+  cursor: pointer;
+}
+
+.troubleshoot-response [data-option-value]:active {
+  transform: scale(0.98);
+}
+
+/* Pre-formatted HTML response styling */
+.troubleshoot-html-response {
+  font-size: 14px;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.troubleshoot-html-response h1,
+.troubleshoot-html-response h2,
+.troubleshoot-html-response h3,
+.troubleshoot-html-response h4 {
+  color: white;
+  font-weight: 600;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.troubleshoot-html-response h1 { font-size: 1.25rem; }
+.troubleshoot-html-response h2 { font-size: 1.125rem; }
+.troubleshoot-html-response h3 { font-size: 1rem; }
+.troubleshoot-html-response h4 { font-size: 0.875rem; }
+
+.troubleshoot-html-response p {
+  margin: 0.75rem 0;
+}
+
+.troubleshoot-html-response ul,
+.troubleshoot-html-response ol {
+  margin: 0.75rem 0;
+  padding-left: 1.5rem;
+}
+
+.troubleshoot-html-response li {
+  margin: 0.375rem 0;
+}
+
+.troubleshoot-html-response strong {
+  color: white;
+  font-weight: 600;
+}
+
+.troubleshoot-html-response em {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.troubleshoot-html-response blockquote {
+  border-left: 3px solid rgba(255, 255, 255, 0.2);
+  padding-left: 1rem;
+  margin: 1rem 0;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.troubleshoot-html-response hr {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin: 1.5rem 0;
+}

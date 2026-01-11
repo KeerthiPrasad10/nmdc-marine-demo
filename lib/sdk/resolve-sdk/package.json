@@ -1,7 +1,7 @@
 {
   "name": "@ifs/resolve-sdk",
   "version": "1.0.0",
-  "description": "SDK for the Resolve AI Troubleshooting API",
+  "description": "SDK for the Resolve API - AI-powered troubleshooting",
   "main": "index.js",
   "types": "index.d.ts",
   "files": [

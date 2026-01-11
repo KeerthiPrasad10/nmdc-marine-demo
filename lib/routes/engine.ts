@@ -166,7 +166,8 @@ const MARITIME_NETWORK: NetworkNode[] = [
   // ABU DHABI NORTH - Water NORTH of Abu Dhabi (to Khalifa Port)
   // ============================================================================
   { id: 'ABU_N1', lat: 24.60, lon: 54.20, name: 'Abu Dhabi N Offshore', connections: ['ABU_W1', 'ABU_N2', 'UAE_07'] },
-  { id: 'ABU_N2', lat: 24.75, lon: 54.45, name: 'Khalifa Port Approach', connections: ['ABU_N1', 'UAE_04'] },
+  { id: 'ABU_N2', lat: 24.75, lon: 54.45, name: 'W of Khalifa Port', connections: ['ABU_N1', 'KHL_01'] },
+  { id: 'KHL_01', lat: 24.80, lon: 54.62, name: 'Khalifa Port Approach', connections: ['ABU_N2', 'UAE_04'] },
   
   // ============================================================================
   // UAE COAST - Main offshore shipping lane (Persian Gulf)
@@ -175,10 +176,11 @@ const MARITIME_NETWORK: NetworkNode[] = [
   { id: 'UAE_03', lat: 24.25, lon: 53.40, name: 'Jebel Dhanna Offshore', connections: ['ABU_W2', 'UAE_05', 'UAE_07'] },
   { id: 'UAE_04', lat: 24.90, lon: 54.80, name: 'Jebel Ali Approach', connections: ['ABU_N2', 'UAE_06', 'UAE_07'] },
   { id: 'UAE_05', lat: 24.40, lon: 52.80, name: 'Ruwais Offshore', connections: ['UAE_03', 'UAE_08'] },
-  { id: 'UAE_06', lat: 25.10, lon: 55.10, name: 'Dubai Offshore', connections: ['UAE_04', 'UAE_09'] },
+  { id: 'UAE_06', lat: 25.10, lon: 55.10, name: 'Dubai Offshore', connections: ['UAE_04', 'DXB_01', 'UAE_09'] },
+  { id: 'DXB_01', lat: 25.25, lon: 55.25, name: 'Dubai Port Approach', connections: ['UAE_06', 'UAE_09'] },
   { id: 'UAE_07', lat: 24.70, lon: 53.80, name: 'Central Gulf UAE', connections: ['ABU_N1', 'UAE_03', 'UAE_04', 'CENT_01'] },
   { id: 'UAE_08', lat: 24.70, lon: 52.50, name: 'Zirku-Das Area', connections: ['UAE_05', 'CENT_02', 'CENT_01'] },
-  { id: 'UAE_09', lat: 25.40, lon: 55.30, name: 'Sharjah Offshore', connections: ['UAE_06', 'UAE_10'] },
+  { id: 'UAE_09', lat: 25.40, lon: 55.30, name: 'Sharjah Offshore', connections: ['UAE_06', 'DXB_01', 'UAE_10'] },
   { id: 'UAE_10', lat: 25.70, lon: 55.70, name: 'N UAE Offshore', connections: ['UAE_09', 'HORM_01'] },
   
   // ============================================================================
@@ -390,12 +392,21 @@ function calculateTotalDistance(waypoints: SeaRouteWaypoint[]): number {
 }
 
 /**
- * HYBRID APPROACH: Fetch base route from Datalastic, validate and correct for land crossings
+ * Check if a point is within the Persian Gulf region
+ * where we have reliable maritime network coverage
+ */
+function isWithinGulfRegion(lat: number, lon: number): boolean {
+  // Persian Gulf region: lat 23-28, lon 48-57
+  return lat >= 23 && lat <= 28 && lon >= 48 && lon <= 57;
+}
+
+/**
+ * Maritime routing with guaranteed land avoidance
  * 
- * 1. Datalastic API → Base route
- * 2. Check each segment for potential land crossing
- * 3. If segment crosses land → Insert maritime network waypoints to go around
- * 4. Return corrected route
+ * Strategy:
+ * - For routes WITHIN the Persian Gulf: Use our verified maritime network
+ *   (guaranteed to follow shipping lanes and avoid all land)
+ * - For routes OUTSIDE or crossing Gulf boundary: Use Datalastic API with corrections
  * 
  * Returns waypoints that avoid land and can be further optimized
  */
@@ -407,7 +418,22 @@ export async function fetchSeaRoute(
 ): Promise<{ waypoints: SeaRouteWaypoint[]; distance: number; source: 'api' | 'hybrid' | 'network' }> {
   console.log('[RouteEngine] Fetching sea route:', { fromLat, fromLon, toLat, toLon });
   
-  // Step 1: Try to get base route from Datalastic API
+  // For routes WITHIN the Persian Gulf, ALWAYS use our verified maritime network
+  // This ensures routes follow known shipping lanes and avoid all land features
+  const fromInGulf = isWithinGulfRegion(fromLat, fromLon);
+  const toInGulf = isWithinGulfRegion(toLat, toLon);
+  
+  if (fromInGulf && toInGulf) {
+    console.log('[RouteEngine] Both points in Gulf - using maritime network');
+    const networkRoute = fetchSeaRouteFromNetwork(fromLat, fromLon, toLat, toLon);
+    
+    return {
+      ...networkRoute,
+      source: 'network',
+    };
+  }
+  
+  // For routes outside the Gulf or crossing boundaries, try Datalastic API
   if (isDatalasticConfigured()) {
     try {
       console.log('[RouteEngine] Requesting route from Datalastic API...');
@@ -417,7 +443,7 @@ export async function fetchSeaRoute(
       if (response.data.route && response.data.route.length > 0) {
         const apiWaypoints = response.data.route;
         
-        // Step 2: Check and correct for land crossings
+        // Check and correct for land crossings
         const correctedWaypoints = correctLandCrossings(apiWaypoints);
         
         const wasCorrected = correctedWaypoints.length > apiWaypoints.length;
@@ -451,35 +477,74 @@ export async function fetchSeaRoute(
 }
 
 /**
- * Known land areas in the Persian Gulf region
- * Simple bounding boxes for quick land detection
- */
-const LAND_AREAS = [
-  // Qatar Peninsula
-  { name: 'Qatar', minLat: 24.5, maxLat: 26.2, minLon: 50.7, maxLon: 51.7 },
-  // UAE Mainland (Abu Dhabi to Dubai coast)
-  { name: 'UAE Coast', minLat: 24.0, maxLat: 25.5, minLon: 54.2, maxLon: 56.5 },
-  // Abu Dhabi Island
-  { name: 'Abu Dhabi Island', minLat: 24.35, maxLat: 24.55, minLon: 54.25, maxLon: 54.55 },
-  // Bahrain
-  { name: 'Bahrain', minLat: 25.8, maxLat: 26.3, minLon: 50.4, maxLon: 50.7 },
-  // Musandam Peninsula (Oman)
-  { name: 'Musandam', minLat: 25.8, maxLat: 26.5, minLon: 56.0, maxLon: 56.5 },
-  // Iran Southern Coast
-  { name: 'Iran Coast', minLat: 26.5, maxLat: 28.0, minLon: 51.0, maxLon: 56.5 },
-];
-
-/**
- * Check if a point is potentially on land
+ * Check if a point is on land using accurate coastline detection
+ * 
+ * IMPORTANT: The Persian Gulf is NORTH of the UAE/Qatar. Land is to the SOUTH.
+ * A point is on land if it's SOUTH of (lower latitude than) the coastline.
+ * 
+ * This uses piecewise linear approximations of the coastline.
  */
 function isPointOnLand(lat: number, lon: number): string | null {
-  for (const area of LAND_AREAS) {
-    if (lat >= area.minLat && lat <= area.maxLat &&
-        lon >= area.minLon && lon <= area.maxLon) {
-      return area.name;
+  // Qatar Peninsula - extends north into the Gulf
+  // Qatar mainland is roughly lon 50.75-51.6, lat 24.5-26.2
+  if (lon >= 50.75 && lon <= 51.6 && lat >= 24.5 && lat <= 26.2) {
+    return 'Qatar';
+  }
+  
+  // Bahrain islands - small islands
+  if (lon >= 50.45 && lon <= 50.65 && lat >= 25.9 && lat <= 26.3) {
+    return 'Bahrain';
+  }
+  
+  // Musandam Peninsula (Oman) - northern tip extending into Strait of Hormuz
+  if (lon >= 56.0 && lon <= 56.45 && lat >= 25.8 && lat <= 26.4) {
+    return 'Musandam';
+  }
+  
+  // UAE Mainland - use coastline-based detection
+  // The coastline runs roughly:
+  // - Western UAE (lon 51.5-53): coast at lat ~24.0-24.2
+  // - Abu Dhabi area (lon 53-54.5): coast at lat ~24.2-24.5
+  // - Dubai area (lon 54.5-55.5): coast at lat ~24.5-25.3
+  // - Northern Emirates (lon 55.5-56): coast curves to lat ~25.3-25.5
+  // Points SOUTH of coast (lower lat) = land
+  // Points NORTH of coast (higher lat) = water
+  if (lon >= 51.5 && lon <= 56.5) {
+    let coastLat: number;
+    
+    if (lon < 52.5) {
+      // Western UAE (Ruwais area)
+      coastLat = 24.0 + (lon - 51.5) * 0.1;
+    } else if (lon < 53.5) {
+      // Jebel Dhanna to western Abu Dhabi
+      coastLat = 24.1 + (lon - 52.5) * 0.15;
+    } else if (lon < 54.5) {
+      // Abu Dhabi coast
+      coastLat = 24.25 + (lon - 53.5) * 0.2;
+    } else if (lon < 55.3) {
+      // Abu Dhabi to Dubai
+      coastLat = 24.45 + (lon - 54.5) * 0.9;
+    } else if (lon < 56.0) {
+      // Dubai to Sharjah/Northern Emirates
+      coastLat = 25.17 + (lon - 55.3) * 0.4;
+    } else {
+      // East coast
+      coastLat = 25.45;
+    }
+    
+    // Point is on land if it's SOUTH of the coastline (lower latitude)
+    // and within the UAE land area (above 22.5)
+    if (lat < coastLat && lat > 22.5) {
+      return 'UAE Mainland';
     }
   }
-  return null;
+  
+  // Iran Coast - land is NORTH of the Gulf (higher latitude)
+  if (lon >= 51.0 && lon <= 56.5 && lat >= 26.8) {
+    return 'Iran Coast';
+  }
+  
+  return null; // Point is in water
 }
 
 /**
@@ -595,8 +660,12 @@ function fetchSeaRouteFromNetwork(
   if (startNode.id !== endNode.id) {
     const networkPath = findShortestPath(startNode.id, endNode.id);
     
-    // Add network waypoints
-    for (const node of networkPath) {
+    // Add network waypoints with names and notes
+    for (let i = 0; i < networkPath.length; i++) {
+      const node = networkPath[i];
+      const prevNode = i > 0 ? networkPath[i - 1] : null;
+      const nextNode = i < networkPath.length - 1 ? networkPath[i + 1] : null;
+      
       const distFromLast = calculateDistanceNm(
         waypoints[waypoints.length - 1].lat, 
         waypoints[waypoints.length - 1].lon, 
@@ -606,14 +675,43 @@ function fetchSeaRouteFromNetwork(
       
       // Only add if more than 2nm from previous point
       if (distFromLast > 2) {
-        waypoints.push({ lat: node.lat, lon: node.lon });
+        // Generate routing note based on context
+        let note = '';
+        if (node.name.includes('Channel')) {
+          note = 'Navigate through protected channel';
+        } else if (node.name.includes('Offshore')) {
+          note = 'Enter offshore shipping lane';
+        } else if (node.name.includes('Approach')) {
+          note = 'Final approach to destination';
+        } else if (node.name.includes('Central Gulf')) {
+          note = 'Main shipping lane - deep water';
+        } else if (prevNode && nextNode) {
+          const bearingIn = calculateBearing(prevNode.lat, prevNode.lon, node.lat, node.lon);
+          const bearingOut = calculateBearing(node.lat, node.lon, nextNode.lat, nextNode.lon);
+          const turn = bearingOut - bearingIn;
+          const normalizedTurn = turn > 180 ? turn - 360 : (turn < -180 ? turn + 360 : turn);
+          if (Math.abs(normalizedTurn) > 30) {
+            note = normalizedTurn > 0 ? 'Course change to starboard' : 'Course change to port';
+          }
+        }
+        
+        waypoints.push({ 
+          lat: node.lat, 
+          lon: node.lon,
+          name: node.name,
+          note: note || undefined,
+        });
       }
     }
   } else {
     // Same node - add the network point if not too close
     const distToNode = calculateDistanceNm(fromLat, fromLon, startNode.lat, startNode.lon);
     if (distToNode > 2) {
-      waypoints.push({ lat: startNode.lat, lon: startNode.lon });
+      waypoints.push({ 
+        lat: startNode.lat, 
+        lon: startNode.lon,
+        name: startNode.name,
+      });
     }
   }
   

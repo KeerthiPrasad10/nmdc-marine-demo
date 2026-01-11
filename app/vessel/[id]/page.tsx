@@ -824,11 +824,11 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
                 }}
               />
               
-              {/* Troubleshooting Guide */}
+              {/* Resolve Guide */}
               <div className="mt-6 bg-black/60 backdrop-blur-sm rounded-xl border border-white/10 p-4">
                 <h3 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
                   <Wrench className="w-4 h-4 text-primary-400" />
-                  Troubleshooting Guide
+                  Resolve Guide
                 </h3>
                 <div className="space-y-3 text-xs">
                   <div className="bg-white/5 rounded-lg p-3">
@@ -1069,9 +1069,12 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
                     </div>
                   ))}
                 </div>
-                <button className="w-full mt-3 text-[10px] text-primary-400 hover:text-primary-300 transition-colors">
+                <Link 
+                  href="/work-order"
+                  className="w-full mt-3 text-[10px] text-primary-400 hover:text-primary-300 transition-colors block text-center"
+                >
                   View all work orders →
-                </button>
+                </Link>
               </div>
 
               {/* PM Schedule Recommendations */}
@@ -1149,7 +1152,7 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
 
         {activeTab === 'analysis' && (
           <div className="grid grid-cols-12 gap-4 h-[calc(100vh-240px)]">
-            {/* Troubleshooting Panel - Takes most of the space */}
+            {/* Resolve Panel - Takes most of the space */}
             <div className="col-span-8 rounded-xl bg-white/[0.02] border border-white/8 overflow-hidden">
               <TroubleshootPanel 
                 selectedVessel={vessel} 
@@ -1222,7 +1225,7 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
 
               {/* Tip */}
               <p className="text-[10px] text-white/30 px-1">
-                Query OEM manuals and P&IDs for troubleshooting procedures and root cause analysis.
+                Resolve queries OEM manuals and P&IDs for procedures and root cause analysis.
               </p>
             </div>
           </div>

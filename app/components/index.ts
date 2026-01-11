@@ -13,6 +13,7 @@ export { TroubleshootPanel } from './TroubleshootPanel';
 export { VesselWeatherPanel } from './VesselWeatherPanel';
 export { VesselAlertsPanel } from './VesselAlertsPanel';
 export { LiveVesselsPanel } from './LiveVesselsPanel';
+export { NewsPanel } from './NewsPanel';
 
 // Route components
 export { RoutePlanningPanel, RouteCard } from './routes';

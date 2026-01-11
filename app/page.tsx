@@ -16,12 +16,10 @@ import {
   MetricCard,
   VesselCard,
   AlertPanel,
-  WeatherWidget,
-  AIInsightsPanel,
-  VesselWeatherPanel,
   VesselAlertsPanel,
   LiveVesselsPanel,
   TroubleshootPanel,
+  NewsPanel,
 } from './components';
 import {
   AlertTriangle,
@@ -30,14 +28,13 @@ import {
   ChevronLeft,
   ChevronRight,
   Bell,
-  Cloud,
-  Compass,
   Radio,
   Ship,
   Users,
   Anchor,
   MapPin,
   Building2,
+  Newspaper,
 } from 'lucide-react';
 
 // Convert FleetVessel to database Vessel format for compatibility
@@ -121,7 +118,7 @@ export default function Dashboard() {
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
   const [leftPanel, setLeftPanel] = useState<'vessels' | 'projects'>('vessels');
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
-  const [rightPanel, setRightPanel] = useState<'alerts' | 'weather' | 'ai' | 'live'>('live');
+  const [rightPanel, setRightPanel] = useState<'alerts' | 'live' | 'news'>('live');
   const [selectedVessel, setSelectedVessel] = useState<string | null>(null);
   const [selectedProject, setSelectedProject] = useState<ProjectSite | null>(null);
   
@@ -245,7 +242,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-black flex flex-col">
+    <div className="h-screen bg-black flex flex-col overflow-hidden">
       <Header
         alertCount={alertCounts.unacknowledged}
         isConnected={isConnected}
@@ -515,7 +512,7 @@ export default function Dashboard() {
         </aside>
 
         {/* Center - Resolve Troubleshooting */}
-        <main className="flex-1 min-w-0 flex flex-col bg-black">
+        <main className="flex-1 min-w-0 flex flex-col overflow-hidden bg-black">
           <TroubleshootPanel 
             selectedVessel={selectedVesselData}
             alerts={alerts}
@@ -541,7 +538,7 @@ export default function Dashboard() {
           >
             {/* Panel Tabs */}
             <div className="flex-shrink-0 p-2 border-b border-white/5">
-              <div className="grid grid-cols-4 gap-1">
+              <div className="grid grid-cols-3 gap-1">
                 <button
                   onClick={() => setRightPanel('live')}
                   className={`flex items-center justify-center gap-1 px-2 py-1.5 rounded text-xs font-medium transition-all ${
@@ -552,6 +549,17 @@ export default function Dashboard() {
                 >
                   <Radio className="h-3 w-3" />
                   Live
+                </button>
+                <button
+                  onClick={() => setRightPanel('news')}
+                  className={`flex items-center justify-center gap-1 px-2 py-1.5 rounded text-xs font-medium transition-all ${
+                    rightPanel === 'news'
+                      ? 'bg-violet-500/20 text-violet-400'
+                      : 'text-white/40 hover:text-white/60 hover:bg-white/5'
+                  }`}
+                >
+                  <Newspaper className="h-3 w-3" />
+                  Intel
                 </button>
                 <button
                   onClick={() => setRightPanel('alerts')}
@@ -568,34 +576,12 @@ export default function Dashboard() {
                     </span>
                   )}
                 </button>
-                <button
-                  onClick={() => setRightPanel('ai')}
-                  className={`flex items-center justify-center gap-1 px-2 py-1.5 rounded text-xs font-medium transition-all ${
-                    rightPanel === 'ai'
-                      ? 'bg-white/10 text-white'
-                      : 'text-white/40 hover:text-white/60 hover:bg-white/5'
-                  }`}
-                >
-                  <Compass className="h-3 w-3" />
-                  AI
-                </button>
-                <button
-                  onClick={() => setRightPanel('weather')}
-                  className={`flex items-center justify-center gap-1 px-2 py-1.5 rounded text-xs font-medium transition-all ${
-                    rightPanel === 'weather'
-                      ? 'bg-white/10 text-white'
-                      : 'text-white/40 hover:text-white/60 hover:bg-white/5'
-                  }`}
-                >
-                  <Cloud className="h-3 w-3" />
-                  Wx
-                </button>
               </div>
             </div>
 
             {/* Panel Content */}
             <div className="flex-1 overflow-hidden flex flex-col">
-              {rightPanel === 'ai' && <AIInsightsPanel />}
+              {rightPanel === 'news' && <NewsPanel />}
               {rightPanel === 'live' && (
                 <LiveVesselsPanel
                   fleetData={fleetVessels}
@@ -624,18 +610,6 @@ export default function Dashboard() {
                     />
                   )}
                 </div>
-              )}
-              {rightPanel === 'weather' && (
-                selectedVesselData ? (
-                  <VesselWeatherPanel vessel={selectedVesselData} />
-                ) : (
-                  <div className="p-4">
-                    <WeatherWidget weather={weather} />
-                    <p className="text-xs text-white/40 text-center mt-4">
-                      Select a vessel to see location-specific weather
-                    </p>
-                  </div>
-                )
               )}
             </div>
           </div>

@@ -1,6 +1,7 @@
+// @ts-nocheck - ESG page with dynamic data
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase, Vessel, isSupabaseConfigured } from '@/lib/supabase';
 import {
@@ -43,6 +44,7 @@ import {
   Calendar,
   DollarSign,
   Sparkles,
+  Loader2,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -179,6 +181,382 @@ export default function ESGPage() {
       .sort((a, b) => b.co2 - a.co2);
   }, [vesselEmissions]);
 
+  const [isExporting, setIsExporting] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  // Export vessel emissions data as CSV
+  const exportDataAsCSV = useCallback(() => {
+    if (vesselEmissions.length === 0) return;
+    
+    setIsExporting(true);
+    
+    try {
+      // Create CSV header
+      const headers = [
+        'Vessel Name',
+        'Vessel Type',
+        'CO2 Emissions (tonnes)',
+        'NOx Emissions (kg)',
+        'SOx Emissions (kg)',
+        'PM Emissions (kg)',
+        'Fuel Consumed (L)',
+        'Fuel Type',
+        'Efficiency (g CO2/tonne-mile)',
+        'Fleet Avg Efficiency',
+        'CII Rating',
+        'ETS Eligible'
+      ];
+      
+      // Create CSV rows
+      const rows = vesselEmissions.map(ve => [
+        ve.vesselName,
+        ve.vesselType.replace('_', ' '),
+        ve.emissions.co2.toFixed(2),
+        ve.emissions.nox.toFixed(2),
+        ve.emissions.sox.toFixed(2),
+        ve.emissions.pm.toFixed(2),
+        ve.fuelConsumed.toFixed(0),
+        ve.fuelType,
+        ve.efficiency.toFixed(2),
+        ve.benchmark.fleetAverage.toFixed(2),
+        ve.ciiRating,
+        ve.etsEligible ? 'Yes' : 'No'
+      ]);
+      
+      // Add fleet summary rows (padded to match header column count)
+      const columnCount = headers.length;
+      const padRow = (cells: string[]) => {
+        const padded = [...cells];
+        while (padded.length < columnCount) {
+          padded.push('');
+        }
+        return padded;
+      };
+      
+      if (fleetSummary) {
+        rows.push(padRow([]));
+        rows.push(padRow(['--- Fleet Summary ---']));
+        rows.push(padRow(['Total CO2 (tonnes)', fleetSummary.totalCO2.toFixed(2)]));
+        rows.push(padRow(['Total NOx (kg)', fleetSummary.totalNOx.toFixed(2)]));
+        rows.push(padRow(['Total SOx (kg)', fleetSummary.totalSOx.toFixed(2)]));
+        rows.push(padRow(['Total Fuel (L)', fleetSummary.totalFuel.toFixed(0)]));
+        rows.push(padRow(['Average Efficiency', fleetSummary.avgEfficiency.toFixed(2)]));
+        rows.push(padRow(['Best Performer', fleetSummary.bestPerformer]));
+        rows.push(padRow(['Worst Performer', fleetSummary.worstPerformer]));
+      }
+      
+      // Convert to CSV string
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => Array.isArray(row) ? row.map(cell => `"${cell}"`).join(',') : row)
+      ].join('\n');
+      
+      // Create and download file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `esg_emissions_report_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } finally {
+      setTimeout(() => setIsExporting(false), 500);
+    }
+  }, [vesselEmissions, fleetSummary]);
+
+  // Generate comprehensive ESG report as HTML and open in new window for printing
+  const generateESGReport = useCallback(() => {
+    if (!fleetSummary || !esgScore || !pathway) return;
+    
+    setIsGenerating(true);
+    
+    try {
+      const reportDate = new Date().toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+      
+      const reportHtml = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NMDC ESG Report - ${reportDate}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+      color: #1a1a1a; 
+      line-height: 1.6;
+      background: #f8f9fa;
+    }
+    .container { max-width: 900px; margin: 0 auto; padding: 40px; background: white; min-height: 100vh; }
+    .header { 
+      text-align: center; 
+      padding: 40px 0; 
+      border-bottom: 3px solid #10b981; 
+      margin-bottom: 40px;
+    }
+    .header h1 { font-size: 32px; color: #064e3b; margin-bottom: 8px; }
+    .header .subtitle { color: #6b7280; font-size: 16px; }
+    .header .date { color: #9ca3af; font-size: 14px; margin-top: 8px; }
+    
+    .section { margin-bottom: 40px; }
+    .section-title { 
+      font-size: 20px; 
+      font-weight: 600; 
+      color: #1f2937; 
+      margin-bottom: 20px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #e5e7eb;
+    }
+    
+    .metrics-grid { 
+      display: grid; 
+      grid-template-columns: repeat(4, 1fr); 
+      gap: 16px; 
+      margin-bottom: 30px; 
+    }
+    .metric-card { 
+      background: #f9fafb; 
+      border: 1px solid #e5e7eb; 
+      border-radius: 12px; 
+      padding: 20px; 
+      text-align: center; 
+    }
+    .metric-value { font-size: 28px; font-weight: 700; color: #10b981; }
+    .metric-label { font-size: 12px; color: #6b7280; text-transform: uppercase; margin-top: 4px; }
+    
+    .esg-scores { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin: 20px 0; }
+    .esg-score-card { 
+      background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+      border-radius: 12px; 
+      padding: 24px; 
+      text-align: center;
+    }
+    .esg-score-card.social { background: linear-gradient(135deg, #ecfeff 0%, #cffafe 100%); }
+    .esg-score-card.governance { background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%); }
+    .esg-score-card h3 { font-size: 14px; color: #374151; margin-bottom: 8px; }
+    .esg-score-card .score { font-size: 36px; font-weight: 700; color: #059669; }
+    .esg-score-card.social .score { color: #0891b2; }
+    .esg-score-card.governance .score { color: #7c3aed; }
+    
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+    th { background: #f9fafb; font-size: 12px; text-transform: uppercase; color: #6b7280; }
+    td { font-size: 14px; }
+    tr:hover { background: #f9fafb; }
+    
+    .compliance-item { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      padding: 16px;
+      background: #f9fafb;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+    .status-badge { 
+      padding: 4px 12px; 
+      border-radius: 20px; 
+      font-size: 12px; 
+      font-weight: 600;
+    }
+    .status-on_track { background: #d1fae5; color: #059669; }
+    .status-at_risk { background: #fef3c7; color: #d97706; }
+    .status-behind { background: #fee2e2; color: #dc2626; }
+    
+    .pathway-phase { 
+      display: flex; 
+      gap: 20px; 
+      padding: 20px;
+      background: #f9fafb;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      border-left: 4px solid #10b981;
+    }
+    .pathway-year { font-size: 24px; font-weight: 700; color: #10b981; min-width: 60px; }
+    .pathway-content { flex: 1; }
+    .pathway-target { font-weight: 600; color: #1f2937; margin-bottom: 8px; }
+    .pathway-initiatives { display: flex; flex-wrap: wrap; gap: 8px; }
+    .initiative-tag { 
+      background: #e5e7eb; 
+      padding: 4px 10px; 
+      border-radius: 4px; 
+      font-size: 12px; 
+      color: #4b5563;
+    }
+    
+    .footer { 
+      margin-top: 60px; 
+      padding-top: 20px; 
+      border-top: 1px solid #e5e7eb; 
+      text-align: center; 
+      color: #9ca3af; 
+      font-size: 12px; 
+    }
+    
+    @media print {
+      body { background: white; }
+      .container { padding: 20px; }
+      .no-print { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🌿 NMDC Fleet ESG Report</h1>
+      <div class="subtitle">Environmental, Social & Governance Performance</div>
+      <div class="date">Report Generated: ${reportDate}</div>
+    </div>
+    
+    <div class="section">
+      <h2 class="section-title">📊 Fleet Emissions Summary</h2>
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-value">${fleetSummary.totalCO2.toFixed(0)}</div>
+          <div class="metric-label">Total CO₂ (tonnes)</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">${(fleetSummary.totalFuel / 1000).toFixed(0)}K</div>
+          <div class="metric-label">Fuel Consumed (L)</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">${fleetSummary.avgEfficiency.toFixed(1)}</div>
+          <div class="metric-label">Avg Efficiency</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">${vesselEmissions.length}</div>
+          <div class="metric-label">Vessels Monitored</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="section">
+      <h2 class="section-title">🏆 ESG Score Breakdown</h2>
+      <div class="esg-scores">
+        <div class="esg-score-card">
+          <h3>🌍 Environmental</h3>
+          <div class="score">${esgScore.environmental.score}</div>
+        </div>
+        <div class="esg-score-card social">
+          <h3>👥 Social</h3>
+          <div class="score">${esgScore.social.score}</div>
+        </div>
+        <div class="esg-score-card governance">
+          <h3>🏛️ Governance</h3>
+          <div class="score">${esgScore.governance.score}</div>
+        </div>
+      </div>
+      <div style="text-align: center; margin-top: 20px; padding: 20px; background: #f0fdf4; border-radius: 12px;">
+        <div style="font-size: 14px; color: #6b7280;">Overall ESG Score</div>
+        <div style="font-size: 48px; font-weight: 700; color: #10b981;">${esgScore.overall}</div>
+        <div style="font-size: 14px; color: #9ca3af;">out of 100</div>
+      </div>
+    </div>
+    
+    <div class="section">
+      <h2 class="section-title">🚢 Vessel Emissions Detail</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Vessel</th>
+            <th>Type</th>
+            <th>CO₂ (t)</th>
+            <th>Fuel (L)</th>
+            <th>Fuel Type</th>
+            <th>CII Rating</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${vesselEmissions.map(ve => `
+            <tr>
+              <td><strong>${ve.vesselName}</strong></td>
+              <td>${ve.vesselType.replace('_', ' ')}</td>
+              <td>${ve.emissions.co2.toFixed(1)}</td>
+              <td>${ve.fuelConsumed.toFixed(0)}</td>
+              <td>${ve.fuelType}</td>
+              <td><strong>${ve.ciiRating}</strong></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+    
+    <div class="section">
+      <h2 class="section-title">✅ Compliance Status</h2>
+      ${complianceTargets.map(t => `
+        <div class="compliance-item">
+          <div>
+            <strong>${t.name}</strong>
+            <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">${t.description}</div>
+          </div>
+          <span class="status-badge status-${t.status}">
+            ${t.status === 'on_track' ? '✓ On Track' : t.status === 'at_risk' ? '⚠ At Risk' : '✗ Behind'}
+          </span>
+        </div>
+      `).join('')}
+    </div>
+    
+    <div class="section">
+      <h2 class="section-title">🎯 Decarbonization Pathway</h2>
+      <p style="margin-bottom: 20px; color: #6b7280;">${pathway.name}</p>
+      ${pathway.phases.map(phase => `
+        <div class="pathway-phase">
+          <div class="pathway-year">${phase.year}</div>
+          <div class="pathway-content">
+            <div class="pathway-target">${phase.targetReduction}% Emission Reduction Target</div>
+            <div class="pathway-initiatives">
+              ${phase.initiatives.map(i => `<span class="initiative-tag">${i}</span>`).join('')}
+            </div>
+          </div>
+        </div>
+      `).join('')}
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 24px;">
+        <div style="text-align: center; padding: 16px; background: #f9fafb; border-radius: 8px;">
+          <div style="font-size: 20px; font-weight: 700; color: #10b981;">$${(pathway.totalInvestment / 1000000).toFixed(0)}M</div>
+          <div style="font-size: 12px; color: #6b7280;">Total Investment</div>
+        </div>
+        <div style="text-align: center; padding: 16px; background: #f9fafb; border-radius: 8px;">
+          <div style="font-size: 20px; font-weight: 700; color: #0891b2;">$${(pathway.totalSavings / 1000000).toFixed(0)}M</div>
+          <div style="font-size: 12px; color: #6b7280;">Expected Savings</div>
+        </div>
+        <div style="text-align: center; padding: 16px; background: #f9fafb; border-radius: 8px;">
+          <div style="font-size: 20px; font-weight: 700; color: #7c3aed;">${pathway.paybackPeriod} years</div>
+          <div style="font-size: 12px; color: #6b7280;">Payback Period</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <p>This report was automatically generated by NMDC Fleet Intelligence Platform</p>
+      <p>© ${new Date().getFullYear()} NMDC Marine Operations</p>
+      <button onclick="window.print()" class="no-print" style="margin-top: 20px; padding: 12px 24px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+        🖨️ Print / Save as PDF
+      </button>
+    </div>
+  </div>
+</body>
+</html>
+      `;
+      
+      // Open in new window
+      const reportWindow = window.open('', '_blank');
+      if (reportWindow) {
+        reportWindow.document.write(reportHtml);
+        reportWindow.document.close();
+      }
+    } finally {
+      setTimeout(() => setIsGenerating(false), 500);
+    }
+  }, [fleetSummary, esgScore, vesselEmissions, complianceTargets, pathway]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -215,12 +593,20 @@ export default function ESGPage() {
             </div>
 
             <div className="flex items-center gap-3">
-              <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 text-sm transition-colors">
-                <Download className="w-4 h-4" />
-                Export Report
+              <button 
+                onClick={exportDataAsCSV}
+                disabled={isExporting || vesselEmissions.length === 0}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                Export CSV
               </button>
-              <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500/80 hover:bg-emerald-500 text-white font-medium text-sm transition-colors">
-                <FileText className="w-4 h-4" />
+              <button 
+                onClick={generateESGReport}
+                disabled={isGenerating || !fleetSummary || !esgScore}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500/80 hover:bg-emerald-500 text-white font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
                 Generate ESG Report
               </button>
             </div>

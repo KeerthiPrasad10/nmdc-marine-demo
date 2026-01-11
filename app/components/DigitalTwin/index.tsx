@@ -11,6 +11,7 @@ import { HeatmapLayer, HeatmapMode, generateHeatmapData, HeatmapLegend } from '.
 import { ControlPanel } from './ControlPanel';
 import { Vessel, Equipment } from '@/lib/supabase';
 import { AlertCircle, Loader2 } from 'lucide-react';
+import Link from 'next/link';
 
 interface DigitalTwinProps {
   vessel: Vessel;
@@ -338,12 +339,18 @@ export function DigitalTwin({ vessel, equipment }: DigitalTwinProps) {
 
                   {/* Action buttons */}
                   <div className="flex gap-2">
-                    <button className="flex-1 px-3 py-2 rounded-lg bg-primary-500/20 text-primary-400 text-xs hover:bg-primary-500/30 transition-colors border border-primary-500/30">
+                    <Link 
+                      href={`/work-order?vessel=${vessel.id}&equipment=${selectedSensorData?.id || ''}&issue=${encodeURIComponent(selectedSensorData?.name || '')}`}
+                      className="flex-1 px-3 py-2 rounded-lg bg-primary-500/20 text-primary-400 text-xs hover:bg-primary-500/30 transition-colors border border-primary-500/30 text-center"
+                    >
                       Generate Work Order
-                    </button>
-                    <button className="flex-1 px-3 py-2 rounded-lg bg-white/5 text-white/60 text-xs hover:bg-white/10 transition-colors border border-white/10">
+                    </Link>
+                    <Link 
+                      href={`/troubleshoot?vessel=${vessel.id}&name=${encodeURIComponent(vessel.name)}&equipment=${encodeURIComponent(selectedSensorData?.name || '')}`}
+                      className="flex-1 px-3 py-2 rounded-lg bg-white/5 text-white/60 text-xs hover:bg-white/10 transition-colors border border-white/10 text-center"
+                    >
                       View Full Guide
-                    </button>
+                    </Link>
                   </div>
                 </div>
               );

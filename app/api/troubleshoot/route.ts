@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { ResolveClient, QueryResponse, DocumentList, KnowledgeBase } from '@/lib/sdk/resolve-sdk';
+import { ResolveClient, QueryResponse, DocumentList, KnowledgeBase, Session, SessionWithMessages } from '@/lib/sdk/resolve-sdk';
 
 // Extend function timeout for Pro plans (default is 10s for Hobby, 60s for Pro)
 export const maxDuration = 60;
@@ -50,8 +50,14 @@ export async function POST(request: NextRequest) {
           imageUrl,      // Preferred: more efficient
           imageBase64,   // Fallback for backward compatibility
           knowledgeBaseId,
-          responseFormat: responseFormat || 'json',
+          responseFormat: responseFormat || 'ui',
         });
+        
+        // DEBUG: Log FULL response structure for A2UI detection
+        console.log('[Troubleshoot API] === FULL RESPONSE ===');
+        console.log(JSON.stringify(response, null, 2).substring(0, 3000));
+        console.log('[Troubleshoot API] === END RESPONSE ===');
+        
         return NextResponse.json(response);
       }
 
@@ -62,7 +68,7 @@ export async function POST(request: NextRequest) {
       }
 
       case 'analyze_image': {
-        const { imageUrl, imageBase64, message, knowledgeBaseId } = params;
+        const { imageUrl, imageBase64, message, knowledgeBaseId, responseFormat } = params;
         // Prefer imageUrl over imageBase64 for efficiency
         const image = imageUrl || imageBase64;
         
@@ -74,9 +80,16 @@ export async function POST(request: NextRequest) {
           messagePreview: message?.substring(0, 100),
           hasAppContext: message?.includes('<app_context>'),
           knowledgeBaseId,
+          responseFormat,
         });
         
-        const response = await client.analyzeImage(image, message, knowledgeBaseId);
+        const response = await client.analyzeImage(image, message, knowledgeBaseId, responseFormat || 'ui');
+        
+        // DEBUG: Log FULL response structure for A2UI detection  
+        console.log('[Troubleshoot API analyze_image] === FULL RESPONSE ===');
+        console.log(JSON.stringify(response, null, 2).substring(0, 3000));
+        console.log('[Troubleshoot API analyze_image] === END RESPONSE ===');
+        
         return NextResponse.json(response);
       }
 
@@ -116,6 +129,48 @@ export async function POST(request: NextRequest) {
         const { knowledgeBaseId } = params;
         await client.deleteKnowledgeBase(knowledgeBaseId);
         return NextResponse.json({ success: true });
+      }
+
+      // ============================================
+      // Session Management
+      // ============================================
+
+      case 'create_session': {
+        const { title, knowledgeBaseId } = params;
+        const session: Session = await client.createSession({
+          title,
+          knowledgeBaseId,
+        });
+        return NextResponse.json({ success: true, session });
+      }
+
+      case 'send_message': {
+        const { sessionId, message, imageUrl, imageBase64, responseFormat } = params;
+        
+        console.log('[Troubleshoot API] send_message:', {
+          sessionId,
+          messagePreview: message?.substring(0, 100),
+          hasImageUrl: !!imageUrl,
+          responseFormat: responseFormat || 'ui',
+        });
+        
+        const response: QueryResponse = await client.sendMessage(sessionId, message, {
+          imageUrl,
+          imageBase64,
+          responseFormat: responseFormat || 'ui',
+        });
+        return NextResponse.json(response);
+      }
+
+      case 'get_session': {
+        const { sessionId } = params;
+        const sessionData: SessionWithMessages = await client.getSession(sessionId);
+        return NextResponse.json({ success: true, ...sessionData });
+      }
+
+      case 'list_sessions': {
+        const sessions: Session[] = await client.listSessions();
+        return NextResponse.json({ success: true, sessions });
       }
 
       default:

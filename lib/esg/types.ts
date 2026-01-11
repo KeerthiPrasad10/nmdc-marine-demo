@@ -23,6 +23,8 @@ export interface VesselEmissions {
     industryAverage: number;
     bestInClass: number;
   };
+  ciiRating?: string; // CII rating (A, B, C, D, E)
+  etsEligible?: boolean; // EU ETS eligibility
 }
 
 export interface FleetEmissionsSummary {
@@ -38,6 +40,8 @@ export interface FleetEmissionsSummary {
     co2Change: number; // percentage
     efficiencyChange: number;
   };
+  bestPerformer?: string;
+  worstPerformer?: string;
 }
 
 export interface ComplianceTarget {

@@ -69,8 +69,8 @@ function TroubleshootContent() {
               <Wrench className="h-4 w-4 text-amber-400" />
             </div>
             <div>
-              <h1 className="text-sm font-semibold text-white">Visual Troubleshooting</h1>
-              <p className="text-xs text-white/40">AI-Powered Fault Diagnosis</p>
+              <h1 className="text-sm font-semibold text-white">Resolve</h1>
+              <p className="text-xs text-white/40">AI-Powered Troubleshooting</p>
             </div>
           </div>
         </div>
@@ -113,14 +113,24 @@ function TroubleshootContent() {
       {/* Quick Actions Bar */}
       <div className="h-12 border-b border-white/5 bg-white/[0.02] flex items-center gap-2 px-4 shrink-0 overflow-x-auto">
         <span className="text-xs text-white/40 shrink-0">Quick Start:</span>
-        <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 text-xs text-white/70 hover:text-white transition-colors shrink-0">
+        <a 
+          href={`${iframeUrl}#upload`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 text-xs text-white/70 hover:text-white transition-colors shrink-0"
+        >
           <Camera className="w-3.5 h-3.5" />
           Upload Photo
-        </button>
-        <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 text-xs text-white/70 hover:text-white transition-colors shrink-0">
+        </a>
+        <a 
+          href={`${iframeUrl}#report`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 text-xs text-white/70 hover:text-white transition-colors shrink-0"
+        >
           <AlertTriangle className="w-3.5 h-3.5" />
           Report Issue
-        </button>
+        </a>
         {equipmentType && (
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 text-xs text-amber-400 shrink-0">
             <Wrench className="w-3.5 h-3.5" />
@@ -164,7 +174,7 @@ export default function TroubleshootPage() {
       <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-8 w-8 text-amber-400 animate-spin mx-auto mb-4" />
-          <p className="text-white/60">Loading Troubleshoot...</p>
+          <p className="text-white/60">Loading Resolve...</p>
         </div>
       </div>
     }>
