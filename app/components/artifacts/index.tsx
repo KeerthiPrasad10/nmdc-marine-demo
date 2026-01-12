@@ -542,36 +542,65 @@ function ArtifactWrapper({ title, subtitle, icon, priority, children, className,
     if (contentEl && exportData) {
       let html = '';
       
+      // Helper to get string value
+      const str = (v: unknown): string => {
+        if (!v) return '';
+        if (typeof v === 'string') return v;
+        if (typeof v === 'number') return String(v);
+        return JSON.stringify(v);
+      };
+      
+      // Equipment info grid
+      const equipTag = str(exportData.equipment_tag || exportData.equipmentTag);
+      const equipName = str(exportData.equipment_name || exportData.equipmentName);
+      const workType = str(exportData.work_type || exportData.workType);
+      const estDuration = str(exportData.estimated_duration || exportData.estimatedDuration || 
+        (exportData.estimatedHours ? `${exportData.estimatedHours} hours` : ''));
+      const location = str(exportData.location);
+      
+      if (equipTag || equipName || workType || location) {
+        html += `
+          <div class="field-grid">
+            ${equipTag ? `<div class="field"><div class="field-label">Equipment Tag</div><div class="field-value">${equipTag}</div></div>` : ''}
+            ${equipName ? `<div class="field"><div class="field-label">Equipment Name</div><div class="field-value">${equipName}</div></div>` : ''}
+            ${workType ? `<div class="field"><div class="field-label">Work Type</div><div class="field-value">${workType}</div></div>` : ''}
+            ${estDuration ? `<div class="field"><div class="field-label">Est. Duration</div><div class="field-value">${estDuration}</div></div>` : ''}
+            ${location ? `<div class="field"><div class="field-label">Location</div><div class="field-value">${location}</div></div>` : ''}
+          </div>
+        `;
+      }
+      
       // Description
-      if (exportData.description) {
+      const description = str(exportData.description);
+      if (description) {
         html += `
           <div class="description-box">
-            <p>${exportData.description}</p>
+            <p>${description}</p>
           </div>
         `;
       }
       
       // Safety requirements / warnings
-      const safetyReqs = toArray(exportData.safety_requirements || exportData.safetyNotes);
+      const safetyReqs = toArray(exportData.safety_requirements || exportData.safetyNotes || exportData.safety_notes);
       if (safetyReqs.length > 0) {
         html += `
           <div class="warning-box">
             <div class="section-title">⚠ Safety Requirements</div>
             <ul>
-              ${safetyReqs.map((r) => `<li>${typeof r === 'string' ? r : JSON.stringify(r)}</li>`).join('')}
+              ${safetyReqs.map((r) => `<li>${str(r)}</li>`).join('')}
             </ul>
           </div>
         `;
       }
       
       // Hazards (for LOTO)
-      const hazards = toArray(exportData.hazards);
+      const hazards = toArray(exportData.hazards || exportData.hazard_summary);
       if (hazards.length > 0) {
         html += `
           <div class="warning-box">
             <div class="section-title">⚠ Hazards</div>
             <ul>
-              ${hazards.map((h) => `<li>${typeof h === 'string' ? h : JSON.stringify(h)}</li>`).join('')}
+              ${hazards.map((h) => `<li>${str(h)}</li>`).join('')}
             </ul>
           </div>
         `;
@@ -584,7 +613,7 @@ function ArtifactWrapper({ title, subtitle, icon, priority, children, className,
           <div class="section">
             <div class="section-title">Required PPE</div>
             <div class="tag-list">
-              ${ppe.map((p) => `<span class="tag">${typeof p === 'string' ? p : JSON.stringify(p)}</span>`).join('')}
+              ${ppe.map((p) => `<span class="tag">${str(p)}</span>`).join('')}
             </div>
           </div>
         `;
@@ -597,31 +626,47 @@ function ArtifactWrapper({ title, subtitle, icon, priority, children, className,
           <div class="section">
             <div class="section-title">Symptoms Reported</div>
             <ul style="list-style: disc; padding-left: 20px;">
-              ${symptoms.map((s) => `<li style="padding: 4px 0; color: #444;">${typeof s === 'string' ? s : JSON.stringify(s)}</li>`).join('')}
+              ${symptoms.map((s) => `<li style="padding: 4px 0; color: #444;">${str(s)}</li>`).join('')}
             </ul>
           </div>
         `;
       }
       
-      // Procedure steps
-      const rawSteps = toArray(exportData.procedure_steps || exportData.procedureSteps || exportData.isolationSteps || exportData.isolation_points);
+      // Procedure steps - handle multiple formats
+      const rawSteps = toArray(
+        exportData.procedure_steps || 
+        exportData.procedureSteps || 
+        exportData.isolationSteps || 
+        exportData.isolation_points ||
+        exportData.steps
+      );
       if (rawSteps.length > 0) {
-        const stepTitle = exportData.isolation_points || exportData.isolationSteps ? 'Isolation Sequence' : 'Procedure Steps';
+        const stepTitle = (exportData.isolation_points || exportData.isolationSteps) ? 'Isolation Sequence' : 'Procedure Steps';
         html += `
           <div class="section">
             <div class="section-title">${stepTitle}</div>
             ${rawSteps.map((s, i) => {
-              const step = (typeof s === 'string' ? { step: i + 1, description: s } : s) as Record<string, unknown>;
-              const stepNum = step.step || step.sequence || i + 1;
-              const desc = step.description || step.action || step.point || '';
-              const notes = step.notes || step.verification || '';
-              const isCritical = step.critical;
+              // Handle different step formats
+              let step: Record<string, unknown>;
+              if (typeof s === 'string') {
+                step = { step: i + 1, description: s };
+              } else if (typeof s === 'object' && s !== null) {
+                step = s as Record<string, unknown>;
+              } else {
+                step = { step: i + 1, description: str(s) };
+              }
+              
+              const stepNum = step.step || step.sequence || step.number || i + 1;
+              const desc = str(step.description || step.action || step.point || step.text || step.instruction || '');
+              const notes = str(step.notes || step.verification || step.note || '');
+              const isCritical = step.critical === true;
+              
               return `
                 <div class="step${isCritical ? ' critical' : ''}">
                   <div class="step-number">${stepNum}</div>
                   <div class="step-content">
                     <div class="step-text">${desc}</div>
-                    ${notes ? `<div class="step-notes">${typeof notes === 'string' && notes.length < 200 ? notes : ''}</div>` : ''}
+                    ${notes && notes.length < 300 ? `<div class="step-notes">${notes}</div>` : ''}
                     ${isCritical ? '<div class="step-critical-label">⚠ CRITICAL STEP</div>' : ''}
                   </div>
                 </div>
@@ -632,7 +677,7 @@ function ArtifactWrapper({ title, subtitle, icon, priority, children, className,
       }
       
       // Required parts
-      const parts = toArray(exportData.required_parts);
+      const parts = toArray(exportData.required_parts || exportData.requiredParts || exportData.parts);
       if (parts.length > 0) {
         html += `
           <div class="section">
@@ -647,12 +692,19 @@ function ArtifactWrapper({ title, subtitle, icon, priority, children, className,
               </thead>
               <tbody>
                 ${parts.map((p) => {
-                  const part = typeof p === 'string' ? { part_number: '-', description: p, quantity: 1 } : p;
+                  let part: Record<string, unknown>;
+                  if (typeof p === 'string') {
+                    part = { part_number: '-', description: p, quantity: 1 };
+                  } else if (typeof p === 'object' && p !== null) {
+                    part = p as Record<string, unknown>;
+                  } else {
+                    part = { part_number: '-', description: str(p), quantity: 1 };
+                  }
                   return `
                     <tr>
-                      <td style="font-family: monospace;">${part.part_number || '-'}</td>
-                      <td>${part.description || ''}</td>
-                      <td style="text-align: right;">${part.quantity || 1}</td>
+                      <td style="font-family: monospace;">${str(part.part_number || part.partNumber || part.sku || '-')}</td>
+                      <td>${str(part.description || part.name || '')}</td>
+                      <td style="text-align: right;">${part.quantity || part.qty || 1}</td>
                     </tr>
                   `;
                 }).join('')}
@@ -663,27 +715,45 @@ function ArtifactWrapper({ title, subtitle, icon, priority, children, className,
       }
       
       // Required tools
-      const tools = toArray(exportData.required_tools);
+      const tools = toArray(exportData.required_tools || exportData.requiredTools || exportData.tools);
       if (tools.length > 0) {
         html += `
           <div class="section">
             <div class="section-title">Required Tools</div>
             <div class="tag-list">
-              ${tools.map((t) => `<span class="tag">${typeof t === 'string' ? t : JSON.stringify(t)}</span>`).join('')}
+              ${tools.map((t) => `<span class="tag">${str(t)}</span>`).join('')}
             </div>
           </div>
         `;
       }
       
+      // References
+      const refs = toArray(exportData.references);
+      if (refs.length > 0) {
+        html += `
+          <div class="section">
+            <div class="section-title">References</div>
+            <ul style="list-style: none; padding: 0;">
+              ${refs.map((r) => {
+                const ref = typeof r === 'object' && r !== null ? r as Record<string, unknown> : { title: str(r) };
+                const refTitle = str(ref.title || ref.name || r);
+                const page = ref.page ? ` (Page ${ref.page})` : '';
+                return `<li style="padding: 6px 0; border-bottom: 1px solid #eee;">📄 ${refTitle}${page}</li>`;
+              }).join('')}
+            </ul>
+          </div>
+        `;
+      }
+      
       // Checklist items
-      const items = toArray(exportData.items as unknown[]);
+      const items = toArray(exportData.items);
       if (items.length > 0) {
         html += `
           <div class="section">
             <div class="section-title">Checklist</div>
-            ${items.map((item: unknown) => {
-              const i = item as Record<string, unknown>;
-              const text = i.text || i.step || i.description || i.action || '';
+            ${items.map((item) => {
+              const i = typeof item === 'object' && item !== null ? item as Record<string, unknown> : { text: str(item) };
+              const text = str(i.text || i.step || i.description || i.action || item);
               return `
                 <div class="checklist-item">
                   <div class="checkbox"></div>
@@ -696,23 +766,56 @@ function ArtifactWrapper({ title, subtitle, icon, priority, children, className,
       }
       
       // Quality checkpoints
-      const checkpoints = toArray(exportData.quality_checkpoints);
+      const checkpoints = toArray(exportData.quality_checkpoints || exportData.qualityCheckpoints);
       if (checkpoints.length > 0) {
         html += `
           <div class="section">
             <div class="section-title">Quality Checkpoints</div>
-            ${checkpoints.map((c: unknown) => {
-              const cp = c as Record<string, unknown>;
+            ${checkpoints.map((c) => {
+              const cp = typeof c === 'object' && c !== null ? c as Record<string, unknown> : { checkpoint: str(c) };
               return `
                 <div class="checklist-item">
                   <div class="checkbox"></div>
                   <div class="checklist-text">
-                    <strong>${cp.checkpoint || ''}</strong>
-                    ${cp.criteria ? `<br><span style="color: #666; font-size: 12px;">Criteria: ${cp.criteria}</span>` : ''}
+                    <strong>${str(cp.checkpoint || cp.name || c)}</strong>
+                    ${cp.criteria ? `<br><span style="color: #666; font-size: 12px;">Criteria: ${str(cp.criteria)}</span>` : ''}
                   </div>
                 </div>
               `;
             }).join('')}
+          </div>
+        `;
+      }
+      
+      // LOTO specific: Verification and Reinstate steps
+      const verifySteps = toArray(exportData.verificationSteps || exportData.verification_steps);
+      if (verifySteps.length > 0) {
+        html += `
+          <div class="section">
+            <div class="section-title">Verification Steps</div>
+            ${verifySteps.map((v, i) => `
+              <div class="checklist-item">
+                <div class="checkbox"></div>
+                <div class="checklist-text">${str(v)}</div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      }
+      
+      const reinstateSteps = toArray(exportData.reinstateSteps || exportData.reinstate_steps);
+      if (reinstateSteps.length > 0) {
+        html += `
+          <div class="section">
+            <div class="section-title">Reinstatement Steps</div>
+            ${reinstateSteps.map((r, i) => `
+              <div class="step">
+                <div class="step-number">${i + 1}</div>
+                <div class="step-content">
+                  <div class="step-text">${str(r)}</div>
+                </div>
+              </div>
+            `).join('')}
           </div>
         `;
       }
