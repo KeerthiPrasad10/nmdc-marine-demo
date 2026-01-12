@@ -42,9 +42,15 @@ export function RouteComparisonMapClient({
       attributionControl: false,
     });
 
-    // Add dark tile layer
+    // Add dark base tile layer
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
       maxZoom: 19,
+    }).addTo(map);
+    
+    // Add OpenSeaMap nautical overlay for sea marks and navigation aids
+    L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      opacity: 0.8,
     }).addTo(map);
 
     // Fit to bounds with padding

@@ -291,8 +291,9 @@ MARITIME_NETWORK.forEach(node => networkMap.set(node.id, node));
 
 /**
  * Find the nearest network node to a given point
+ * Returns both the node and the distance to it
  */
-function findNearestNode(lat: number, lon: number): NetworkNode {
+function findNearestNode(lat: number, lon: number): { node: NetworkNode; distance: number } {
   let nearest = MARITIME_NETWORK[0];
   let minDist = Infinity;
   
@@ -304,8 +305,15 @@ function findNearestNode(lat: number, lon: number): NetworkNode {
     }
   }
   
-  return nearest;
+  return { node: nearest, distance: minDist };
 }
+
+/**
+ * Maximum distance (nm) from a network node before we consider the point "outside coverage"
+ * If both origin and destination are within this distance of the network, use network routing
+ * Otherwise, fall back to great circle interpolation for the out-of-coverage segments
+ */
+const MAX_NETWORK_SNAP_DISTANCE = 30; // nm
 
 /**
  * Dijkstra's algorithm to find shortest path between two network nodes
@@ -401,9 +409,16 @@ function isWithinGulfRegion(lat: number, lon: number): boolean {
 }
 
 /**
+ * Maximum direct distance (nm) for which we skip network routing
+ * Short local routes don't benefit from network waypoints
+ */
+const SHORT_ROUTE_THRESHOLD = 25; // nm
+
+/**
  * Maritime routing with guaranteed land avoidance
  * 
  * Strategy:
+ * - For SHORT routes (< 25nm): Use direct route with land-check
  * - For routes WITHIN the Persian Gulf: Use our verified maritime network
  *   (guaranteed to follow shipping lanes and avoid all land)
  * - For routes OUTSIDE or crossing Gulf boundary: Use Datalastic API with corrections
@@ -418,13 +433,88 @@ export async function fetchSeaRoute(
 ): Promise<{ waypoints: SeaRouteWaypoint[]; distance: number; source: 'api' | 'hybrid' | 'network' }> {
   console.log('[RouteEngine] Fetching sea route:', { fromLat, fromLon, toLat, toLon });
   
-  // For routes WITHIN the Persian Gulf, ALWAYS use our verified maritime network
-  // This ensures routes follow known shipping lanes and avoid all land features
+  // Calculate direct distance first
+  const directDistance = calculateDistanceNm(fromLat, fromLon, toLat, toLon);
+  
+  // For SHORT local routes, use simplified routing
+  // Network routing creates unnecessary detours for short trips
+  if (directDistance < SHORT_ROUTE_THRESHOLD) {
+    console.log('[RouteEngine] Short route detected (' + directDistance.toFixed(1) + ' nm) - using simplified routing');
+    
+    // Check if direct path crosses land
+    const landCheck = doesSegmentCrossLand(fromLat, fromLon, toLat, toLon);
+    
+    if (!landCheck.crosses) {
+      // Direct path is safe - use it
+      console.log('[RouteEngine] Direct path is clear - using direct route');
+      return {
+        waypoints: [
+          { lat: fromLat, lon: fromLon },
+          { lat: toLat, lon: toLon },
+        ],
+        distance: directDistance,
+        source: 'network', // Label as network since we verified it
+      };
+    } else {
+      // Direct path crosses land - use minimal network detour
+      console.log('[RouteEngine] Direct path crosses ' + landCheck.landArea + ' - finding minimal detour');
+      const startNode = findNearestNode(fromLat, fromLon).node;
+      const endNode = findNearestNode(toLat, toLon).node;
+      
+      // For short routes, only add ONE intermediate waypoint (the midpoint of network path)
+      if (startNode.id !== endNode.id) {
+        const networkPath = findShortestPath(startNode.id, endNode.id);
+        if (networkPath.length > 0) {
+          // Pick the middle waypoint from the network path
+          const midIdx = Math.floor(networkPath.length / 2);
+          const midNode = networkPath[midIdx];
+          
+          const waypoints: SeaRouteWaypoint[] = [
+            { lat: fromLat, lon: fromLon },
+            { lat: midNode.lat, lon: midNode.lon, name: midNode.name, note: 'Avoiding land' },
+            { lat: toLat, lon: toLon },
+          ];
+          
+          return {
+            waypoints,
+            distance: calculateTotalDistance(waypoints),
+            source: 'network',
+          };
+        }
+      }
+      
+      // Fallback to direct if no good detour found
+      return {
+        waypoints: [
+          { lat: fromLat, lon: fromLon },
+          { lat: toLat, lon: toLon },
+        ],
+        distance: directDistance,
+        source: 'network',
+      };
+    }
+  }
+  
+  // For routes WITHIN the Persian Gulf, check if direct path is clear first
   const fromInGulf = isWithinGulfRegion(fromLat, fromLon);
   const toInGulf = isWithinGulfRegion(toLat, toLon);
   
   if (fromInGulf && toInGulf) {
-    console.log('[RouteEngine] Both points in Gulf - using maritime network');
+    // First check if direct path crosses any land
+    const landCheck = doesSegmentCrossLand(fromLat, fromLon, toLat, toLon);
+    
+    if (!landCheck.crosses) {
+      // Direct path is clear - use great circle route (much simpler and more natural)
+      console.log('[RouteEngine] Direct path is clear - using great circle route');
+      const gcRoute = generateGreatCircleRoute(fromLat, fromLon, toLat, toLon);
+      return {
+        ...gcRoute,
+        source: 'network',
+      };
+    }
+    
+    // Land is in the way - use network routing to go around
+    console.log('[RouteEngine] Direct path crosses', landCheck.landArea, '- using maritime network');
     const networkRoute = fetchSeaRouteFromNetwork(fromLat, fromLon, toLat, toLon);
     
     return {
@@ -593,8 +683,8 @@ function correctLandCrossings(waypoints: SeaRouteWaypoint[]): SeaRouteWaypoint[]
       console.log(`[RouteEngine] Segment crosses ${landCheck.landArea}, inserting network waypoints`);
       
       // Find network path around the land
-      const startNode = findNearestNode(from.lat, from.lon);
-      const endNode = findNearestNode(to.lat, to.lon);
+      const startNode = findNearestNode(from.lat, from.lon).node;
+      const endNode = findNearestNode(to.lat, to.lon).node;
       
       if (startNode.id !== endNode.id) {
         const networkPath = findShortestPath(startNode.id, endNode.id);
@@ -634,6 +724,10 @@ function correctLandCrossings(waypoints: SeaRouteWaypoint[]): SeaRouteWaypoint[]
 /**
  * Fetch route using local maritime network (graph-based routing)
  * Uses predefined offshore waypoints to avoid land
+ * 
+ * For points far outside network coverage, generates a hybrid route:
+ * - Network routing for segments within coverage
+ * - Great circle interpolation for segments outside coverage
  */
 function fetchSeaRouteFromNetwork(
   fromLat: number,
@@ -641,20 +735,49 @@ function fetchSeaRouteFromNetwork(
   toLat: number,
   toLon: number
 ): { waypoints: SeaRouteWaypoint[]; distance: number } {
-  // Find nearest network nodes
-  const startNode = findNearestNode(fromLat, fromLon);
-  const endNode = findNearestNode(toLat, toLon);
+  // Find nearest network nodes and distances
+  const startResult = findNearestNode(fromLat, fromLon);
+  const endResult = findNearestNode(toLat, toLon);
+  
+  const startNode = startResult.node;
+  const endNode = endResult.node;
+  const startDistance = startResult.distance;
+  const endDistance = endResult.distance;
   
   console.log('[RouteEngine] Using maritime network:', { 
     start: startNode.name, 
-    end: endNode.name 
+    end: endNode.name,
+    startSnapDist: startDistance.toFixed(1) + ' nm',
+    endSnapDist: endDistance.toFixed(1) + ' nm',
   });
   
-  // Build waypoints: origin -> network path -> destination
+  // Check if points are too far from network coverage
+  const startOutsideCoverage = startDistance > MAX_NETWORK_SNAP_DISTANCE;
+  const endOutsideCoverage = endDistance > MAX_NETWORK_SNAP_DISTANCE;
+  
+  // If BOTH points are far outside coverage, use simple great circle route
+  if (startOutsideCoverage && endOutsideCoverage) {
+    console.log('[RouteEngine] Both points outside network coverage, using great circle route');
+    return generateGreatCircleRoute(fromLat, fromLon, toLat, toLon);
+  }
+  
+  // Build waypoints: origin -> (approach) -> network path -> (departure) -> destination
   const waypoints: SeaRouteWaypoint[] = [];
   
   // Add origin
   waypoints.push({ lat: fromLat, lon: fromLon });
+  
+  // If start is outside coverage, add interpolated approach waypoints to the entry node
+  if (startOutsideCoverage) {
+    console.log('[RouteEngine] Origin outside coverage, adding approach waypoints');
+    const approachWaypoints = generateInterpolatedWaypoints(
+      fromLat, fromLon, 
+      startNode.lat, startNode.lon,
+      'Approach to shipping lanes'
+    );
+    // Skip the first (already added as origin) and add the rest
+    approachWaypoints.slice(1).forEach(wp => waypoints.push(wp));
+  }
   
   // Find path through network
   if (startNode.id !== endNode.id) {
@@ -715,13 +838,26 @@ function fetchSeaRouteFromNetwork(
     }
   }
   
-  // Add destination
-  const lastWp = waypoints[waypoints.length - 1];
-  const distToDest = calculateDistanceNm(lastWp.lat, lastWp.lon, toLat, toLon);
-  if (distToDest > 1) {
-    waypoints.push({ lat: toLat, lon: toLon });
+  // If end is outside coverage, add interpolated departure waypoints from the exit node
+  if (endOutsideCoverage) {
+    console.log('[RouteEngine] Destination outside coverage, adding departure waypoints');
+    const lastNetworkWp = waypoints[waypoints.length - 1];
+    const departureWaypoints = generateInterpolatedWaypoints(
+      lastNetworkWp.lat, lastNetworkWp.lon,
+      toLat, toLon,
+      'Open water transit'
+    );
+    // Skip the first (already in waypoints) and add the rest
+    departureWaypoints.slice(1).forEach(wp => waypoints.push(wp));
   } else {
-    waypoints[waypoints.length - 1] = { lat: toLat, lon: toLon };
+    // Add destination (within coverage)
+    const lastWp = waypoints[waypoints.length - 1];
+    const distToDest = calculateDistanceNm(lastWp.lat, lastWp.lon, toLat, toLon);
+    if (distToDest > 1) {
+      waypoints.push({ lat: toLat, lon: toLon });
+    } else {
+      waypoints[waypoints.length - 1] = { lat: toLat, lon: toLon };
+    }
   }
   
   const totalDistance = calculateTotalDistance(waypoints);
@@ -796,19 +932,69 @@ function generateGreatCircleRoute(
     };
   }
   
-  // For longer routes, add intermediate points every ~20nm
-  const numSegments = Math.ceil(distance / 20);
+  // For longer routes, add intermediate points every ~25nm
+  const numSegments = Math.ceil(distance / 25);
   const waypoints: SeaRouteWaypoint[] = [];
   
   for (let i = 0; i <= numSegments; i++) {
     const fraction = i / numSegments;
+    const lat = fromLat + (toLat - fromLat) * fraction;
+    const lon = fromLon + (toLon - fromLon) * fraction;
+    
     waypoints.push({
-      lat: fromLat + (toLat - fromLat) * fraction,
-      lon: fromLon + (toLon - fromLon) * fraction,
+      lat,
+      lon,
+      name: i === 0 ? undefined : i === numSegments ? undefined : `Waypoint ${i}`,
+      note: i === 0 ? undefined : i === numSegments ? undefined : 'Open water transit',
     });
   }
   
+  console.log('[RouteEngine] Generated great circle route:', {
+    distance: distance.toFixed(1) + ' nm',
+    waypoints: waypoints.length,
+  });
+  
   return { waypoints, distance };
+}
+
+/**
+ * Generate interpolated waypoints between two points
+ * Used for segments outside the maritime network coverage
+ */
+function generateInterpolatedWaypoints(
+  fromLat: number,
+  fromLon: number,
+  toLat: number,
+  toLon: number,
+  note?: string
+): SeaRouteWaypoint[] {
+  const distance = calculateDistanceNm(fromLat, fromLon, toLat, toLon);
+  const waypoints: SeaRouteWaypoint[] = [];
+  
+  // For short distances, just include endpoints
+  if (distance < 30) {
+    waypoints.push({ lat: fromLat, lon: fromLon });
+    waypoints.push({ lat: toLat, lon: toLon, note });
+    return waypoints;
+  }
+  
+  // Add intermediate waypoints every ~30nm
+  const numSegments = Math.ceil(distance / 30);
+  
+  for (let i = 0; i <= numSegments; i++) {
+    const fraction = i / numSegments;
+    const lat = fromLat + (toLat - fromLat) * fraction;
+    const lon = fromLon + (toLon - fromLon) * fraction;
+    
+    waypoints.push({
+      lat,
+      lon,
+      name: i > 0 && i < numSegments ? `Transit Point ${i}` : undefined,
+      note: i > 0 ? note : undefined,
+    });
+  }
+  
+  return waypoints;
 }
 
 // ============================================================================

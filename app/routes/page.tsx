@@ -108,7 +108,7 @@ function Dropdown<T extends { id?: string; mmsi?: string; name: string }>({
   );
 
   return (
-    <div ref={dropdownRef} className="relative">
+    <div ref={dropdownRef} className="relative z-[9999]">
       <div
         role="combobox"
         aria-expanded={isOpen}
@@ -165,7 +165,7 @@ function Dropdown<T extends { id?: string; mmsi?: string; name: string }>({
       </div>
 
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-[#0a0a0a] border border-white/15 rounded-xl shadow-2xl shadow-black/50 z-50 overflow-hidden">
+        <div className="absolute top-full left-0 right-0 mt-2 bg-[#0a0a0a] border border-white/15 rounded-xl shadow-2xl shadow-black/50 z-[9999] overflow-hidden">
           {/* Search input */}
           <div className="p-2 border-b border-white/10">
             <input
@@ -240,9 +240,14 @@ export default function RoutesPage() {
     setError(null);
 
     try {
-      // Generate random position near Abu Dhabi for demo
-      const vesselLat = 24.4 + Math.random() * 0.3;
-      const vesselLng = 54.2 + Math.random() * 0.3;
+      // Use Musaffah (NMDC Base) as the default origin
+      // This is where most NMDC vessels are stationed
+      const musaffahLat = 24.335;
+      const musaffahLng = 54.44;
+      
+      // Add small random offset to simulate vessels in the Musaffah area
+      const vesselLat = musaffahLat + (Math.random() - 0.5) * 0.05;
+      const vesselLng = musaffahLng + (Math.random() - 0.5) * 0.05;
 
       const response = await fetch('/api/route-optimizer', {
         method: 'POST',
@@ -297,7 +302,7 @@ export default function RoutesPage() {
   return (
     <div className="min-h-screen bg-black">
       {/* Header with Selection Controls */}
-      <header className="sticky top-0 z-50 bg-black/95 backdrop-blur-xl border-b border-white/5">
+      <header className="sticky top-0 z-[10000] bg-black/95 backdrop-blur-xl border-b border-white/5">
         <div className="max-w-[1600px] mx-auto px-6 py-4">
           {/* Top row - Title and back button */}
           <div className="flex items-center justify-between mb-4">
