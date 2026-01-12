@@ -22,18 +22,40 @@ export const ImageCard: React.FC<ImageCardProps> = ({ data }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [imageError, setImageError] = useState(false);
   
-  const { 
-    title, 
-    description, 
-    source_document, 
-    source_page, 
-    image_url, 
-    image_base64,
-    detected_equipment 
-  } = data;
+  // Debug: Log what we're receiving
+  console.log('[ImageCard] Received data:', {
+    hasData: !!data,
+    keys: data ? Object.keys(data) : [],
+    hasImageUrl: !!(data as Record<string, unknown>)?.image_url,
+    hasUrl: !!(data as Record<string, unknown>)?.url,
+    hasBase64: !!(data as Record<string, unknown>)?.image_base64,
+  });
+  
+  // Handle various field name formats (snake_case and camelCase)
+  const dataAny = data as Record<string, unknown>;
+  
+  const title = data.title || (dataAny.name as string) || 'Image';
+  const description = data.description || (dataAny.caption as string) || '';
+  const source_document = data.source_document || (dataAny.sourceDocument as string) || (dataAny.source as string);
+  const source_page = data.source_page || (dataAny.sourcePage as number) || (dataAny.page as number);
+  const detected_equipment = data.detected_equipment || (dataAny.detectedEquipment as string[]) || (dataAny.equipment as string[]);
+  
+  // Try multiple field names for image URL
+  const image_url = data.image_url || 
+    (dataAny.imageUrl as string) || 
+    (dataAny.url as string) || 
+    (dataAny.src as string) ||
+    (dataAny.imageSrc as string);
+  
+  const image_base64 = data.image_base64 || 
+    (dataAny.imageBase64 as string) || 
+    (dataAny.base64 as string) ||
+    (dataAny.data as string);
   
   // Determine image source
-  const imageSrc = image_url || (image_base64 ? `data:image/png;base64,${image_base64}` : null);
+  const imageSrc = image_url || (image_base64 ? 
+    (image_base64.startsWith('data:') ? image_base64 : `data:image/png;base64,${image_base64}`) 
+    : null);
   
   const handleDownload = () => {
     if (!imageSrc) return;
@@ -110,13 +132,18 @@ export const ImageCard: React.FC<ImageCardProps> = ({ data }) => {
           <div className="h-40 flex items-center justify-center" 
             style={{ backgroundColor: 'var(--nxb-surface-tertiary)' }}
           >
-            <div className="text-center">
+            <div className="text-center px-4">
               <FileImage className="w-12 h-12 mx-auto mb-2 opacity-40" 
                 style={{ color: 'var(--nxb-text-secondary)' }} 
               />
-              <span className="text-sm" style={{ color: 'var(--nxb-text-tertiary)' }}>
-                {imageError ? 'Failed to load image' : 'No image available'}
+              <span className="text-sm block" style={{ color: 'var(--nxb-text-tertiary)' }}>
+                {imageError ? 'Failed to load image' : 'Image reference'}
               </span>
+              {description && (
+                <span className="text-xs block mt-1 opacity-70" style={{ color: 'var(--nxb-text-secondary)' }}>
+                  {description.length > 100 ? description.substring(0, 100) + '...' : description}
+                </span>
+              )}
             </div>
           </div>
         )}

@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { WorkOrderData } from "../types";
-import { exportToPDF } from "../PDFExporter";
+import { exportToPDF, generateWorkOrderPrintHTML } from "../PDFExporter";
 
 interface WorkOrderFormProps {
   data: WorkOrderData;
@@ -64,12 +64,15 @@ export function WorkOrderForm({
   const formRef = useRef<HTMLDivElement>(null);
 
   const handleExport = () => {
-    if (formRef.current) {
-      exportToPDF(formRef.current, {
-        title: `Work Order - ${data.workOrderNumber || 'Draft'}`,
-        filename: `work-order-${data.workOrderNumber || 'draft'}`,
-      });
-    }
+    // Generate proper PDF HTML using the dedicated generator
+    const html = generateWorkOrderPrintHTML(data);
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    
+    exportToPDF(tempDiv, {
+      title: `Work Order - ${data.workOrderNumber || 'Draft'}`,
+      filename: `work-order-${data.workOrderNumber || 'draft'}`,
+    });
     onExport?.();
   };
 

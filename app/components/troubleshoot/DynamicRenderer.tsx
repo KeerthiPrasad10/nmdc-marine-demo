@@ -42,6 +42,45 @@ const DynamicForm = lazy(() => import("./ui/DynamicForm"));
 const DocumentOutput = lazy(() => import("./ui/DocumentOutput"));
 
 // ============================================
+// Helper: Convert DynamicForm data to WorkOrder format
+// ============================================
+
+function convertDynamicFormToWorkOrder(formData: DynamicFormData): WorkOrderData {
+  // Extract values from form sections
+  const values: Record<string, unknown> = {};
+  
+  if (formData.sections) {
+    for (const section of formData.sections) {
+      if (section.fields) {
+        for (const field of section.fields) {
+          if (field.value !== undefined) {
+            values[field.id] = field.value;
+          }
+        }
+      }
+    }
+  }
+  
+  // Map to WorkOrderData structure
+  return {
+    workOrderNumber: (values.workOrderNumber || values.work_order_number || formData.metadata?.documentNumber || `WO-${Date.now().toString(36).toUpperCase()}`) as string,
+    equipmentTag: (values.equipmentTag || values.equipment_tag || values.equipment) as string,
+    equipmentName: (values.equipmentName || values.equipment_name) as string,
+    priority: (values.priority || 'urgent') as WorkOrderData['priority'],
+    workType: (values.workType || values.work_type || 'corrective') as WorkOrderData['workType'],
+    description: (values.description || formData.description || '') as string,
+    symptoms: values.symptoms as string,
+    targetDate: values.targetDate as string,
+    estimatedHours: values.estimatedHours as number,
+    requiredParts: values.requiredParts as string[],
+    requiredTools: values.requiredTools as string[],
+    safetyRequirements: values.safetyRequirements as string[],
+    lotoRequired: values.lotoRequired as boolean,
+    notes: values.notes as string,
+  };
+}
+
+// ============================================
 // Event Handlers
 // ============================================
 
@@ -196,14 +235,38 @@ export function DynamicRenderer({
           />
         );
 
-      case 'dynamic_form':
+      case 'dynamic_form': {
+        // Check if this dynamic_form is actually a work order
+        const formData = data as DynamicFormData;
+        const isWorkOrder = formData?.formType === 'work_order' || 
+          formData?.formType === 'workOrder' ||
+          formData?.title?.toLowerCase().includes('work order') ||
+          formData?.title?.toLowerCase().includes('maintenance') ||
+          (formData as unknown as Record<string, unknown>)?.equipmentTag ||
+          (formData as unknown as Record<string, unknown>)?.equipment_tag;
+        
+        if (isWorkOrder) {
+          // Convert dynamic_form to work_order format and render WorkOrderForm
+          const woData = convertDynamicFormToWorkOrder(formData);
+          console.log('[DynamicRenderer] Converted dynamic_form to work_order:', woData);
+          return (
+            <WorkOrderForm
+              data={woData}
+              onSubmit={handlers.onWorkOrderSubmit}
+              exportable={true}
+              onExport={() => handlers.onExport?.('work_order', woData)}
+            />
+          );
+        }
+        
         return (
           <DynamicForm
-            data={data as DynamicFormData}
+            data={formData}
             onSubmit={(values) => handlers.onActionClick?.('form_submit', values)}
             onExport={() => handlers.onExport?.(type, data)}
           />
         );
+      }
 
       case 'document_output':
         return (

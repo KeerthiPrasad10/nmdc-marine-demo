@@ -697,8 +697,8 @@ The user has already answered multiple diagnostic questions - commit to a repair
 
       // Extract response type and data - handle multiple formats
       const uiData = data as unknown as { type?: string; data?: unknown; responses?: unknown[] };
-      let responseType = uiData.type || data.response?.type;
-      let responseData = uiData.data || data.response?.data;
+      const responseType = uiData.type || data.response?.type;
+      const responseData = uiData.data || data.response?.data;
       
       // Build UIResponse for DynamicRenderer - this is the ONLY rendering path now
       let uiResponse: UIResponse | undefined;
@@ -776,8 +776,36 @@ The user has already answered multiple diagnostic questions - commit to a repair
           };
           console.log('[TroubleshootPanel] ✅ Inferred selection from structure');
         }
+        // IMPORTANT: If we have an answer but no type, render as info_message
+        else if (data.answer && typeof data.answer === 'string' && data.answer.trim()) {
+          // Check if the answer contains RCA markers (to display nicely)
+          const hasRCA = data.answer.includes('ROOT CAUSE') || 
+                         data.answer.includes('KNOWLEDGE BASE') ||
+                         data.answer.includes('RECOMMENDATION');
+          
+          uiResponse = {
+            type: 'info_message',
+            data: { 
+              title: hasRCA ? 'Analysis Complete' : '', 
+              message: data.answer,
+              // Add suggestions for next steps if this looks like a final diagnosis
+              suggestions: hasRCA ? ['Generate Work Order', 'Generate LOTO Procedure', 'View Checklist'] : undefined,
+            },
+            sources: data.sources as UIResponse['sources'],
+          };
+          console.log('[TroubleshootPanel] ✅ Created info_message from answer field');
+        }
         else {
           console.log('[TroubleshootPanel] ⚠️ Could not detect UI type, will render as text');
+          // Still try to show something if there's any answer
+          if (data.answer && data.answer.trim()) {
+            uiResponse = {
+              type: 'info_message',
+              data: { title: '', message: data.answer },
+              sources: data.sources as UIResponse['sources'],
+            };
+            console.log('[TroubleshootPanel] ✅ Fallback to info_message with answer');
+          }
         }
       }
       
