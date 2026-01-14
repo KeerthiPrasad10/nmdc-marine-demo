@@ -13,6 +13,10 @@ import {
   ProductionTarget,
 } from './types';
 
+// Shared state for consistent numbers across components
+const DAILY_TARGET = 100;
+const CURRENT_DAILY = 67; // Use same value everywhere
+
 // Generate realistic sensor data
 export function generateSensorData(): CraneSensor[] {
   const now = new Date();
@@ -442,8 +446,8 @@ export function generateAIInsights(): AIInsight[] {
 export function generateMetrics(): CraneMetrics {
   return {
     utilizationRate: 72 + Math.random() * 10,
-    totalLifts: 847,
-    completedLifts: 842,
+    totalLifts: DAILY_TARGET,
+    completedLifts: CURRENT_DAILY,
     avgCycleTime: 124,
     avgLoadWeight: 1850,
     totalTonnage: 1558,
@@ -470,10 +474,10 @@ export function generateOperator(): CraneOperator {
 
 export function generateProductionTarget(): ProductionTarget {
   return {
-    daily: 100,
+    daily: DAILY_TARGET,
     weekly: 600,
     monthly: 2400,
-    currentDaily: 67,
+    currentDaily: CURRENT_DAILY,
     currentWeekly: 423,
     currentMonthly: 1847,
   };

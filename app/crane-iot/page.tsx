@@ -694,13 +694,23 @@ export default function CraneIoTDashboard() {
                   <Clock className="w-4 h-4 text-cyan-400" />
                   Lift Cycle Timeline
                 </h2>
-                <span className="text-xs text-white/40">{crane.metrics.completedLifts} completed today</span>
+                <span className="text-xs text-white/40">Showing last {Math.min(lifts.length, 5)} of {crane.metrics.completedLifts} today</span>
               </div>
               <LiftTimeline 
                 lifts={lifts} 
                 highlightedLiftId={highlightedLiftId}
                 onHighlightClear={() => setHighlightedLiftId(null)}
               />
+              
+              {/* View history link */}
+              <button 
+                className="w-full mt-3 py-2 text-xs text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-lg border border-dashed border-cyan-500/30 transition-all flex items-center justify-center gap-2"
+                onClick={() => alert('Historical lift data would be available in the full analytics dashboard.')}
+              >
+                <Clock className="w-3 h-3" />
+                View full history ({crane.metrics.completedLifts} lifts today · 423 this week)
+                <ChevronRight className="w-3 h-3" />
+              </button>
             </div>
 
             {/* Material Classification */}
@@ -712,10 +722,10 @@ export default function CraneIoTDashboard() {
                 </h2>
                 <span className="text-xs text-violet-400 flex items-center gap-1">
                   <Eye className="w-3 h-3" />
-                  Auto-detecting
+                  Last {items.slice(0, 4).length} detections
                 </span>
               </div>
-              <MaterialClassification items={items} />
+              <MaterialClassification items={items.slice(0, 4)} />
             </div>
 
             {/* Operator Info */}
