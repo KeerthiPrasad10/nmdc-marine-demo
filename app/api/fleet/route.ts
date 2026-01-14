@@ -18,11 +18,16 @@ import {
   calculateDistanceNm,
 } from '@/lib/datalastic';
 import { 
-  NMDC_FLEET, 
+  NMDC_FLEET,
+  NMDC_ENERGY_FLEET, 
   getNMDCVesselByMMSI,
   getNMDCActiveProjects,
   NMDCVessel,
+  getVesselsByCompany,
 } from '@/lib/nmdc/fleet';
+
+// Use NMDC Energy fleet for this demo
+const ACTIVE_FLEET = NMDC_ENERGY_FLEET;
 
 export const dynamic = 'force-dynamic';
 
@@ -140,7 +145,7 @@ export async function GET(request: NextRequest) {
   if (!isDatalasticConfigured()) {
     return NextResponse.json({
       success: true,
-      vessels: NMDC_FLEET.map(v => ({
+      vessels: ACTIVE_FLEET.map(v => ({
         id: v.mmsi,
         mmsi: v.mmsi,
         imo: v.imo,
@@ -156,12 +161,12 @@ export async function GET(request: NextRequest) {
         ...generateOperationalData(v.mmsi, v),
       })),
       stats: {
-        totalVessels: NMDC_FLEET.length,
+        totalVessels: ACTIVE_FLEET.length,
         onlineVessels: 0,
-        offlineVessels: NMDC_FLEET.length,
-        operationalVessels: 12,
-        maintenanceVessels: 3,
-        totalCrew: NMDC_FLEET.reduce((sum, v) => sum + (v.crewCount || 15), 0),
+        offlineVessels: ACTIVE_FLEET.length,
+        operationalVessels: Math.floor(ACTIVE_FLEET.length * 0.8),
+        maintenanceVessels: Math.ceil(ACTIVE_FLEET.length * 0.2),
+        totalCrew: ACTIVE_FLEET.reduce((sum, v) => sum + (v.crewCount || 15), 0),
         avgSpeed: 0,
         avgHealthScore: 85,
         activeProjects: getNMDCActiveProjects().length,
@@ -199,8 +204,8 @@ export async function GET(request: NextRequest) {
           fromCache = true;
           console.log('Using cached fleet data from', cached.fetchedAt);
         } else {
-          // Fetch live positions for all NMDC vessels
-          const mmsiList = NMDC_FLEET.map(v => v.mmsi);
+          // Fetch live positions for all NMDC Energy vessels
+          const mmsiList = ACTIVE_FLEET.map(v => v.mmsi);
           try {
             liveVessels = await client.getVesselsBulk(mmsiList);
             creditsUsed = liveVessels.length;
@@ -222,7 +227,7 @@ export async function GET(request: NextRequest) {
         let totalHealth = 0;
         let totalCO2 = 0;
 
-        for (const nmdcVessel of NMDC_FLEET) {
+        for (const nmdcVessel of ACTIVE_FLEET) {
           const liveData = liveVessels.find(v => v.mmsi === nmdcVessel.mmsi);
           const operationalData = generateOperationalData(nmdcVessel.mmsi, nmdcVessel);
           
@@ -293,14 +298,14 @@ export async function GET(request: NextRequest) {
         const operationalCount = fleetVessels.filter(v => v.healthScore > 60).length;
 
         const stats: FleetStats = {
-          totalVessels: NMDC_FLEET.length,
+          totalVessels: ACTIVE_FLEET.length,
           onlineVessels: onlineCount,
-          offlineVessels: NMDC_FLEET.length - onlineCount,
+          offlineVessels: ACTIVE_FLEET.length - onlineCount,
           operationalVessels: operationalCount,
-          maintenanceVessels: NMDC_FLEET.length - operationalCount,
-          totalCrew: NMDC_FLEET.reduce((sum, v) => sum + (v.crewCount || 15), 0),
+          maintenanceVessels: ACTIVE_FLEET.length - operationalCount,
+          totalCrew: ACTIVE_FLEET.reduce((sum, v) => sum + (v.crewCount || 15), 0),
           avgSpeed: speedCount > 0 ? Math.round(totalSpeed / speedCount * 10) / 10 : 0,
-          avgHealthScore: Math.round(totalHealth / NMDC_FLEET.length),
+          avgHealthScore: Math.round(totalHealth / ACTIVE_FLEET.length),
           activeProjects: getNMDCActiveProjects().length,
           totalEmissionsCO2: Math.round(totalCO2),
         };
@@ -359,7 +364,7 @@ export async function GET(request: NextRequest) {
 
       case 'stats': {
         const projects = getNMDCActiveProjects();
-        const vesselsByType = NMDC_FLEET.reduce((acc, v) => {
+        const vesselsByType = ACTIVE_FLEET.reduce((acc, v) => {
           acc[v.type] = (acc[v.type] || 0) + 1;
           return acc;
         }, {} as Record<string, number>);
@@ -367,8 +372,8 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({
           success: true,
           stats: {
-            totalVessels: NMDC_FLEET.length,
-            totalCrew: NMDC_FLEET.reduce((sum, v) => sum + (v.crewCount || 15), 0),
+            totalVessels: ACTIVE_FLEET.length,
+            totalCrew: ACTIVE_FLEET.reduce((sum, v) => sum + (v.crewCount || 15), 0),
             activeProjects: projects.length,
             vesselsByType,
             projects: projects.map(p => ({
@@ -399,9 +404,9 @@ export async function GET(request: NextRequest) {
               vesselCount: fleetCache.vessels.length,
             } : null,
             usage: {
-              creditsPerRefresh: NMDC_FLEET.length,
+              creditsPerRefresh: ACTIVE_FLEET.length,
               monthlyLimit: (statsResponse.requests_used || 0) + (statsResponse.requests_remaining || 0) || 80000,
-              refreshesRemaining: Math.floor((statsResponse.requests_remaining || 0) / NMDC_FLEET.length),
+              refreshesRemaining: Math.floor((statsResponse.requests_remaining || 0) / ACTIVE_FLEET.length),
             },
           });
         } catch (err) {

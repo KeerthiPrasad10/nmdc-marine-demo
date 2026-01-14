@@ -110,3 +110,4 @@ function getFuelRate(vesselType: string): number {
   return rates[vesselType] || 40;
 }
 
+

@@ -97,6 +97,9 @@ export function VesselCard({ vessel, onClick, selected, compact = false, linkToD
 
   // Compact mode for sidebar - clean, minimal design
   if (compact) {
+    // Format vessel type for display
+    const vesselType = vessel.vessel_class || vessel.type?.replace('_', ' ') || 'Vessel';
+    
     return (
       <div
         onClick={onClick}
@@ -124,6 +127,7 @@ export function VesselCard({ vessel, onClick, selected, compact = false, linkToD
                 <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
               )}
             </div>
+            <p className="text-[10px] text-white/30 truncate capitalize">{vesselType}</p>
             <div className="flex items-center gap-2 mt-0.5 text-xs text-white/40">
               <span className={healthColor}>{vessel.health_score ?? 100}%</span>
               <span>·</span>

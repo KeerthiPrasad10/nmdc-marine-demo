@@ -545,10 +545,25 @@ export function getVesselsByCompany(company: NMDCVessel['company']): NMDCVessel[
 }
 
 /**
+ * NMDC Energy Fleet Only (for NMDC Energy demo)
+ * Filters out NMDC Group dredging vessels
+ */
+export const NMDC_ENERGY_FLEET: NMDCVessel[] = NMDC_FLEET.filter(
+  v => v.company === 'nmdc_energy'
+);
+
+/**
  * Get all MMSI numbers for bulk API request
  */
 export function getNMDCFleetMMSIs(): string[] {
   return NMDC_FLEET.map(v => v.mmsi);
+}
+
+/**
+ * Get NMDC Energy MMSI numbers only
+ */
+export function getNMDCEnergyFleetMMSIs(): string[] {
+  return NMDC_ENERGY_FLEET.map(v => v.mmsi);
 }
 
 /**

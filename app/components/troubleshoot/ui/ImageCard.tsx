@@ -22,17 +22,17 @@ export const ImageCard: React.FC<ImageCardProps> = ({ data }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [imageError, setImageError] = useState(false);
   
+  // Handle various field name formats (snake_case and camelCase)
+  const dataAny = data as unknown as Record<string, unknown>;
+  
   // Debug: Log what we're receiving
   console.log('[ImageCard] Received data:', {
     hasData: !!data,
     keys: data ? Object.keys(data) : [],
-    hasImageUrl: !!(data as Record<string, unknown>)?.image_url,
-    hasUrl: !!(data as Record<string, unknown>)?.url,
-    hasBase64: !!(data as Record<string, unknown>)?.image_base64,
+    hasImageUrl: !!dataAny?.image_url,
+    hasUrl: !!dataAny?.url,
+    hasBase64: !!dataAny?.image_base64,
   });
-  
-  // Handle various field name formats (snake_case and camelCase)
-  const dataAny = data as Record<string, unknown>;
   
   const title = data.title || (dataAny.name as string) || 'Image';
   const description = data.description || (dataAny.caption as string) || '';

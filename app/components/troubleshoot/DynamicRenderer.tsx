@@ -238,8 +238,10 @@ export function DynamicRenderer({
       case 'dynamic_form': {
         // Check if this dynamic_form is actually a work order
         const formData = data as DynamicFormData;
-        const isWorkOrder = formData?.formType === 'work_order' || 
-          formData?.formType === 'workOrder' ||
+        // Cast formType to string for flexible comparison (API may send values not in strict type)
+        const formTypeStr = formData?.formType as string;
+        const isWorkOrder = formTypeStr === 'work_order' || 
+          formTypeStr === 'workOrder' ||
           formData?.title?.toLowerCase().includes('work order') ||
           formData?.title?.toLowerCase().includes('maintenance') ||
           (formData as unknown as Record<string, unknown>)?.equipmentTag ||

@@ -13,7 +13,7 @@ export interface DemoStep {
 export interface CrisisScenario {
   id: string;
   name: string;
-  type: 'engine_failure' | 'storm_response' | 'fuel_crisis' | 'safety_incident';
+  type: 'engine_failure' | 'storm_response' | 'fuel_crisis' | 'safety_incident' | 'crane_efficiency';
   description: string;
   vessel?: {
     id: string;
@@ -29,16 +29,16 @@ export interface CrisisScenario {
   };
 }
 
-// The "Wow Moment" - Engine Failure Scenario
+// The "Wow Moment" - Engine Failure Prevention Scenario
 export const engineFailureScenario: CrisisScenario = {
   id: 'scenario-engine-001',
-  name: 'Critical Engine Anomaly',
+  name: 'Engine Anomaly Detection',
   type: 'engine_failure',
-  description: 'Vessel 7\'s main engine shows abnormal vibration. Watch the AI respond in real-time.',
+  description: 'AI detects early warning signs in engine vibration patterns and deploys preventive measures before failure occurs.',
   vessel: {
-    id: 'vessel-7',
-    name: 'NMDC Al Mirfa',
-    type: 'crane_barge',
+    id: '470212000',
+    name: 'DLS-4200',
+    type: 'derrick_barge',
   },
   steps: [
     {
@@ -106,7 +106,7 @@ export const engineFailureScenario: CrisisScenario = {
         nearestPort: 'Fujairah (4 hours)',
         sparePartsStatus: 'Available in warehouse',
         engineerETA: '8 hours',
-        backupVessel: 'NMDC Yas Al Bahr',
+        backupVessel: 'DELMA 2000',
         backupDelay: '6 hours',
       },
     },
@@ -135,12 +135,12 @@ export const engineFailureScenario: CrisisScenario = {
   },
 };
 
-// Storm Response Scenario
+// Storm Preparation Scenario
 export const stormResponseScenario: CrisisScenario = {
   id: 'scenario-storm-001',
-  name: 'Severe Weather Warning',
+  name: 'Weather Risk Mitigation',
   type: 'storm_response',
-  description: 'Tropical storm approaching Arabian Gulf. AI coordinates fleet-wide response.',
+  description: 'AI predicts severe weather 18 hours ahead and proactively repositions fleet to safe zones.',
   steps: [
     {
       id: 'step-1',
@@ -219,12 +219,12 @@ export const stormResponseScenario: CrisisScenario = {
   },
 };
 
-// Fuel Crisis Scenario
+// Fuel Optimization Scenario
 export const fuelCrisisScenario: CrisisScenario = {
   id: 'scenario-fuel-001',
-  name: 'Fleet Fuel Optimization',
+  name: 'Proactive Fuel Management',
   type: 'fuel_crisis',
-  description: 'Multiple vessels reporting low fuel. AI optimizes refueling logistics.',
+  description: 'AI predicts fuel depletion patterns and schedules optimal refueling before vessels reach critical levels.',
   steps: [
     {
       id: 'step-1',
@@ -289,12 +289,12 @@ export const fuelCrisisScenario: CrisisScenario = {
   },
 };
 
-// Safety Incident Scenario
+// Safety Prevention Scenario
 export const safetyIncidentScenario: CrisisScenario = {
   id: 'scenario-safety-001',
-  name: 'Crew Fatigue Alert',
+  name: 'Fatigue Prevention',
   type: 'safety_incident',
-  description: 'Multiple crew members approaching fatigue limits. AI ensures compliance.',
+  description: 'AI monitors crew work hours and proactively schedules rotations before fatigue risks emerge.',
   steps: [
     {
       id: 'step-1',
@@ -359,11 +359,119 @@ export const safetyIncidentScenario: CrisisScenario = {
   },
 };
 
+// Crane Efficiency Optimization Scenario
+export const craneEfficiencyScenario: CrisisScenario = {
+  id: 'scenario-crane-001',
+  name: 'Crane IoT Optimization',
+  type: 'crane_efficiency',
+  description: 'AI analyzes IoT sensor data and camera feeds to optimize crane operations and improve safety.',
+  vessel: {
+    id: '470340000',
+    name: 'SEP-450',
+    type: 'jack_up',
+  },
+  steps: [
+    {
+      id: 'step-1',
+      phase: 'detection',
+      title: 'IoT Data Collection',
+      description: 'Hook-mounted sensors capturing real-time load, vibration, and positioning data across 847 lift cycles.',
+      duration: 2000,
+      icon: '📡',
+      data: {
+        sensorsActive: 6,
+        dataPointsToday: 12847,
+        camerasStreaming: 4,
+        aiModelsRunning: 3,
+      },
+    },
+    {
+      id: 'step-2',
+      phase: 'analysis',
+      title: 'Material Classification',
+      description: 'AI vision system classifying lifted materials - steel beams, concrete blocks, equipment, and containers.',
+      duration: 2500,
+      icon: '🔍',
+      data: {
+        itemsClassified: 847,
+        classificationAccuracy: 94,
+        categories: 'Steel, Concrete, Equipment, Pipe',
+        weightMeasured: true,
+      },
+    },
+    {
+      id: 'step-3',
+      phase: 'prediction',
+      title: 'Production Analysis',
+      description: 'Analyzing production rates and identifying bottlenecks in lift cycle sequences.',
+      duration: 2500,
+      icon: '📊',
+      data: {
+        currentRate: '8.2 lifts/hr',
+        targetRate: '10 lifts/hr',
+        efficiency: '78%',
+        bottleneck: 'Material staging delays',
+      },
+    },
+    {
+      id: 'step-4',
+      phase: 'impact',
+      title: 'Safety Behavior Analysis',
+      description: 'AI detected 4 zone violations and 2 unsafe behaviors in past 8 hours.',
+      duration: 3000,
+      icon: '⚠️',
+      data: {
+        zoneViolations: 4,
+        unsafeBehaviors: 2,
+        nearMisses: 1,
+        workersInvolved: 3,
+        riskLevel: 'Medium',
+      },
+    },
+    {
+      id: 'step-5',
+      phase: 'solution',
+      title: 'Optimization Recommendations',
+      description: 'Generating optimized lift sequence and safety improvements.',
+      duration: 3000,
+      icon: '💡',
+      data: {
+        sequenceOptimization: '+18% efficiency',
+        suggestedBarriers: 2,
+        crewBriefing: 'Scheduled',
+        potentialSavings: '$4,500/day',
+      },
+    },
+    {
+      id: 'step-6',
+      phase: 'action',
+      title: 'Implementation',
+      description: 'Pushing optimized schedule to operators and updating safety protocols.',
+      duration: 2000,
+      icon: '✅',
+      data: {
+        scheduleUpdated: true,
+        operatorsNotified: true,
+        safetyAlertsEnabled: true,
+        dashboardUpdated: true,
+        reportGenerated: true,
+      },
+    },
+  ],
+  summary: {
+    plannedCost: 25000,
+    emergencyCost: 125000,
+    savings: 100000,
+    timeToResolve: '15 seconds',
+  },
+};
+
 export const allScenarios: CrisisScenario[] = [
   engineFailureScenario,
   stormResponseScenario,
   fuelCrisisScenario,
   safetyIncidentScenario,
+  craneEfficiencyScenario,
 ];
 
 export function getScenarioById(id: string): CrisisScenario | undefined {

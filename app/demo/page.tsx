@@ -18,6 +18,7 @@ import {
   Ship,
   Activity,
   Sparkles,
+  Cpu,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { 
@@ -41,6 +42,7 @@ const scenarioIcons: Record<CrisisScenario['type'], LucideIcon> = {
   storm_response: CloudRain,
   fuel_crisis: Fuel,
   safety_incident: Shield,
+  crane_efficiency: Cpu,
 };
 
 export default function DemoPage() {
@@ -140,21 +142,13 @@ export default function DemoPage() {
                   <Zap className="w-6 h-6 text-amber-400" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-white">Crisis Response Demo</h1>
-                  <p className="text-sm text-white/50">Real-time AI Decision Making</p>
+                  <h1 className="text-xl font-bold text-white">Predictive AI Demo</h1>
+                  <p className="text-sm text-white/50">Spot risks early, deploy countermeasures before they escalate</p>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
-              {/* Timer */}
-              <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10">
-                <Clock className="w-4 h-4 text-cyan-400" />
-                <span className="font-mono text-lg text-white">{formatTime(elapsedTime)}</span>
-              </div>
-
-              {/* Controls */}
-              <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
                 {!isRunning && !isComplete && (
                   <button
                     onClick={runDemo}
@@ -180,7 +174,6 @@ export default function DemoPage() {
                   <RotateCcw className="w-4 h-4" />
                   Reset
                 </button>
-              </div>
             </div>
           </div>
         </div>
@@ -256,7 +249,7 @@ export default function DemoPage() {
             <div className="bg-black rounded-xl border border-white/10 p-6">
               <h2 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-primary-400" />
-                AI Response Timeline
+                Predictive AI Timeline
               </h2>
 
               <div className="space-y-4">
@@ -453,12 +446,6 @@ export default function DemoPage() {
             )}
 
             {/* Key Message */}
-            <div className="p-4 rounded-xl bg-gradient-to-br from-primary-500/10 to-violet-500/10 border border-primary-500/20">
-              <p className="text-sm text-white/70 leading-relaxed">
-                <span className="text-primary-400 font-medium">"This isn't fleet tracking.</span>{' '}
-                This is an AI operations partner that thinks ahead, optimizes continuously, and makes your operations predictable, efficient, and safe."
-              </p>
-            </div>
           </div>
         </div>
       </main>

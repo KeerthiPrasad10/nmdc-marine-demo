@@ -247,9 +247,6 @@ export default function Dashboard() {
         alertCount={alertCounts.unacknowledged}
         isConnected={isConnected}
         onRefresh={fetchFleet}
-        onlineCount={metrics.onlineVessels}
-        totalCount={metrics.totalVessels}
-        hideSecondaryNav
       />
 
       {/* Main Content Area */}

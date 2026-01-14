@@ -48,6 +48,7 @@ import {
   Route,
 } from 'lucide-react';
 import { RoutePlanningPanel } from '@/app/components/routes';
+import { PredictiveAIPanel } from '@/app/components/PredictiveAI';
 import dynamic from 'next/dynamic';
 
 // Dynamically import DigitalTwin to avoid SSR issues with Three.js
@@ -96,6 +97,55 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
     vessel_subtype: string;
     highlights?: string[];
   }>>([]);
+  const [vesselSpecs, setVesselSpecs] = useState<{
+    specifications: {
+      length?: number;
+      width?: number;
+      draught?: number;
+      maxDraught?: number;
+      grossTonnage?: number;
+      deadweight?: number;
+      yearBuilt?: number | string;
+      homeport?: string;
+      flag?: string;
+      callSign?: string;
+      shipType?: string;
+      shipSubType?: string;
+      enginePower?: string;
+      engineType?: string;
+      averageSpeed?: number;
+      maxSpeed?: number;
+    };
+    sensors?: {
+      mainEngine: {
+        rpm: number;
+        temperature: number;
+        oilPressure: number;
+        fuelRate: number;
+        runningHours: number;
+        status: 'normal' | 'warning' | 'critical';
+      };
+      generator: {
+        load: number;
+        voltage: number;
+        frequency: number;
+        fuelLevel: number;
+        status: 'normal' | 'warning' | 'critical';
+      };
+      navigation: {
+        gpsAccuracy: number;
+        compassHeading: number;
+        windSpeed: number;
+        windDirection: number;
+      };
+      safety: {
+        fireAlarms: number;
+        bilgeLevel: number;
+        lifeboatStatus: 'ready' | 'maintenance';
+        emergencyBeacon: 'armed' | 'inactive';
+      };
+    };
+  } | null>(null);
 
   const fetchVesselData = useCallback(async () => {
     if (!vesselId) return;
@@ -168,6 +218,17 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
           // Generate alerts from fleet data (just for this vessel)
           const vesselAlerts = generateAlertsFromFleet([nmdcVessel]);
           setAlerts(vesselAlerts);
+          
+          // Fetch enriched vessel specs (includes sensor data)
+          try {
+            const specsResponse = await fetch(`/api/vessel-specs?mmsi=${nmdcVessel.mmsi}`);
+            const specsData = await specsResponse.json();
+            if (specsData.success && specsData.vessel) {
+              setVesselSpecs(specsData.vessel);
+            }
+          } catch (specsError) {
+            console.log('[VesselDetail] Could not fetch vessel specs:', specsError);
+          }
           
           // Generate equipment from profile if available
           if (vesselProfile?.systems) {
@@ -522,10 +583,244 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
                       </div>
                     </div>
                   </div>
+                ) : vesselSpecs?.specifications ? (
+                  // Use Datalastic API specs if no profile available
+                  <div className="grid grid-cols-3 gap-6">
+                    <div>
+                      <h3 className="text-sm font-medium text-white/50 mb-3">Dimensions</h3>
+                      <div className="space-y-2">
+                        {vesselSpecs.specifications.length && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-white/40">Length Overall</span>
+                            <span className="text-white">{vesselSpecs.specifications.length} m</span>
+                          </div>
+                        )}
+                        {vesselSpecs.specifications.width && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-white/40">Breadth</span>
+                            <span className="text-white">{vesselSpecs.specifications.width} m</span>
+                          </div>
+                        )}
+                        {vesselSpecs.specifications.maxDraught && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-white/40">Depth</span>
+                            <span className="text-white">{vesselSpecs.specifications.maxDraught} m</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-medium text-white/50 mb-3">Performance</h3>
+                      <div className="space-y-2">
+                        {vesselSpecs.specifications.enginePower && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-white/40">Engine Power</span>
+                            <span className="text-white">{vesselSpecs.specifications.enginePower}</span>
+                          </div>
+                        )}
+                        {vesselSpecs.specifications.maxSpeed && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-white/40">Max Speed</span>
+                            <span className="text-white">{vesselSpecs.specifications.maxSpeed} knots</span>
+                          </div>
+                        )}
+                        {vesselSpecs.specifications.averageSpeed && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-white/40">Avg Speed</span>
+                            <span className="text-white">{vesselSpecs.specifications.averageSpeed} knots</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-medium text-white/50 mb-3">Classification</h3>
+                      <div className="space-y-2">
+                        {vesselSpecs.specifications.yearBuilt && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-white/40">Year Built</span>
+                            <span className="text-white">{vesselSpecs.specifications.yearBuilt}</span>
+                          </div>
+                        )}
+                        {vesselSpecs.specifications.flag && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-white/40">Flag</span>
+                            <span className="text-white">{vesselSpecs.specifications.flag}</span>
+                          </div>
+                        )}
+                        {vesselSpecs.specifications.callSign && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-white/40">Call Sign</span>
+                            <span className="text-white">{vesselSpecs.specifications.callSign}</span>
+                          </div>
+                        )}
+                        {vesselSpecs.specifications.shipSubType && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-white/40">Type</span>
+                            <span className="text-white text-right text-xs">{vesselSpecs.specifications.shipSubType}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 ) : (
-                  <p className="text-white/40 text-sm">No detailed profile available for this vessel.</p>
+                  <p className="text-white/40 text-sm">Loading vessel specifications...</p>
                 )}
               </div>
+
+              {/* Live Sensor Data */}
+              {vesselSpecs?.sensors && (
+                <div className="rounded-xl bg-white/[0.02] border border-white/8 p-6">
+                  <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                    <Gauge className="w-5 h-5 text-cyan-400" />
+                    Live Sensor Data
+                    <span className="ml-auto text-xs text-white/40 flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      Simulated
+                    </span>
+                  </h2>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    {/* Main Engine */}
+                    <div className="bg-black/30 rounded-xl p-4 border border-white/8">
+                      <h3 className="text-sm font-medium text-white/60 mb-3 flex items-center gap-2">
+                        <Settings className="w-4 h-4" />
+                        Main Engine
+                      </h3>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-white/40">RPM</span>
+                          <span className="text-white font-mono">{vesselSpecs.sensors.mainEngine.rpm}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-white/40">Temperature</span>
+                          <span className={`font-mono ${vesselSpecs.sensors.mainEngine.temperature > 90 ? 'text-amber-400' : 'text-white'}`}>
+                            {vesselSpecs.sensors.mainEngine.temperature}°C
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-white/40">Oil Pressure</span>
+                          <span className="text-white font-mono">{vesselSpecs.sensors.mainEngine.oilPressure} bar</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-white/40">Fuel Rate</span>
+                          <span className="text-white font-mono">{vesselSpecs.sensors.mainEngine.fuelRate} L/hr</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-white/40">Running Hours</span>
+                          <span className="text-white font-mono">{vesselSpecs.sensors.mainEngine.runningHours.toLocaleString()}h</span>
+                        </div>
+                        <div className="mt-2 pt-2 border-t border-white/10 flex items-center justify-between">
+                          <span className="text-xs text-white/40">Status</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${
+                            vesselSpecs.sensors.mainEngine.status === 'normal' ? 'bg-emerald-500/20 text-emerald-400' :
+                            vesselSpecs.sensors.mainEngine.status === 'warning' ? 'bg-amber-500/20 text-amber-400' :
+                            'bg-rose-500/20 text-rose-400'
+                          }`}>
+                            {vesselSpecs.sensors.mainEngine.status}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Generator */}
+                    <div className="bg-black/30 rounded-xl p-4 border border-white/8">
+                      <h3 className="text-sm font-medium text-white/60 mb-3 flex items-center gap-2">
+                        <Zap className="w-4 h-4" />
+                        Generator
+                      </h3>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-white/40">Load</span>
+                          <span className="text-white font-mono">{vesselSpecs.sensors.generator.load}%</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-white/40">Voltage</span>
+                          <span className="text-white font-mono">{vesselSpecs.sensors.generator.voltage}V</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-white/40">Frequency</span>
+                          <span className="text-white font-mono">{vesselSpecs.sensors.generator.frequency} Hz</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-white/40">Fuel Level</span>
+                          <span className={`font-mono ${vesselSpecs.sensors.generator.fuelLevel < 30 ? 'text-amber-400' : 'text-white'}`}>
+                            {vesselSpecs.sensors.generator.fuelLevel}%
+                          </span>
+                        </div>
+                        <div className="mt-2 pt-2 border-t border-white/10 flex items-center justify-between">
+                          <span className="text-xs text-white/40">Status</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${
+                            vesselSpecs.sensors.generator.status === 'normal' ? 'bg-emerald-500/20 text-emerald-400' :
+                            vesselSpecs.sensors.generator.status === 'warning' ? 'bg-amber-500/20 text-amber-400' :
+                            'bg-rose-500/20 text-rose-400'
+                          }`}>
+                            {vesselSpecs.sensors.generator.status}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Navigation */}
+                    <div className="bg-black/30 rounded-xl p-4 border border-white/8">
+                      <h3 className="text-sm font-medium text-white/60 mb-3 flex items-center gap-2">
+                        <Navigation className="w-4 h-4" />
+                        Navigation
+                      </h3>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-white/40">GPS Accuracy</span>
+                          <span className="text-white font-mono">±{vesselSpecs.sensors.navigation.gpsAccuracy}m</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-white/40">Compass</span>
+                          <span className="text-white font-mono">{vesselSpecs.sensors.navigation.compassHeading}°</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-white/40">Wind Speed</span>
+                          <span className="text-white font-mono">{vesselSpecs.sensors.navigation.windSpeed} kt</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-white/40">Wind Dir</span>
+                          <span className="text-white font-mono">{vesselSpecs.sensors.navigation.windDirection}°</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Safety Systems */}
+                    <div className="bg-black/30 rounded-xl p-4 border border-white/8">
+                      <h3 className="text-sm font-medium text-white/60 mb-3 flex items-center gap-2">
+                        <Shield className="w-4 h-4" />
+                        Safety Systems
+                      </h3>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-white/40">Fire Alarms</span>
+                          <span className={`font-mono ${vesselSpecs.sensors.safety.fireAlarms > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                            {vesselSpecs.sensors.safety.fireAlarms > 0 ? vesselSpecs.sensors.safety.fireAlarms : 'Clear'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-white/40">Bilge Level</span>
+                          <span className={`font-mono ${vesselSpecs.sensors.safety.bilgeLevel > 15 ? 'text-amber-400' : 'text-white'}`}>
+                            {vesselSpecs.sensors.safety.bilgeLevel} cm
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-white/40">Lifeboats</span>
+                          <span className={`font-mono ${vesselSpecs.sensors.safety.lifeboatStatus === 'ready' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                            {vesselSpecs.sensors.safety.lifeboatStatus}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-white/40">EPIRB</span>
+                          <span className={`font-mono ${vesselSpecs.sensors.safety.emergencyBeacon === 'armed' ? 'text-emerald-400' : 'text-white/40'}`}>
+                            {vesselSpecs.sensors.safety.emergencyBeacon}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Capabilities */}
               {profile?.capabilities && (
@@ -637,6 +932,27 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
 
             {/* Right Column - Quick Actions & Alerts */}
             <div className="space-y-6">
+              {/* Predictive AI Panel */}
+              <PredictiveAIPanel
+                equipment={equipment.map(eq => ({
+                  id: eq.id,
+                  name: eq.name,
+                  health_score: eq.health_score,
+                  temperature: eq.temperature,
+                  vibration: eq.vibration,
+                  hours_operated: eq.hours_operated,
+                  type: eq.type,
+                }))}
+                alerts={alerts.map(a => ({
+                  id: a.id,
+                  title: a.title,
+                  severity: a.severity,
+                  description: a.description,
+                }))}
+                vesselName={vessel.name}
+                assetType="vessel"
+              />
+
               {/* Route Planning Panel */}
               {showRoutePlanning && (
                 <RoutePlanningPanel
