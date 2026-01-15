@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NMDC Marine Fleet Operations",
-  description: "Real-time fleet monitoring and predictive maintenance dashboard for NMDC marine operations",
+  title: "Fleet Ops",
+  description: "Real-time fleet monitoring and predictive maintenance dashboard for marine operations",
 };
 
 export default function RootLayout({

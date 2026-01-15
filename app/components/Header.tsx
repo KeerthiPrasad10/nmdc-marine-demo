@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import Image from 'next/image';
 import {
   Ship,
   Bell,
@@ -53,12 +54,15 @@ export function Header({
       <div className="h-full px-4 flex items-center justify-between">
         {/* Logo - always links to home */}
         <Link href="/" className="flex items-center gap-2 group">
-          <div className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
-            isHome ? 'bg-white/15' : 'bg-white/10 group-hover:bg-white/15'
-          }`}>
-            <Ship className="h-4 w-4 text-white" />
-          </div>
-          <span className="text-sm font-bold text-white hidden sm:block">NMDC</span>
+          <Image 
+            src="/IFS NB.png" 
+            alt="IFS" 
+            width={80} 
+            height={24} 
+            className="h-5 w-auto"
+          />
+          <span className="text-sm text-white/40 hidden sm:block">//</span>
+          <span className="text-sm font-bold text-white hidden sm:block tracking-wide">Fleet Ops</span>
         </Link>
         
         {/* Navigation Links */}
@@ -125,8 +129,15 @@ export function Header({
                 isHome ? 'bg-white/15 text-white' : 'text-white/60'
               }`}
             >
-              <Ship className="w-4 h-4" />
-              Home
+              <Image 
+                src="/IFS NB.png" 
+                alt="IFS" 
+                width={60} 
+                height={20} 
+                className="h-4 w-auto"
+              />
+              <span className="text-white/40">//</span>
+              <span>Fleet Ops</span>
             </Link>
             {navItems.map(({ href, label, icon: Icon, highlight }) => (
               <Link
