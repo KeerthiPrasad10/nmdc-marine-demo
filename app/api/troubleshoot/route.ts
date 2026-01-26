@@ -7,8 +7,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ResolveClient, QueryResponse, DocumentList, KnowledgeBase, Session, SessionWithMessages } from '@/lib/sdk/resolve-sdk';
 
-// Extend function timeout for Pro plans (default is 10s for Hobby, 60s for Pro)
-export const maxDuration = 60;
+// Extend function timeout for Pro plans (max 300s for Pro, 900s for Enterprise)
+export const maxDuration = 300;
 
 // Initialize client with API key from environment
 const getClient = () => {
