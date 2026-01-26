@@ -663,17 +663,30 @@ export function TroubleshootPanel({
       if (!response!.ok) {
         // Handle both JSON and text error responses
         const contentType = response!.headers.get('content-type');
+        let errorMessage = 'Failed to get response';
+        
         if (contentType && contentType.includes('application/json')) {
           const errorData = await response!.json();
-          throw new Error(errorData.error || 'Failed to get response');
+          errorMessage = errorData.error || 'Failed to get response';
         } else {
           const errorText = await response!.text();
           // Check for common error patterns
           if (errorText.includes('Request Entity Too Large') || response!.status === 413) {
-            throw new Error('Image is too large. Please use an image smaller than 10MB.');
+            errorMessage = 'Image is too large. Please use an image smaller than 10MB.';
+          } else {
+            errorMessage = errorText || `Server error: ${response!.status}`;
           }
-          throw new Error(errorText || `Server error: ${response!.status}`);
         }
+        
+        // Handle specific backend errors with user-friendly messages
+        if (errorMessage.includes('Invalid regular expression') || errorMessage.includes('Unterminated group')) {
+          throw new Error('The AI encountered a processing error. Please try rephrasing your question or starting a new conversation.');
+        }
+        if (errorMessage.includes('timeout') || errorMessage.includes('timed out')) {
+          throw new Error('The request timed out. The AI may be processing a complex query. Please try again.');
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const data: QueryResponse = await response!.json();

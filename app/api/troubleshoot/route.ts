@@ -139,11 +139,27 @@ export async function POST(request: NextRequest) {
 
       case 'create_session': {
         const { title, knowledgeBaseId } = params;
-        const session: Session = await client.createSession({
-          title,
+        
+        console.log('[Troubleshoot API] create_session:', {
+          title: title?.substring(0, 50),
           knowledgeBaseId,
         });
-        return NextResponse.json({ success: true, session });
+        
+        try {
+          const session: Session = await client.createSession({
+            title,
+            knowledgeBaseId,
+          });
+          console.log('[Troubleshoot API] Session created successfully:', session.id);
+          return NextResponse.json({ success: true, session });
+        } catch (sessionError) {
+          console.error('[Troubleshoot API] Session creation failed:', sessionError);
+          return NextResponse.json({ 
+            success: false, 
+            error: sessionError instanceof Error ? sessionError.message : 'Session creation failed',
+            sessionSupported: false 
+          }, { status: 200 }); // Return 200 so frontend can handle gracefully
+        }
       }
 
       case 'send_message': {
