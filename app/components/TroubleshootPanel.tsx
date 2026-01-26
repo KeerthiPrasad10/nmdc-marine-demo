@@ -615,11 +615,27 @@ The user has already answered multiple diagnostic questions - commit to a repair
         }
       }
 
-      // Try session-based messaging first, fall back to stateless if it fails
+      // For image analysis, skip sessions and go directly to analyze_image (faster)
+      // Sessions add overhead that causes timeouts with images
       let response: Response | undefined;
       let usedSession = false;
       
-      if (currentSessionId && sessionsSupported) {
+      if (imageUrl) {
+        // Direct image analysis - skip session API for better performance
+        console.log('[TroubleshootPanel] Using direct analyze_image for image query');
+        response = await fetch('/api/troubleshoot', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'analyze_image',
+            message: contextualContent,
+            imageUrl,
+            knowledgeBaseId: selectedKnowledgeBase,
+            responseFormat: 'ui',
+          }),
+        });
+      } else if (currentSessionId && sessionsSupported) {
+        // Text-only queries can use sessions for conversation context
         try {
           response = await fetch('/api/troubleshoot', {
             method: 'POST',
@@ -628,7 +644,6 @@ The user has already answered multiple diagnostic questions - commit to a repair
               action: 'send_message',
               sessionId: currentSessionId,
               message: contextualContent,
-              imageUrl,
               responseFormat: 'ui',
             }),
           });
@@ -650,15 +665,14 @@ The user has already answered multiple diagnostic questions - commit to a repair
         }
       }
       
-      // Fallback to stateless query if no session or session failed
-      if (!usedSession) {
+      // Fallback to stateless query if no session or session failed (text only)
+      if (!usedSession && !imageUrl) {
         response = await fetch('/api/troubleshoot', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            action: imageUrl ? 'analyze_image' : 'query',
+            action: 'query',
             message: contextualContent,
-            imageUrl,
             knowledgeBaseId: selectedKnowledgeBase,
             responseFormat: 'ui',
           }),
