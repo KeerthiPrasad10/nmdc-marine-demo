@@ -95,6 +95,7 @@ export interface DynamicRendererHandlers {
   onActionClick?: (actionId: string, params?: Record<string, unknown>) => void;
   onExport?: (type: UIType, data: unknown) => void;
   onSuggestionClick?: (suggestion: string) => void;
+  onDiagnosticSubmit?: (messageForAI: string, displayMessage: string) => void;
 }
 
 // ============================================
@@ -179,6 +180,7 @@ export function DynamicRenderer({
         );
 
       case 'work_order':
+        console.log('📋 Rendering work_order with data:', data);
         return (
           <WorkOrderForm
             data={data as WorkOrderData}
@@ -213,13 +215,12 @@ export function DynamicRenderer({
         );
 
       case 'image_card':
-        // Temporarily disabled - document images causing timeouts
-        // return (
-        //   <ImageCard
-        //     data={data as ImageCardData}
-        //   />
-        // );
-        return null;
+        console.log('🖼️ Rendering image_card:', data);
+        return (
+          <ImageCard
+            data={data as ImageCardData}
+          />
+        );
 
       // New generic UI components for research, generate, calculate modes
       case 'research_result':
@@ -286,9 +287,13 @@ export function DynamicRenderer({
         return (
           <DiagnosticQuestions
             data={data as import("./ui/DiagnosticQuestions").DiagnosticQuestionsData}
-            onSubmit={(formattedAnswers) => {
-              // Send the formatted diagnostic answers as a follow-up message
-              handlers.onSuggestionClick?.(formattedAnswers);
+            onSubmit={(messageForAI, displayMessage) => {
+              // Use dedicated handler if available, otherwise fall back to suggestion click
+              if (handlers.onDiagnosticSubmit) {
+                handlers.onDiagnosticSubmit(messageForAI, displayMessage);
+              } else {
+                handlers.onSuggestionClick?.(messageForAI);
+              }
             }}
           />
         );
@@ -296,10 +301,34 @@ export function DynamicRenderer({
       case 'multi_response':
         // Render multiple UI responses in sequence (e.g., RCA first, then options)
         const multiResponse = response as MultiResponse;
-        console.log('🎯 Multi-response received:', multiResponse);
         
-        // Safety check for responses array
-        const responses = multiResponse.responses || (response as any).data?.responses || [];
+        // Try multiple paths to extract responses array
+        const responseAny = response as unknown as Record<string, unknown>;
+        const dataObj = responseAny.data as Record<string, unknown> | undefined;
+        
+        let responses: UIResponse[] = [];
+        
+        // Path 1: top-level responses array
+        if (multiResponse.responses && Array.isArray(multiResponse.responses)) {
+          responses = multiResponse.responses;
+          console.log('🎯 Multi-response: found top-level responses:', responses.length);
+        }
+        // Path 2: responses inside data object
+        else if (dataObj?.responses && Array.isArray(dataObj.responses)) {
+          responses = dataObj.responses as UIResponse[];
+          console.log('🎯 Multi-response: found data.responses:', responses.length);
+        }
+        // Path 3: nested data.data.responses (double-wrapped)
+        else if (dataObj?.data && typeof dataObj.data === 'object') {
+          const innerData = dataObj.data as Record<string, unknown>;
+          if (innerData.responses && Array.isArray(innerData.responses)) {
+            responses = innerData.responses as UIResponse[];
+            console.log('🎯 Multi-response: found data.data.responses:', responses.length);
+          }
+        }
+        
+        console.log('🎯 Multi-response final responses:', responses.length, responses.map(r => (r as unknown as Record<string, unknown>).type));
+        
         if (!responses || responses.length === 0) {
           console.warn('multi_response has no responses array:', response);
           return (

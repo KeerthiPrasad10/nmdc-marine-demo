@@ -5,17 +5,6 @@ import { cn } from "@/lib/utils";
 import type { InfoMessageData, ErrorMessageData } from "../types";
 import ReactMarkdown from 'react-markdown';
 
-// Clean up content that contains raw context XML/JSON
-function cleanContextFromText(text: string): string {
-  if (!text) return '';
-  
-  return text
-    .replace(/<vessel_context>[\s\S]*?<\/vessel_context>/gi, '')
-    .replace(/<system_instructions>[\s\S]*?<\/system_instructions>/gi, '')
-    .replace(/<app_context>[\s\S]*?<\/app_context>/gi, '')
-    .trim();
-}
-
 // Helper to parse RCA sections from the message
 function parseRCASections(message: string): { type: 'kb' | 'rca' | 'recommendation' | 'text'; content: string }[] {
   const sections: { type: 'kb' | 'rca' | 'recommendation' | 'text'; content: string }[] = [];
@@ -48,10 +37,8 @@ interface InfoMessageProps {
 }
 
 export function InfoMessage({ data, variant = 'info', onSuggestionClick }: InfoMessageProps) {
-  // Clean context from message before parsing
-  const cleanedMessage = cleanContextFromText(data.message);
   // Check if this is an RCA-style message
-  const sections = parseRCASections(cleanedMessage);
+  const sections = parseRCASections(data.message);
   const isRCAMessage = sections.length > 1 || sections[0]?.type !== 'text';
 
   if (isRCAMessage) {
@@ -191,21 +178,26 @@ export function InfoMessage({ data, variant = 'info', onSuggestionClick }: InfoM
             <p className="mt-3 text-xs text-[var(--nxb-text-muted)]">{data.details}</p>
           )}
 
-          {/* Suggestions */}
+          {/* Suggestions - Styled as actionable cards */}
           {data.suggestions && Array.isArray(data.suggestions) && data.suggestions.length > 0 && (
-            <div className="mt-3 pt-3 border-t border-white/[0.08]">
-              <div className="flex items-center gap-1.5 text-[10px] text-[var(--nxb-text-muted)] mb-2 font-['PP_Supply_Mono',monospace] tracking-wide">
-                <Lightbulb className="w-3 h-3" />
-                <span>SUGGESTIONS</span>
+            <div className="mt-4 pt-4 border-t border-white/[0.08]">
+              <div className="flex items-center gap-1.5 text-[10px] text-[var(--nxb-text-muted)] mb-3 font-['PP_Supply_Mono',monospace] tracking-wide uppercase">
+                <Lightbulb className="w-3 h-3 text-amber-400" />
+                <span>Recommended Next Steps</span>
               </div>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="space-y-2">
                 {data.suggestions.map((suggestion, index) => (
                   <button
                     key={index}
                     onClick={() => onSuggestionClick?.(suggestion)}
-                    className="text-xs px-2.5 py-1 rounded-md bg-[var(--nxb-surface-10)] text-[var(--nxb-text-secondary)] hover:bg-[var(--nxb-brand-purple-10)] hover:text-[var(--nxb-brand-purple)] transition-colors cursor-pointer"
+                    className="w-full text-left px-3 py-2.5 rounded-lg bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] hover:border-amber-500/30 transition-all group flex items-start gap-3"
                   >
-                    {suggestion}
+                    <span className="shrink-0 w-5 h-5 rounded-full bg-amber-500/10 text-amber-400 flex items-center justify-center text-xs font-medium mt-0.5">
+                      {index + 1}
+                    </span>
+                    <span className="text-sm text-white/70 group-hover:text-white/90 leading-relaxed">
+                      {suggestion}
+                    </span>
                   </button>
                 ))}
               </div>

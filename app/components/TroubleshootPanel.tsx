@@ -482,8 +482,9 @@ export function TroubleshootPanel({
     return context;
   }, [selectedVessel, alerts, weather, equipmentType, fleetMetrics]);
 
-  const sendMessage = async (content: string) => {
-    if ((!content.trim() && !selectedImageFile) || isLoading) return;
+  const sendMessage = async (content: string, imageFile?: File | null, skipUserMessage?: boolean) => {
+    const capturedImageFile = imageFile !== undefined ? imageFile : selectedImageFile;
+    if ((!content.trim() && !capturedImageFile) || isLoading) return;
 
     setHasInteracted(true);
     
@@ -493,12 +494,12 @@ export function TroubleshootPanel({
     
     // Debug: Log context being sent
     console.log('[TroubleshootPanel] Context - vesselName:', appContext.vessel?.name || 'NO VESSEL');
-    console.log('[TroubleshootPanel] Context - hasImage:', !!selectedImageFile);
+    console.log('[TroubleshootPanel] Context - hasImage:', !!capturedImageFile);
     console.log('[TroubleshootPanel] Context - knowledgeBase:', selectedKnowledgeBase);
     console.log('[TroubleshootPanel] Context - conversationLength:', messages.length);
     
     // Check if image is being sent
-    const hasImage = !!selectedImageFile;
+    const hasImage = !!capturedImageFile;
     
     // Build the user's actual message
     const userQuery = content.trim() || (hasImage ? 'Please analyze this image and help troubleshoot' : '');
@@ -524,8 +525,7 @@ export function TroubleshootPanel({
       apiContext.instruction = 'User has answered multiple questions. Generate actionable output (work_order or loto_procedure).';
     }
 
-    // Capture file before clearing
-    const capturedImageFile = selectedImageFile;
+    // Capture blob preview before clearing (image file already captured at function start)
     const capturedBlobPreview = imagePreview;
     
     // Clear input immediately for better UX
@@ -560,14 +560,17 @@ export function TroubleshootPanel({
       }
 
       // Create user message with the permanent uploaded URL (not the blob)
-      const userMessage: Message = {
-        id: Date.now().toString(),
-        role: 'user',
-        content: content.trim() || 'Please analyze this image',
-        imagePreview: imageUrl || undefined,  // Use uploaded URL, not blob
-      };
+      // Skip if message was already added (e.g., from diagnostic form submission)
+      if (!skipUserMessage) {
+        const userMessage: Message = {
+          id: Date.now().toString(),
+          role: 'user',
+          content: content.trim() || 'Please analyze this image',
+          imagePreview: imageUrl || undefined,  // Use uploaded URL, not blob
+        };
 
-      setMessages((prev) => [...prev, userMessage]);
+        setMessages((prev) => [...prev, userMessage]);
+      }
 
       // Create session if this is the first message (for conversation history)
       // Only try if sessions are supported (not previously failed)
@@ -1085,6 +1088,20 @@ export function TroubleshootPanel({
                           onSuggestionClick: (suggestion) => {
                             console.log('[DynamicRenderer] Suggestion clicked:', suggestion);
                             sendMessage(suggestion);
+                          },
+                          onDiagnosticSubmit: (messageForAI, displayMessage) => {
+                            console.log('[DynamicRenderer] Diagnostic submitted');
+                            console.log('  Display (user sees):', displayMessage.substring(0, 50) + '...');
+                            console.log('  AI message length:', messageForAI.length);
+                            // Add user message with clean display text, send AI message to API
+                            const userMessage: Message = {
+                              id: Date.now().toString(),
+                              role: 'user',
+                              content: displayMessage,
+                            };
+                            setMessages((prev) => [...prev, userMessage]);
+                            // Send the AI-specific message (with instructions) but user doesn't see it
+                            sendMessage(messageForAI, undefined, true);
                           },
                           onExport: (type, data) => {
                             console.log('[DynamicRenderer] Export:', type, data);

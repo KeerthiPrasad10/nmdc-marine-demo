@@ -23,7 +23,7 @@ export interface DiagnosticQuestionsData {
 
 interface DiagnosticQuestionsProps {
   data: DiagnosticQuestionsData;
-  onSubmit?: (formattedAnswers: string) => void;
+  onSubmit?: (messageForAI: string, displayMessage: string) => void;
 }
 
 export function DiagnosticQuestions({ data, onSubmit }: DiagnosticQuestionsProps) {
@@ -45,8 +45,10 @@ export function DiagnosticQuestions({ data, onSubmit }: DiagnosticQuestionsProps
 
   const handleSubmit = () => {
     if (onSubmit) {
-      // Format answers with human-readable question summaries and option labels
-      const answerSummaries: string[] = [];
+      // Format answers for display (clean, readable)
+      const displayLines: string[] = [];
+      // Format answers for AI (with full context)
+      const aiLines: string[] = [];
       
       data.questions.forEach(question => {
         const selectedOptionIds = selectedAnswers[question.id] || [];
@@ -55,20 +57,23 @@ export function DiagnosticQuestions({ data, onSubmit }: DiagnosticQuestionsProps
             .map(optId => question.options.find(o => o.id === optId)?.label)
             .filter(Boolean);
           
-          // Create a short question summary (first few words)
-          const questionSummary = question.question.split('?')[0].split('-')[0].trim();
-          const shortQuestion = questionSummary.length > 40 
-            ? questionSummary.substring(0, 40) + '...'
-            : questionSummary;
+          // For display: clean bullet points
+          displayLines.push(`• ${selectedLabels.join(', ')}`);
           
-          answerSummaries.push(`**${shortQuestion}:** ${selectedLabels.join(', ')}`);
+          // For AI: include question context
+          const questionSummary = question.question.split('?')[0].split('-')[0].trim();
+          aiLines.push(`${questionSummary}: ${selectedLabels.join(', ')}`);
         }
       });
       
-      const formatted = `DIAGNOSTIC INSPECTION COMPLETE - GENERATE WORK ORDER
+      // What the user sees - simple bullet list
+      const displayMessage = `Diagnostic observations:\n${displayLines.join('\n')}`;
+      
+      // What gets sent to the AI (includes full instructions)
+      const messageForAI = `DIAGNOSTIC INSPECTION COMPLETE - GENERATE WORK ORDER
 
 Observed Symptoms:
-${answerSummaries.join('\n')}
+${aiLines.join('\n')}
 
 ACTION REQUIRED: Generate a corrective maintenance WORK ORDER (type: work_order) including:
 - Equipment tag and description
@@ -80,7 +85,8 @@ ACTION REQUIRED: Generate a corrective maintenance WORK ORDER (type: work_order)
 - Estimated repair time
 
 Output format: work_order`;
-      onSubmit(formatted);
+      
+      onSubmit(messageForAI, displayMessage);
     }
   };
 
