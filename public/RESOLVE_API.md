@@ -651,65 +651,276 @@ curl -X POST $BASE_URL -H 'Content-Type: application/json' -d '{
 
 ---
 
-## Session-Based Conversations
+## Multi-Turn Conversations (Sessions)
 
-For multi-turn conversations with context retention.
+For multi-turn conversations with context retention. The AI remembers previous messages in the session, enabling follow-up questions like "What about the other symptoms?" or "Show me the LOTO procedure for that".
 
-### Start Session
+### Stateless vs Session-Based
+
+| Approach | Use Case | Context Retained |
+|----------|----------|------------------|
+| `query` action | Single questions, one-off queries | ❌ No |
+| Session actions | Diagnostic conversations, troubleshooting flows | ✅ Yes |
+
+**Important:** The `query` action is **stateless** - each call is independent. For follow-up questions, you MUST use sessions.
+
+---
+
+### Step 1: Start a Session
+
+Create a conversation session. The session stores all messages and maintains context.
+
+**Using API Key (Recommended for External Apps):**
 
 ```bash
-curl -X POST $BASE_URL -H 'Content-Type: application/json' \
-  -H 'Authorization: Bearer YOUR_SUPABASE_JWT' \
-  -d '{
-    "action": "start_session",
-    "knowledge_base_id": "kb-uuid",
-    "title": "Pump Troubleshooting"
-  }'
+curl -X POST $BASE_URL -H 'Content-Type: application/json' -d '{
+  "action": "start_session",
+  "api_key": "sk_live_...",
+  "knowledge_base_id": "kb-uuid",
+  "title": "Pump P-101 Troubleshooting"
+}'
 ```
 
 **Response:**
 ```json
 {
+  "success": true,
   "session": {
-    "id": "session-uuid",
-    "title": "Pump Troubleshooting",
-    "knowledge_base": {"project_ids": [...], "manual_ids": [...]}
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "title": "Pump P-101 Troubleshooting",
+    "knowledge_base_id": "kb-uuid",
+    "created_at": "2026-01-26T10:30:00Z"
   }
 }
 ```
 
-### Send Message (Session)
+**Save the `session.id`** - you'll need it for all follow-up messages.
 
+---
+
+### Step 2: Send Messages (Continue Conversation)
+
+Send messages to the session. Each message has full context of previous messages.
+
+**First Message:**
 ```bash
-curl -X POST $BASE_URL -H 'Content-Type: application/json' \
-  -H 'Authorization: Bearer YOUR_SUPABASE_JWT' \
-  -d '{
-    "action": "send_message",
-    "session_id": "session-uuid",
-    "message": "The pump is making a grinding noise",
-    "image_url": "https://example.com/pump-photo.jpg"
+curl -X POST $BASE_URL -H 'Content-Type: application/json' -d '{
+  "action": "send_message",
+  "api_key": "sk_live_...",
+  "session_id": "550e8400-e29b-41d4-a716-446655440000",
+  "message": "The pump is making a grinding noise and vibrating"
 }'
 ```
 
-### Get Session History
-
-```bash
-curl -X POST $BASE_URL -H 'Content-Type: application/json' \
-  -H 'Authorization: Bearer YOUR_SUPABASE_JWT' \
-  -d '{
-    "action": "get_session",
-    "session_id": "session-uuid"
-  }'
+**Response:** (AI asks clarifying question)
+```json
+{
+  "success": true,
+  "response": {
+    "type": "selection",
+    "data": {
+      "question": "Which best describes the noise pattern?",
+      "options": [
+        { "id": "1", "title": "Continuous grinding", "subtitle": "Bearing wear" },
+        { "id": "2", "title": "Intermittent clicking", "subtitle": "Impeller contact" },
+        { "id": "3", "title": "High-pitched whine", "subtitle": "Cavitation" }
+      ]
+    }
+  }
+}
 ```
 
-### List Sessions
+**Follow-up Message (Context Retained!):**
+```bash
+curl -X POST $BASE_URL -H 'Content-Type: application/json' -d '{
+  "action": "send_message",
+  "api_key": "sk_live_...",
+  "session_id": "550e8400-e29b-41d4-a716-446655440000",
+  "message": "Continuous grinding"
+}'
+```
+
+**Response:** (AI uses previous context)
+```json
+{
+  "success": true,
+  "response": {
+    "type": "checklist",
+    "data": {
+      "title": "Bearing Inspection Checklist for P-101",
+      "items": [
+        { "id": "1", "text": "Check bearing temperature", "priority": "high" },
+        { "id": "2", "text": "Measure vibration amplitude", "priority": "high" },
+        { "id": "3", "text": "Inspect lubrication level", "priority": "medium" }
+      ]
+    }
+  }
+}
+```
+
+**Another Follow-up:**
+```bash
+curl -X POST $BASE_URL -H 'Content-Type: application/json' -d '{
+  "action": "send_message",
+  "api_key": "sk_live_...",
+  "session_id": "550e8400-e29b-41d4-a716-446655440000",
+  "message": "Show me the LOTO procedure for replacing the bearings"
+}'
+```
+
+---
+
+### Get Session History
+
+Retrieve all messages in a conversation:
 
 ```bash
-curl -X POST $BASE_URL -H 'Content-Type: application/json' \
-  -H 'Authorization: Bearer YOUR_SUPABASE_JWT' \
-  -d '{
-    "action": "list_sessions"
-  }'
+curl -X POST $BASE_URL -H 'Content-Type: application/json' -d '{
+  "action": "get_session",
+  "api_key": "sk_live_...",
+  "session_id": "550e8400-e29b-41d4-a716-446655440000"
+}'
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "session": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "title": "Pump P-101 Troubleshooting",
+    "created_at": "2026-01-26T10:30:00Z"
+  },
+  "messages": [
+    { "role": "user", "content": "The pump is making a grinding noise and vibrating", "created_at": "..." },
+    { "role": "assistant", "content": "...", "ui_type": "selection", "created_at": "..." },
+    { "role": "user", "content": "Continuous grinding", "created_at": "..." },
+    { "role": "assistant", "content": "...", "ui_type": "checklist", "created_at": "..." }
+  ]
+}
+```
+
+---
+
+### List All Sessions
+
+Get all your conversation sessions:
+
+```bash
+curl -X POST $BASE_URL -H 'Content-Type: application/json' -d '{
+  "action": "list_sessions",
+  "api_key": "sk_live_..."
+}'
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "sessions": [
+    { "id": "...", "title": "Pump P-101 Troubleshooting", "created_at": "..." },
+    { "id": "...", "title": "Valve Maintenance", "created_at": "..." }
+  ]
+}
+```
+
+---
+
+### Complete Conversation Example (Python)
+
+```python
+import requests
+
+API_URL = "https://mecgxrlfinjcwhsdjoce.supabase.co/functions/v1/troubleshoot-agent"
+API_KEY = "sk_live_..."
+
+# Step 1: Start session
+response = requests.post(API_URL, json={
+    "action": "start_session",
+    "api_key": API_KEY,
+    "knowledge_base_id": "your-kb-id",
+    "title": "Equipment Troubleshooting"
+})
+session_id = response.json()["session"]["id"]
+print(f"Session started: {session_id}")
+
+# Step 2: First message
+response = requests.post(API_URL, json={
+    "action": "send_message",
+    "api_key": API_KEY,
+    "session_id": session_id,
+    "message": "The pump is overheating and making noise"
+})
+print("AI Response:", response.json()["response"])
+
+# Step 3: Follow-up (context retained!)
+response = requests.post(API_URL, json={
+    "action": "send_message",
+    "api_key": API_KEY,
+    "session_id": session_id,
+    "message": "It's a high-pitched whine, started yesterday"
+})
+print("AI Response:", response.json()["response"])
+
+# Step 4: Another follow-up
+response = requests.post(API_URL, json={
+    "action": "send_message",
+    "api_key": API_KEY,
+    "session_id": session_id,
+    "message": "Generate the LOTO procedure"
+})
+print("AI Response:", response.json()["response"])
+```
+
+### Complete Conversation Example (JavaScript)
+
+```javascript
+const API_URL = 'https://mecgxrlfinjcwhsdjoce.supabase.co/functions/v1/troubleshoot-agent';
+const API_KEY = 'sk_live_...';
+
+async function chat(sessionId, message) {
+  const response = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      action: 'send_message',
+      api_key: API_KEY,
+      session_id: sessionId,
+      message
+    })
+  });
+  return response.json();
+}
+
+// Start a conversation
+async function startConversation() {
+  // Create session
+  const sessionRes = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      action: 'start_session',
+      api_key: API_KEY,
+      title: 'Equipment Issue'
+    })
+  });
+  const { session } = await sessionRes.json();
+  const sessionId = session.id;
+  
+  // First message
+  const r1 = await chat(sessionId, 'Pump P-101 is leaking from the seal area');
+  console.log('Response 1:', r1.response);
+  
+  // Follow-up (AI remembers context!)
+  const r2 = await chat(sessionId, 'What parts do I need?');
+  console.log('Response 2:', r2.response);
+  
+  // Another follow-up
+  const r3 = await chat(sessionId, 'Generate a work order for this');
+  console.log('Response 3:', r3.response);
+}
+
+startConversation();
 ```
 
 ---

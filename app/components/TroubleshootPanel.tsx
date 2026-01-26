@@ -602,29 +602,18 @@ export function TroubleshootPanel({
         }
       }
 
-      // For image analysis, skip sessions and go directly to analyze_image (faster)
-      // Sessions add overhead that causes timeouts with images
+      // Use sessions for ALL queries to maintain conversation context
+      // Per Resolve API docs: stateless 'query' doesn't retain context for follow-ups
       let response: Response | undefined;
       let usedSession = false;
       
-      if (imageUrl) {
-        // Direct image analysis - skip session API for better performance
-        console.log('[TroubleshootPanel] Using direct analyze_image for image query');
-        response = await fetch('/api/troubleshoot', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'analyze_image',
-            message: userQuery,
-            imageUrl,
-            knowledgeBaseId: selectedKnowledgeBase,
-            responseFormat: 'ui',
-            context: Object.keys(apiContext).length > 0 ? apiContext : undefined,
-          }),
-        });
-      } else if (currentSessionId && sessionsSupported) {
-        // Text-only queries can use sessions for conversation context
+      // Try session-based messaging first (maintains context for follow-ups)
+      if (currentSessionId && sessionsSupported) {
         try {
+          console.log('[TroubleshootPanel] Using session for query:', { 
+            sessionId: currentSessionId, 
+            hasImage: !!imageUrl 
+          });
           response = await fetch('/api/troubleshoot', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -632,6 +621,7 @@ export function TroubleshootPanel({
               action: 'send_message',
               sessionId: currentSessionId,
               message: userQuery,
+              imageUrl, // Sessions support images per API docs
               responseFormat: 'ui',
             }),
           });
@@ -653,14 +643,16 @@ export function TroubleshootPanel({
         }
       }
       
-      // Fallback to stateless query if no session or session failed (text only)
-      if (!usedSession && !imageUrl) {
+      // Fallback to stateless query if no session or session failed
+      if (!usedSession) {
+        console.log('[TroubleshootPanel] Using stateless query (no session context)');
         response = await fetch('/api/troubleshoot', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            action: 'query',
+            action: imageUrl ? 'analyze_image' : 'query',
             message: userQuery,
+            imageUrl,
             knowledgeBaseId: selectedKnowledgeBase,
             responseFormat: 'ui',
             context: Object.keys(apiContext).length > 0 ? apiContext : undefined,
