@@ -45,8 +45,8 @@ export function DiagnosticQuestions({ data, onSubmit }: DiagnosticQuestionsProps
 
   const handleSubmit = () => {
     if (onSubmit) {
-      // Format answers with question text and option labels for better AI understanding
-      const formattedLines: string[] = [];
+      // Format answers with human-readable question summaries and option labels
+      const answerSummaries: string[] = [];
       
       data.questions.forEach(question => {
         const selectedOptionIds = selectedAnswers[question.id] || [];
@@ -55,12 +55,17 @@ export function DiagnosticQuestions({ data, onSubmit }: DiagnosticQuestionsProps
             .map(optId => question.options.find(o => o.id === optId)?.label)
             .filter(Boolean);
           
-          formattedLines.push(`• ${question.question}`);
-          formattedLines.push(`  Answer: ${selectedLabels.join('; ')}`);
+          // Create a short question summary (first few words)
+          const questionSummary = question.question.split('?')[0].split('-')[0].trim();
+          const shortQuestion = questionSummary.length > 40 
+            ? questionSummary.substring(0, 40) + '...'
+            : questionSummary;
+          
+          answerSummaries.push(`**${shortQuestion}:** ${selectedLabels.join(', ')}`);
         }
       });
       
-      const formatted = `Based on my diagnostic inspection:\n\n${formattedLines.join('\n')}\n\nPlease provide a diagnosis and recommended repair procedure or work order.`;
+      const formatted = `My diagnostic findings:\n\n${answerSummaries.join('\n\n')}\n\nBased on these observations, please provide a diagnosis and recommended action (work order or repair procedure).`;
       onSubmit(formatted);
     }
   };
