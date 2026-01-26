@@ -65,7 +65,7 @@ export function DiagnosticQuestions({ data, onSubmit }: DiagnosticQuestionsProps
         }
       });
       
-      const formatted = `My diagnostic findings:\n\n${answerSummaries.join('\n\n')}\n\nBased on these observations, please provide a diagnosis and recommended action (work order or repair procedure).`;
+      const formatted = `My diagnostic findings:\n\n${answerSummaries.join('\n\n')}\n\nIMPORTANT: Based on these diagnostic observations, generate a WORK ORDER with:\n1. Root cause diagnosis\n2. Required repairs\n3. Parts needed\n4. Safety precautions\n\nDo NOT just search for documentation - provide an actionable work order.`;
       onSubmit(formatted);
     }
   };
