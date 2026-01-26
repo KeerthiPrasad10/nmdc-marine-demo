@@ -686,8 +686,11 @@ The user has already answered multiple diagnostic questions - commit to a repair
       // Debug: Log the full response structure
       const dataAny = data as unknown as Record<string, unknown>;
       console.log('[TroubleshootPanel] === RAW API RESPONSE ===');
+      console.log('[TroubleshootPanel] FULL DATA:', JSON.stringify(data, null, 2).substring(0, 2000));
       console.log('[TroubleshootPanel] type:', dataAny.type);
       console.log('[TroubleshootPanel] has data:', !!dataAny.data);
+      console.log('[TroubleshootPanel] has response:', !!dataAny.response);
+      console.log('[TroubleshootPanel] has answer:', !!dataAny.answer);
       console.log('[TroubleshootPanel] has data.responses:', !!(dataAny.data && (dataAny.data as Record<string, unknown>).responses));
       if (dataAny.data && (dataAny.data as Record<string, unknown>).responses) {
         const responses = (dataAny.data as Record<string, unknown>).responses as unknown[];
@@ -696,14 +699,20 @@ The user has already answered multiple diagnostic questions - commit to a repair
       console.log('[TroubleshootPanel] keys:', Object.keys(data));
 
       // Extract response type and data - handle multiple formats
+      // The API can return in several formats:
+      // 1. { type: 'multi_response', data: { responses: [...] } } - top-level
+      // 2. { response: { type: 'multi_response', responses: [...] } } - nested (session API)
+      // 3. { type: 'work_order', data: {...} } - direct type
+      // 4. { response: { type: 'work_order', data: {...} } } - nested direct type
       const uiData = data as unknown as { type?: string; data?: unknown; responses?: unknown[] };
-      const responseType = uiData.type || data.response?.type;
-      const responseData = uiData.data || data.response?.data;
+      const nestedResponse = data.response as { type?: string; data?: unknown; responses?: unknown[] } | undefined;
+      const responseType = uiData.type || nestedResponse?.type;
+      const responseData = uiData.data || nestedResponse?.data;
       
       // Build UIResponse for DynamicRenderer - this is the ONLY rendering path now
       let uiResponse: UIResponse | undefined;
       
-      // Handle multi_response format: { type: 'multi_response', data: { responses: [...] } }
+      // Handle multi_response format at top level: { type: 'multi_response', data: { responses: [...] } }
       if (uiData.type === 'multi_response') {
         const multiData = uiData.data as { responses?: unknown[] } | undefined;
         const responses = multiData?.responses || uiData.responses || [];
@@ -713,27 +722,38 @@ The user has already answered multiple diagnostic questions - commit to a repair
           responses: responses as UIResponse[],
           sources: data.sources as UIResponse['sources'],
         } as MultiResponse;
-        console.log('[TroubleshootPanel] ✅ multi_response with', responses.length, 'children');
+        console.log('[TroubleshootPanel] ✅ multi_response (top-level) with', responses.length, 'children');
+      }
+      // Handle multi_response nested in response: { response: { type: 'multi_response', responses: [...] } }
+      else if (nestedResponse?.type === 'multi_response') {
+        const responses = nestedResponse.responses || (nestedResponse.data as { responses?: unknown[] })?.responses || [];
+        uiResponse = {
+          type: 'multi_response',
+          data: nestedResponse.data || { responses },
+          responses: responses as UIResponse[],
+          sources: data.sources as UIResponse['sources'],
+        } as MultiResponse;
+        console.log('[TroubleshootPanel] ✅ multi_response (nested) with', responses.length, 'children');
       }
       // Handle direct type at top level: { type: 'work_order', data: {...} }
-      else if (responseType && responseData) {
+      else if (uiData.type && responseData) {
         uiResponse = {
-          type: responseType as UIResponse['type'],
+          type: uiData.type as UIResponse['type'],
           data: responseData,
           sources: data.sources as UIResponse['sources'],
-          exportable: ['work_order', 'loto_procedure', 'checklist', 'document_output', 'dynamic_form'].includes(responseType),
+          exportable: ['work_order', 'loto_procedure', 'checklist', 'document_output', 'dynamic_form'].includes(uiData.type),
         };
-        console.log('[TroubleshootPanel] ✅ Direct response:', responseType);
+        console.log('[TroubleshootPanel] ✅ Direct response:', uiData.type);
       }
       // Handle nested in response field: { response: { type: '...', data: {...} } }
-      else if (data.response?.type && data.response?.data) {
+      else if (nestedResponse?.type && nestedResponse?.data) {
         uiResponse = {
-          type: data.response.type as UIResponse['type'],
-          data: data.response.data,
+          type: nestedResponse.type as UIResponse['type'],
+          data: nestedResponse.data,
           sources: data.sources as UIResponse['sources'],
-          exportable: ['work_order', 'loto_procedure', 'checklist', 'document_output', 'dynamic_form'].includes(data.response.type),
+          exportable: ['work_order', 'loto_procedure', 'checklist', 'document_output', 'dynamic_form'].includes(nestedResponse.type),
         };
-        console.log('[TroubleshootPanel] ✅ Nested response:', data.response.type);
+        console.log('[TroubleshootPanel] ✅ Nested response:', nestedResponse.type);
       }
       // Fallback: Try to detect type from data structure
       else {

@@ -142,7 +142,19 @@ export class ResolveClient {
       body: JSON.stringify(body),
     });
 
-    const data = await response.json();
+    // Handle empty or malformed responses (can happen on timeout)
+    const text = await response.text();
+    if (!text || text.trim() === '') {
+      throw new Error(`Empty response from API (status: ${response.status}). The request may have timed out.`);
+    }
+    
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (parseError) {
+      console.error('[ResolveSDK] Failed to parse response:', text.substring(0, 500));
+      throw new Error(`Invalid JSON response from API: ${text.substring(0, 100)}...`);
+    }
     
     if (!response.ok) {
       throw new Error(data.error || `API error: ${response.status}`);
