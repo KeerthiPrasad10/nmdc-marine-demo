@@ -878,12 +878,23 @@ export function TroubleshootPanel({
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
       console.error('Troubleshoot error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Please try again.';
+      
+      // Check for timeout errors
+      const isTimeout = errorMessage.includes('FUNCTION_INVOCATION_TIMEOUT') || 
+                        errorMessage.includes('timeout') ||
+                        errorMessage.includes('504');
+      
+      const userMessage = isTimeout
+        ? 'The request timed out. This can happen with complex queries or image analysis. Please try:\n\n• Using a simpler text query first\n• Asking about a specific topic\n• Trying again in a moment'
+        : `Sorry, I encountered an error: ${errorMessage}`;
+      
       setMessages((prev) => [
         ...prev,
         {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: `Sorry, I encountered an error: ${error instanceof Error ? error.message : 'Please try again.'}`,
+          content: userMessage,
         },
       ]);
     } finally {
