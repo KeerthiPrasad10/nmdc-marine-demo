@@ -65,7 +65,21 @@ export function DiagnosticQuestions({ data, onSubmit }: DiagnosticQuestionsProps
         }
       });
       
-      const formatted = `My diagnostic findings:\n\n${answerSummaries.join('\n\n')}\n\nIMPORTANT: Based on these diagnostic observations, generate a WORK ORDER with:\n1. Root cause diagnosis\n2. Required repairs\n3. Parts needed\n4. Safety precautions\n\nDo NOT just search for documentation - provide an actionable work order.`;
+      const formatted = `DIAGNOSTIC INSPECTION COMPLETE - GENERATE WORK ORDER
+
+Observed Symptoms:
+${answerSummaries.join('\n')}
+
+ACTION REQUIRED: Generate a corrective maintenance WORK ORDER (type: work_order) including:
+- Equipment tag and description
+- Root cause analysis based on the symptoms above
+- Step-by-step repair procedure
+- Required replacement parts with part numbers if available
+- Tools needed
+- Safety requirements and LOTO if applicable
+- Estimated repair time
+
+Output format: work_order`;
       onSubmit(formatted);
     }
   };

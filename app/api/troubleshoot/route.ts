@@ -35,16 +35,15 @@ export async function POST(request: NextRequest) {
 
     switch (action) {
       case 'query': {
-        const { message, imageUrl, imageBase64, knowledgeBaseId, responseFormat, context } = params;
+        const { message, imageUrl, imageBase64, knowledgeBaseId, responseFormat } = params;
         
-        // Debug: Log the query request
-        console.log('[Troubleshoot API] Query:', {
-          messagePreview: message?.substring(0, 100),
+        // Debug: Log the full message being sent (includes context)
+        console.log('[Troubleshoot API] Query message preview:', {
+          hasAppContext: message?.includes('<app_context>'),
+          hasSystemInstructions: message?.includes('<system_instructions>'),
           messageLength: message?.length,
           knowledgeBaseId,
           hasImageUrl: !!imageUrl,
-          hasContext: !!context,
-          responseFormat: responseFormat || 'ui',
         });
         
         const response: QueryResponse = await client.query(message, {
@@ -52,7 +51,6 @@ export async function POST(request: NextRequest) {
           imageBase64,   // Fallback for backward compatibility
           knowledgeBaseId,
           responseFormat: responseFormat || 'ui',
-          context,       // App context injection (vessel_name, equipment_type, etc.)
         });
         
         // DEBUG: Log FULL response structure for A2UI detection
@@ -70,7 +68,7 @@ export async function POST(request: NextRequest) {
       }
 
       case 'analyze_image': {
-        const { imageUrl, imageBase64, message, knowledgeBaseId, responseFormat, context } = params;
+        const { imageUrl, imageBase64, message, knowledgeBaseId, responseFormat } = params;
         // Prefer imageUrl over imageBase64 for efficiency
         const image = imageUrl || imageBase64;
         
@@ -80,12 +78,12 @@ export async function POST(request: NextRequest) {
           imageUrlPreview: imageUrl?.substring(0, 50),
           hasMessage: !!message,
           messagePreview: message?.substring(0, 100),
+          hasAppContext: message?.includes('<app_context>'),
           knowledgeBaseId,
-          hasContext: !!context,
-          responseFormat: responseFormat || 'ui',
+          responseFormat,
         });
         
-        const response = await client.analyzeImage(image, message, knowledgeBaseId, responseFormat || 'ui', context);
+        const response = await client.analyzeImage(image, message, knowledgeBaseId, responseFormat || 'ui');
         
         // DEBUG: Log FULL response structure for A2UI detection  
         console.log('[Troubleshoot API analyze_image] === FULL RESPONSE ===');
@@ -139,27 +137,11 @@ export async function POST(request: NextRequest) {
 
       case 'create_session': {
         const { title, knowledgeBaseId } = params;
-        
-        console.log('[Troubleshoot API] create_session:', {
-          title: title?.substring(0, 50),
+        const session: Session = await client.createSession({
+          title,
           knowledgeBaseId,
         });
-        
-        try {
-          const session: Session = await client.createSession({
-            title,
-            knowledgeBaseId,
-          });
-          console.log('[Troubleshoot API] Session created successfully:', session.id);
-          return NextResponse.json({ success: true, session });
-        } catch (sessionError) {
-          console.error('[Troubleshoot API] Session creation failed:', sessionError);
-          return NextResponse.json({ 
-            success: false, 
-            error: sessionError instanceof Error ? sessionError.message : 'Session creation failed',
-            sessionSupported: false 
-          }, { status: 200 }); // Return 200 so frontend can handle gracefully
-        }
+        return NextResponse.json({ success: true, session });
       }
 
       case 'send_message': {
