@@ -5,6 +5,17 @@ import { cn } from "@/lib/utils";
 import type { InfoMessageData, ErrorMessageData } from "../types";
 import ReactMarkdown from 'react-markdown';
 
+// Clean up content that contains raw context XML/JSON
+function cleanContextFromText(text: string): string {
+  if (!text) return '';
+  
+  return text
+    .replace(/<vessel_context>[\s\S]*?<\/vessel_context>/gi, '')
+    .replace(/<system_instructions>[\s\S]*?<\/system_instructions>/gi, '')
+    .replace(/<app_context>[\s\S]*?<\/app_context>/gi, '')
+    .trim();
+}
+
 // Helper to parse RCA sections from the message
 function parseRCASections(message: string): { type: 'kb' | 'rca' | 'recommendation' | 'text'; content: string }[] {
   const sections: { type: 'kb' | 'rca' | 'recommendation' | 'text'; content: string }[] = [];
@@ -37,8 +48,10 @@ interface InfoMessageProps {
 }
 
 export function InfoMessage({ data, variant = 'info', onSuggestionClick }: InfoMessageProps) {
+  // Clean context from message before parsing
+  const cleanedMessage = cleanContextFromText(data.message);
   // Check if this is an RCA-style message
-  const sections = parseRCASections(data.message);
+  const sections = parseRCASections(cleanedMessage);
   const isRCAMessage = sections.length > 1 || sections[0]?.type !== 'text';
 
   if (isRCAMessage) {

@@ -13,6 +13,38 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import type { ManualCitationData, ManualReference } from "../types";
 
+// Clean up titles that contain raw context XML/JSON
+function cleanTitle(title: string): string {
+  if (!title) return 'Documentation Found';
+  
+  // Remove <vessel_context>...</vessel_context> and similar tags
+  let cleaned = title
+    .replace(/<vessel_context>[\s\S]*?<\/vessel_context>/gi, '')
+    .replace(/<system_instructions>[\s\S]*?<\/system_instructions>/gi, '')
+    .replace(/<app_context>[\s\S]*?<\/app_context>/gi, '')
+    .replace(/<[^>]+>[\s\S]*$/gi, '') // Remove unclosed tags and content after
+    .replace(/"\s*\{[\s\S]*$/gi, '') // Remove JSON objects that got cut off
+    .trim();
+  
+  // If the title starts with "Documentation Found for:" but has garbage after, clean it
+  const docFoundMatch = cleaned.match(/^Documentation Found for:\s*"?(.+?)(?:"|$)/i);
+  if (docFoundMatch && docFoundMatch[1]) {
+    const query = docFoundMatch[1].trim();
+    // If query still looks like JSON/XML, use generic title
+    if (query.startsWith('<') || query.startsWith('{') || query.length > 100) {
+      return 'Documentation Found';
+    }
+    return `Documentation Found for: "${query}"`;
+  }
+  
+  // If cleaned title is empty or still has garbage, use generic
+  if (!cleaned || cleaned.startsWith('<') || cleaned.startsWith('{') || cleaned.length < 3) {
+    return 'Documentation Found';
+  }
+  
+  return cleaned;
+}
+
 interface ManualCitationProps {
   data: ManualCitationData;
   onPageClick?: (manualId: string, pageNumber: number) => void;
@@ -31,7 +63,7 @@ export function ManualCitation({ data, onPageClick }: ManualCitationProps) {
             <BookOpen className="w-5 h-5 text-amber-400" />
           </div>
           <div>
-            <h3 className="font-semibold text-white">{data.title}</h3>
+            <h3 className="font-semibold text-white">{cleanTitle(data.title)}</h3>
             <p className="text-sm text-white/60 mt-1 leading-relaxed">
               {data.summary}
             </p>
