@@ -286,12 +286,9 @@ export function DynamicRenderer({
         return (
           <DiagnosticQuestions
             data={data as import("./ui/DiagnosticQuestions").DiagnosticQuestionsData}
-            onSubmit={(answers) => {
-              // Format answers as a follow-up message
-              const formattedAnswers = Object.entries(answers)
-                .map(([qId, optionIds]) => `${qId}: ${optionIds.join(', ')}`)
-                .join('\n');
-              handlers.onSuggestionClick?.(`My answers:\n${formattedAnswers}`);
+            onSubmit={(formattedAnswers) => {
+              // Send the formatted diagnostic answers as a follow-up message
+              handlers.onSuggestionClick?.(formattedAnswers);
             }}
           />
         );

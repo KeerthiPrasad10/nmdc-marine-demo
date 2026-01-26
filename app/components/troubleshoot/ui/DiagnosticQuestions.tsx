@@ -23,7 +23,7 @@ export interface DiagnosticQuestionsData {
 
 interface DiagnosticQuestionsProps {
   data: DiagnosticQuestionsData;
-  onSubmit?: (answers: Record<string, string[]>) => void;
+  onSubmit?: (formattedAnswers: string) => void;
 }
 
 export function DiagnosticQuestions({ data, onSubmit }: DiagnosticQuestionsProps) {
@@ -45,7 +45,23 @@ export function DiagnosticQuestions({ data, onSubmit }: DiagnosticQuestionsProps
 
   const handleSubmit = () => {
     if (onSubmit) {
-      onSubmit(selectedAnswers);
+      // Format answers with question text and option labels for better AI understanding
+      const formattedLines: string[] = [];
+      
+      data.questions.forEach(question => {
+        const selectedOptionIds = selectedAnswers[question.id] || [];
+        if (selectedOptionIds.length > 0) {
+          const selectedLabels = selectedOptionIds
+            .map(optId => question.options.find(o => o.id === optId)?.label)
+            .filter(Boolean);
+          
+          formattedLines.push(`• ${question.question}`);
+          formattedLines.push(`  Answer: ${selectedLabels.join('; ')}`);
+        }
+      });
+      
+      const formatted = `Based on my diagnostic inspection:\n\n${formattedLines.join('\n')}\n\nPlease provide a diagnosis and recommended repair procedure or work order.`;
+      onSubmit(formatted);
     }
   };
 
