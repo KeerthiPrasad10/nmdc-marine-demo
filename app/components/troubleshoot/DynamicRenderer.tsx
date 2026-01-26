@@ -35,6 +35,7 @@ const LOTODocument = lazy(() => import("./ui/LOTODocument"));
 const WorkOrderForm = lazy(() => import("./ui/WorkOrderForm"));
 const ManualCitation = lazy(() => import("./ui/ManualCitation"));
 const ImageCard = lazy(() => import("./ui/ImageCard"));
+const DiagnosticQuestions = lazy(() => import("./ui/DiagnosticQuestions"));
 // New generic UI components for research, generate, calculate modes
 const ResearchResult = lazy(() => import("./ui/ResearchResult"));
 const DataTable = lazy(() => import("./ui/DataTable"));
@@ -277,6 +278,21 @@ export function DynamicRenderer({
           <DocumentOutput
             data={data as DocumentOutputData}
             onExport={() => handlers.onExport?.(type, data)}
+          />
+        );
+
+      case 'diagnostic_questions':
+        // Interactive diagnostic questions with multiple choice
+        return (
+          <DiagnosticQuestions
+            data={data as import("./ui/DiagnosticQuestions").DiagnosticQuestionsData}
+            onSubmit={(answers) => {
+              // Format answers as a follow-up message
+              const formattedAnswers = Object.entries(answers)
+                .map(([qId, optionIds]) => `${qId}: ${optionIds.join(', ')}`)
+                .join('\n');
+              handlers.onSuggestionClick?.(`My answers:\n${formattedAnswers}`);
+            }}
           />
         );
 
