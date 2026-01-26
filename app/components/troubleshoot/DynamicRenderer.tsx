@@ -212,11 +212,13 @@ export function DynamicRenderer({
         );
 
       case 'image_card':
-        return (
-          <ImageCard
-            data={data as ImageCardData}
-          />
-        );
+        // Temporarily disabled - document images causing timeouts
+        // return (
+        //   <ImageCard
+        //     data={data as ImageCardData}
+        //   />
+        // );
+        return null;
 
       // New generic UI components for research, generate, calculate modes
       case 'research_result':
