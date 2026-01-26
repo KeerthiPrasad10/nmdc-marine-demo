@@ -35,15 +35,16 @@ export async function POST(request: NextRequest) {
 
     switch (action) {
       case 'query': {
-        const { message, imageUrl, imageBase64, knowledgeBaseId, responseFormat } = params;
+        const { message, imageUrl, imageBase64, knowledgeBaseId, responseFormat, context } = params;
         
-        // Debug: Log the full message being sent (includes context)
-        console.log('[Troubleshoot API] Query message preview:', {
-          hasAppContext: message?.includes('<app_context>'),
-          hasSystemInstructions: message?.includes('<system_instructions>'),
+        // Debug: Log the query request
+        console.log('[Troubleshoot API] Query:', {
+          messagePreview: message?.substring(0, 100),
           messageLength: message?.length,
           knowledgeBaseId,
           hasImageUrl: !!imageUrl,
+          hasContext: !!context,
+          responseFormat: responseFormat || 'ui',
         });
         
         const response: QueryResponse = await client.query(message, {
@@ -51,6 +52,7 @@ export async function POST(request: NextRequest) {
           imageBase64,   // Fallback for backward compatibility
           knowledgeBaseId,
           responseFormat: responseFormat || 'ui',
+          context,       // App context injection (vessel_name, equipment_type, etc.)
         });
         
         // DEBUG: Log FULL response structure for A2UI detection
@@ -68,7 +70,7 @@ export async function POST(request: NextRequest) {
       }
 
       case 'analyze_image': {
-        const { imageUrl, imageBase64, message, knowledgeBaseId, responseFormat } = params;
+        const { imageUrl, imageBase64, message, knowledgeBaseId, responseFormat, context } = params;
         // Prefer imageUrl over imageBase64 for efficiency
         const image = imageUrl || imageBase64;
         
@@ -78,12 +80,12 @@ export async function POST(request: NextRequest) {
           imageUrlPreview: imageUrl?.substring(0, 50),
           hasMessage: !!message,
           messagePreview: message?.substring(0, 100),
-          hasAppContext: message?.includes('<app_context>'),
           knowledgeBaseId,
-          responseFormat,
+          hasContext: !!context,
+          responseFormat: responseFormat || 'ui',
         });
         
-        const response = await client.analyzeImage(image, message, knowledgeBaseId, responseFormat || 'ui');
+        const response = await client.analyzeImage(image, message, knowledgeBaseId, responseFormat || 'ui', context);
         
         // DEBUG: Log FULL response structure for A2UI detection  
         console.log('[Troubleshoot API analyze_image] === FULL RESPONSE ===');

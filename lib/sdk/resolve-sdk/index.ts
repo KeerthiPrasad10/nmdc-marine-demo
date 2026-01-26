@@ -248,6 +248,7 @@ export class ResolveClient {
       imageBase64?: string;   // Fallback: base64 encoded image
       knowledgeBaseId?: string;
       responseFormat?: 'json' | 'text' | 'ui' | 'html';  // 'ui' recommended for apps
+      context?: Record<string, string>;  // App context injection (vessel_name, equipment_type, etc.)
     } = {}
   ): Promise<QueryResponse> {
     return this.request<QueryResponse>('query', {
@@ -255,7 +256,8 @@ export class ResolveClient {
       image_url: options.imageUrl,
       image_base64: options.imageBase64,
       knowledge_base_id: options.knowledgeBaseId,
-      response_format: options.responseFormat || 'ui'
+      response_format: options.responseFormat || 'ui',
+      context: options.context,
     });
   }
 
@@ -276,12 +278,14 @@ export class ResolveClient {
    * @param message - Optional message/question about the image
    * @param knowledgeBaseId - Optional knowledge base to search
    * @param responseFormat - Response format (default: 'ui')
+   * @param context - Optional app context (vessel_name, equipment_type, etc.)
    */
   async analyzeImage(
     image: string,
     message?: string,
     knowledgeBaseId?: string,
-    responseFormat: 'json' | 'text' | 'ui' | 'html' = 'ui'
+    responseFormat: 'json' | 'text' | 'ui' | 'html' = 'ui',
+    context?: Record<string, string>
   ): Promise<QueryResponse> {
     // Detect if it's a URL or base64
     const isUrl = image.startsWith('http://') || image.startsWith('https://');
@@ -290,7 +294,8 @@ export class ResolveClient {
       imageUrl: isUrl ? image : undefined,
       imageBase64: isUrl ? undefined : image,
       knowledgeBaseId,
-      responseFormat
+      responseFormat,
+      context,
     });
   }
 

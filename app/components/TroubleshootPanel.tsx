@@ -500,42 +500,29 @@ export function TroubleshootPanel({
     // Check if image is being sent
     const hasImage = !!selectedImageFile;
     
-    // Build the message with full context - let Resolve's rules handle the response format
-    let contextualContent = content.trim();
+    // Build the user's actual message
+    const userQuery = content.trim() || (hasImage ? 'Please analyze this image and help troubleshoot' : '');
     
-    // Build context block (session maintains history on server, so we only need vessel context here)
-    let contextBlock = '';
+    // Build context object for API (per Resolve API docs - context parameter)
+    // This is passed separately from the message for cleaner processing
+    const apiContext: Record<string, string> = {};
     
-    if (hasContext) {
-      contextBlock += `<vessel_context>
-${JSON.stringify(appContext, null, 2)}
-</vessel_context>
-
-`;
+    if (hasContext && appContext) {
+      // Extract relevant context fields
+      if (appContext.vessel?.name) apiContext.vessel_name = appContext.vessel.name;
+      if (appContext.vessel?.type) apiContext.vessel_type = appContext.vessel.type;
+      if (appContext.weather?.condition) apiContext.weather = appContext.weather.condition;
+      if (appContext.location?.description) apiContext.location = appContext.location.description;
+      // Add any other relevant context
+      apiContext.app_context = JSON.stringify(appContext);
     }
     
-    if (hasImage) {
-      contextBlock += `[Image attached for analysis]
-
-`;
-    }
-    
-    // Strong guidance based on conversation length
+    // Track exchange count for context
     const exchangeCount = Math.floor(messages.length / 2);
     if (exchangeCount >= 2) {
-      // After 2+ exchanges, strongly push for action
-      contextBlock += `[CRITICAL: This is exchange #${exchangeCount + 1}. You have enough information.
-STOP ASKING QUESTIONS. Generate a work_order or loto_procedure NOW.
-The user has already answered multiple diagnostic questions - commit to a repair plan.]
-
-`;
-    } else {
-      contextBlock += `[Instruction: Be action-oriented. Limit clarifying questions to 1-2 max, then generate work_order or loto_procedure.]
-
-`;
+      apiContext.exchange_count = String(exchangeCount + 1);
+      apiContext.instruction = 'User has answered multiple questions. Generate actionable output (work_order or loto_procedure).';
     }
-    
-    contextualContent = contextBlock + (content.trim() || 'Please analyze this image and help troubleshoot');
 
     // Capture file before clearing
     const capturedImageFile = selectedImageFile;
@@ -628,10 +615,11 @@ The user has already answered multiple diagnostic questions - commit to a repair
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'analyze_image',
-            message: contextualContent,
+            message: userQuery,
             imageUrl,
             knowledgeBaseId: selectedKnowledgeBase,
             responseFormat: 'ui',
+            context: Object.keys(apiContext).length > 0 ? apiContext : undefined,
           }),
         });
       } else if (currentSessionId && sessionsSupported) {
@@ -643,7 +631,7 @@ The user has already answered multiple diagnostic questions - commit to a repair
             body: JSON.stringify({
               action: 'send_message',
               sessionId: currentSessionId,
-              message: contextualContent,
+              message: userQuery,
               responseFormat: 'ui',
             }),
           });
@@ -672,9 +660,10 @@ The user has already answered multiple diagnostic questions - commit to a repair
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'query',
-            message: contextualContent,
+            message: userQuery,
             knowledgeBaseId: selectedKnowledgeBase,
             responseFormat: 'ui',
+            context: Object.keys(apiContext).length > 0 ? apiContext : undefined,
           }),
         });
       }
