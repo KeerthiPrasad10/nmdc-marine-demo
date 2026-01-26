@@ -728,8 +728,30 @@ The user has already answered multiple diagnostic questions - commit to a repair
       
       // Handle multi_response format at top level: { type: 'multi_response', data: { responses: [...] } }
       if (uiData.type === 'multi_response') {
-        const multiData = uiData.data as { responses?: unknown[] } | undefined;
-        const responses = multiData?.responses || uiData.responses || [];
+        const multiData = uiData.data as { responses?: unknown[]; _meta?: { sources?: { manuals?: Array<{ title: string; page: number }> } } } | undefined;
+        let responses = multiData?.responses || uiData.responses || [];
+        
+        // If responses is empty but we have sources in _meta, create a manual_citation
+        if (responses.length === 0 && multiData?._meta?.sources?.manuals?.length) {
+          console.log('[TroubleshootPanel] Empty responses but has sources, creating manual_citation');
+          const manuals = multiData._meta.sources.manuals;
+          responses = [{
+            type: 'manual_citation',
+            data: {
+              title: 'Documentation Found',
+              summary: `Found ${manuals.length} relevant sections in your indexed manuals.`,
+              references: manuals.map((m: { title: string; page: number }) => ({
+                manualId: '',
+                manualName: m.title,
+                pageNumber: m.page,
+                section: '',
+                snippet: '',
+                relevance: 0.8,
+              })),
+            },
+          }];
+        }
+        
         uiResponse = {
           type: 'multi_response',
           data: uiData.data,
