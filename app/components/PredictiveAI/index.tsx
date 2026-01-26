@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Brain,
   Activity,
@@ -220,8 +220,19 @@ export function PredictiveAIPanel({
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [selectedPrediction, setSelectedPrediction] = useState<Prediction | null>(null);
   const [lastAnalysis, setLastAnalysis] = useState<Date | null>(null);
+  const hasRunRef = useRef(false);
+  const equipmentRef = useRef(equipment);
+  const alertsRef = useRef(alerts);
+  const sensorsRef = useRef(sensors);
 
-  // Run analysis on data changes
+  // Update refs when props change
+  useEffect(() => {
+    equipmentRef.current = equipment;
+    alertsRef.current = alerts;
+    sensorsRef.current = sensors;
+  }, [equipment, alerts, sensors]);
+
+  // Run analysis function
   const runAnalysis = useCallback(() => {
     setIsAnalyzing(true);
     
@@ -245,9 +256,9 @@ export function PredictiveAIPanel({
           return { 
             ...step, 
             status: 'complete',
-            result: idx === 0 ? `${equipment.length} systems scanned` :
-                    idx === 1 ? `${sensors.length} data points analyzed` :
-                    idx === 2 ? `${alerts.length} alerts correlated` :
+            result: idx === 0 ? `${equipmentRef.current.length} systems scanned` :
+                    idx === 1 ? `${sensorsRef.current.length} data points analyzed` :
+                    idx === 2 ? `${alertsRef.current.length} alerts correlated` :
                     idx === 3 ? `ML models executed` :
                     `Complete`
           };
@@ -260,15 +271,18 @@ export function PredictiveAIPanel({
       if (currentStep > steps.length) {
         clearInterval(interval);
         setIsAnalyzing(false);
-        setPredictions(generatePredictions(equipment, alerts, sensors));
+        setPredictions(generatePredictions(equipmentRef.current, alertsRef.current, sensorsRef.current));
         setLastAnalysis(new Date());
       }
     }, 1500);
 
     return () => clearInterval(interval);
-  }, [equipment, alerts, sensors]);
+  }, []);
 
+  // Run analysis only once on mount
   useEffect(() => {
+    if (hasRunRef.current) return;
+    hasRunRef.current = true;
     const cleanup = runAnalysis();
     return cleanup;
   }, [runAnalysis]);
