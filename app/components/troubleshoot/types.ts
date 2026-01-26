@@ -22,6 +22,7 @@ export type UIType =
   | 'error_message'
   | 'image_card'
   | 'multi_response' // Multiple UI responses in sequence (e.g., RCA + options)
+  | 'diagnostic_questions' // Multi-question diagnostic form
   // New generic UI types for non-troubleshooting use cases
   | 'research_result'  // Q&A answer with source citations
   | 'data_table'       // Tabular data display (sortable, exportable)
