@@ -18,7 +18,7 @@ import {
   calculateDistanceNm,
 } from '@/lib/datalastic';
 import { 
-  NMDC_FLEET,
+  NMDC_FLEET, 
   NMDC_ENERGY_FLEET, 
   getNMDCVesselByMMSI,
   getNMDCActiveProjects,

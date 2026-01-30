@@ -626,6 +626,8 @@ export function TroubleshootPanel({
               message: userQuery,
               imageUrl, // Sessions support images per API docs
               responseFormat: 'ui',
+              // Note: KB is inherited from session creation, don't pass here
+              // Context is embedded in message if needed for stateless fallback
             }),
           });
           
@@ -693,9 +695,14 @@ export function TroubleshootPanel({
       }
 
       const data: QueryResponse = await response!.json();
+      
+      // Check for API-level errors (success: false with error message)
+      const dataAny = data as unknown as Record<string, unknown>;
+      if (dataAny.success === false && dataAny.error) {
+        throw new Error(dataAny.error as string);
+      }
 
       // Debug: Log the full response structure
-      const dataAny = data as unknown as Record<string, unknown>;
       console.log('[TroubleshootPanel] === RAW API RESPONSE ===');
       console.log('[TroubleshootPanel] FULL DATA:', JSON.stringify(data, null, 2).substring(0, 2000));
       console.log('[TroubleshootPanel] type:', dataAny.type);

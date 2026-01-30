@@ -154,6 +154,7 @@ export async function POST(request: NextRequest) {
           responseFormat: responseFormat || 'ui',
         });
         
+        // KB is inherited from session, context should be embedded in message
         const response: QueryResponse = await client.sendMessage(sessionId, message, {
           imageUrl,
           imageBase64,

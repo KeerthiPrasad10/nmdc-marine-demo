@@ -199,8 +199,8 @@ function LiftTimeline({
         const hasWarnings = lift.warnings.length > 0;
         
         return (
-          <div
-            key={lift.id}
+        <div
+          key={lift.id}
             id={`lift-${lift.id}`}
             onClick={() => {
               setExpandedLift(isExpanded ? null : lift.id);
@@ -210,54 +210,54 @@ function LiftTimeline({
               isHighlighted
                 ? 'bg-violet-500/20 border-violet-500/50 ring-2 ring-violet-500/30 animate-pulse'
                 : lift.status === 'in_progress'
-                  ? 'bg-cyan-500/10 border-cyan-500/30 animate-pulse'
+              ? 'bg-cyan-500/10 border-cyan-500/30 animate-pulse'
                   : hasWarnings 
                     ? 'bg-amber-500/5 border-amber-500/20 hover:border-amber-500/40'
                     : 'bg-white/[0.02] border-white/10 hover:border-white/20'
-            }`}
-          >
+          }`}
+        >
             {/* Main row - always visible */}
-            <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-2">
+              {lift.status === 'in_progress' ? (
+                <Activity className="w-4 h-4 text-cyan-400" />
+              ) : (
+                <CheckCircle className="w-4 h-4 text-emerald-400" />
+              )}
+              <span className="text-sm font-medium text-white">{lift.itemClassification}</span>
+            </div>
               <div className="flex items-center gap-2">
-                {lift.status === 'in_progress' ? (
-                  <Activity className="w-4 h-4 text-cyan-400" />
-                ) : (
-                  <CheckCircle className="w-4 h-4 text-emerald-400" />
-                )}
-                <span className="text-sm font-medium text-white">{lift.itemClassification}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-white/40">
-                  {lift.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </span>
+            <span className="text-xs text-white/40">
+              {lift.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
                 <ChevronRight className={`w-4 h-4 text-white/30 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
               </div>
-            </div>
+          </div>
             
             {/* Summary metrics */}
-            <div className="flex items-center gap-4 text-xs text-white/60">
-              <span className="flex items-center gap-1">
-                <Weight className="w-3 h-3" />
-                {(lift.loadWeight / 1000).toFixed(1)}t
-              </span>
-              <span className="flex items-center gap-1">
-                <Timer className="w-3 h-3" />
-                {lift.duration}s
-              </span>
-              <span className={`flex items-center gap-1 ${
-                lift.safetyScore >= 90 ? 'text-emerald-400' : 
-                lift.safetyScore >= 80 ? 'text-amber-400' : 'text-rose-400'
-              }`}>
-                <Shield className="w-3 h-3" />
-                {lift.safetyScore}%
-              </span>
+          <div className="flex items-center gap-4 text-xs text-white/60">
+            <span className="flex items-center gap-1">
+              <Weight className="w-3 h-3" />
+              {(lift.loadWeight / 1000).toFixed(1)}t
+            </span>
+            <span className="flex items-center gap-1">
+              <Timer className="w-3 h-3" />
+              {lift.duration}s
+            </span>
+            <span className={`flex items-center gap-1 ${
+              lift.safetyScore >= 90 ? 'text-emerald-400' : 
+              lift.safetyScore >= 80 ? 'text-amber-400' : 'text-rose-400'
+            }`}>
+              <Shield className="w-3 h-3" />
+              {lift.safetyScore}%
+            </span>
               {hasWarnings && (
-                <span className="text-amber-400 flex items-center gap-1">
-                  <AlertTriangle className="w-3 h-3" />
-                  {lift.warnings.length}
-                </span>
-              )}
-            </div>
+              <span className="text-amber-400 flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3" />
+                {lift.warnings.length}
+              </span>
+            )}
+          </div>
 
             {/* Expanded details */}
             {isExpanded && (
@@ -341,8 +341,8 @@ function LiftTimeline({
                             factor.value >= 90 ? 'text-emerald-400' : 
                             factor.value >= 80 ? 'text-amber-400' : 'text-rose-400'
                           }`}>{factor.value}%</span>
-                        </div>
-                      ))}
+        </div>
+      ))}
                     </div>
                   )}
                 </div>

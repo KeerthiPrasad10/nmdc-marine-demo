@@ -339,12 +339,14 @@ export class ResolveClient {
       responseFormat?: 'json' | 'text' | 'ui' | 'html';
     } = {}
   ): Promise<QueryResponse> {
+    // Note: KB is inherited from session creation, context is embedded in message
+    // Only pass parameters documented for send_message action
     return this.request<QueryResponse>('send_message', {
       session_id: sessionId,
       message,
       image_url: options.imageUrl,
       image_base64: options.imageBase64,
-      response_format: options.responseFormat || 'ui'
+      response_format: options.responseFormat || 'ui',
     });
   }
 
