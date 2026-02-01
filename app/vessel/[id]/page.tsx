@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase, Vessel, Equipment } from '@/lib/supabase';
 import { getVesselProfileByName, VesselProfile, VesselSystem } from '@/lib/vessel-profiles';
+import { getVesselIssues, getEquipmentOverrides } from '@/lib/vessel-issues';
 import { TroubleshootPanel } from '@/app/components/TroubleshootPanel';
 import type { FleetVessel } from '@/app/api/fleet/route';
 import { generateAlertsFromFleet, type NMDCAlert } from '@/lib/nmdc/alerts';
@@ -46,9 +47,10 @@ import {
   TrendingUp,
   Calendar,
   Route,
+  Info,
 } from 'lucide-react';
 import { RoutePlanningPanel } from '@/app/components/routes';
-import { PredictiveAIPanel } from '@/app/components/PredictiveAI';
+import { AIPredictiveMaintenance } from '@/app/components/PredictiveMaintenance';
 import dynamic from 'next/dynamic';
 
 // Dynamically import DigitalTwin to avoid SSR issues with Three.js
@@ -73,7 +75,43 @@ const PredictionsPanel = dynamic(
   { ssr: false }
 );
 
-type TabType = 'overview' | 'digital-twin' | 'systems' | 'analysis' | 'maintenance';
+type TabType = 'overview' | 'digital-twin' | 'systems' | 'analysis';
+
+interface ExpandableSectionProps {
+  title: string;
+  value: string | number;
+  valueColor?: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}
+
+function ExpandableSection({ title, value, valueColor = 'text-white', icon, children, defaultOpen = false }: ExpandableSectionProps) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  
+  return (
+    <div className="rounded-lg bg-white/[0.02] border border-white/8 overflow-hidden">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full p-3 flex items-center justify-between hover:bg-white/[0.02] transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          {icon}
+          <span className="text-xs text-white/50">{title}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className={`text-sm font-bold ${valueColor}`}>{value}</span>
+          <ChevronRight className={`w-4 h-4 text-white/30 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
+        </div>
+      </button>
+      {isOpen && (
+        <div className="px-3 pb-3 border-t border-white/5">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // Wrapper component to handle Next.js 16 async params
 function VesselDetailContent({ vesselId }: { vesselId: string }) {
@@ -88,6 +126,7 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
   const [selectedSystem, setSelectedSystem] = useState<VesselSystem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showRoutePlanning, setShowRoutePlanning] = useState(false);
+  const [resolveQuery, setResolveQuery] = useState<string>('');
   const [datasheets, setDatasheets] = useState<Array<{
     id: string;
     title: string;
@@ -166,14 +205,31 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
           setFleetVessel(nmdcVessel);
           
           // Convert to Vessel format for component compatibility
+          // Map NMDC vessel types - preserve actual type for 3D model selection
+          type VesselTypeString = 'tugboat' | 'supply_vessel' | 'dredger' | 'crane_barge' | 'survey_vessel';
+          const mapVesselType = (nmdcType?: string): VesselTypeString => {
+            if (!nmdcType) return 'crane_barge';
+            const typeMap: Record<string, VesselTypeString> = {
+              hopper_dredger: 'dredger',
+              csd: 'dredger',
+              dredger: 'dredger',
+              pipelay_barge: 'crane_barge',
+              derrick_barge: 'crane_barge',
+              jack_up: 'crane_barge',
+              supply: 'supply_vessel',
+              tug: 'tugboat',
+              survey: 'survey_vessel',
+              barge: 'crane_barge',
+              accommodation_barge: 'crane_barge',
+              work_barge: 'crane_barge',
+            };
+            return typeMap[nmdcType] || 'crane_barge';
+          };
+          
           const vesselData: Vessel = {
             id: nmdcVessel.mmsi,
             name: nmdcVessel.name,
-            type: nmdcVessel.nmdc?.type === 'hopper_dredger' || nmdcVessel.nmdc?.type === 'csd' ? 'dredger' : 
-                  nmdcVessel.nmdc?.type === 'supply' ? 'supply_vessel' : 
-                  nmdcVessel.nmdc?.type === 'tug' ? 'tugboat' : 
-                  nmdcVessel.nmdc?.type === 'survey' ? 'survey_vessel' : 
-                  nmdcVessel.nmdc?.type === 'barge' ? 'crane_barge' : 'dredger',
+            type: mapVesselType(nmdcVessel.nmdc?.type),
             mmsi: nmdcVessel.mmsi,
             imo_number: nmdcVessel.imo ?? null,
             position_lat: nmdcVessel.position.lat,
@@ -230,23 +286,45 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
             console.log('[VesselDetail] Could not fetch vessel specs:', specsError);
           }
           
-          // Generate equipment from profile if available
+          // Generate equipment from profile with vessel-specific issues
           if (vesselProfile?.systems) {
-            const generatedEquipment = vesselProfile.systems.map((sys, idx) => ({
-              id: `${nmdcVessel.mmsi}-${idx}`,
-              vessel_id: nmdcVessel.mmsi,
-              name: sys.name,
-              type: sys.category,
-              health_score: Math.round(70 + Math.random() * 30),
-              last_maintenance: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-              predicted_failure: null,
-              failure_confidence: null,
-              hours_operated: Math.round(Math.random() * 5000),
-              temperature: Math.round(45 + Math.random() * 30),
-              vibration: Math.round((0.5 + Math.random() * 2) * 10) / 10, // 1 decimal place
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            })) as Equipment[];
+            const equipmentOverrides = getEquipmentOverrides(nmdcVessel.mmsi);
+            const vesselIssues = getVesselIssues(nmdcVessel.mmsi);
+            
+            const generatedEquipment = vesselProfile.systems.map((sys, idx) => {
+              const sysNameLower = sys.name.toLowerCase();
+              const override = equipmentOverrides.get(sysNameLower);
+              
+              // Check if any issue matches this system by partial name match
+              const matchingIssue = vesselIssues?.issues.find(issue => 
+                sysNameLower.includes(issue.equipmentName.toLowerCase().split(' ')[0]) ||
+                issue.equipmentName.toLowerCase().includes(sysNameLower.split(' ')[0])
+              );
+              
+              const hasIssue = override || matchingIssue;
+              
+              return {
+                id: `${nmdcVessel.mmsi}-${idx}`,
+                vessel_id: nmdcVessel.mmsi,
+                name: sys.name,
+                type: sys.category,
+                health_score: hasIssue 
+                  ? (override?.health_score || matchingIssue?.healthScore || 65)
+                  : Math.round(78 + Math.random() * 20), // Healthy range: 78-98%
+                last_maintenance: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+                predicted_failure: hasIssue ? matchingIssue?.pmPrediction.predictedIssue || null : null,
+                failure_confidence: hasIssue ? 75 + Math.round(Math.random() * 20) : null,
+                hours_operated: Math.round(3000 + Math.random() * 5000),
+                temperature: hasIssue 
+                  ? (override?.temperature || matchingIssue?.temperature || 76)
+                  : Math.round(48 + Math.random() * 22), // Healthy range: 48-70°C
+                vibration: hasIssue 
+                  ? (override?.vibration || matchingIssue?.vibration || 5.5)
+                  : Math.round((1.5 + Math.random() * 2.5) * 10) / 10, // Healthy range: 1.5-4mm/s
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              };
+            }) as Equipment[];
             setEquipment(generatedEquipment);
           }
           
@@ -370,7 +448,7 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
                 <div>
                   <h1 className="text-xl font-bold text-white">{vessel.name}</h1>
                   <div className="flex items-center gap-2 text-sm">
-                    <span className="text-white/50 capitalize">{vessel.type.replace('_', ' ')}</span>
+                    <span className="text-white/50">{fleetVessel?.nmdc?.subType || vessel.type.replace(/_/g, ' ')}</span>
                     <span className="text-white/20">•</span>
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(vessel.status || 'idle')}`}>
                       {vessel.status}
@@ -486,7 +564,7 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
                       </p>
                     </div>
                     <button
-                      onClick={() => setActiveTab('maintenance')}
+                      onClick={() => setActiveTab('systems')}
                       className="ml-auto px-3 py-1.5 rounded-lg bg-rose-500/20 text-rose-400 text-sm hover:bg-rose-500/30 transition-colors"
                     >
                       View Details →
@@ -932,25 +1010,48 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
 
             {/* Right Column - Quick Actions & Alerts */}
             <div className="space-y-6">
-              {/* Predictive AI Panel */}
-              <PredictiveAIPanel
-                equipment={equipment.map(eq => ({
-                  id: eq.id,
-                  name: eq.name,
-                  health_score: eq.health_score,
-                  temperature: eq.temperature,
-                  vibration: eq.vibration,
-                  hours_operated: eq.hours_operated,
-                  type: eq.type,
-                }))}
-                alerts={alerts.map(a => ({
-                  id: a.id,
-                  title: a.title,
-                  severity: a.severity,
-                  description: a.description,
-                }))}
-                vesselName={vessel.name}
+              {/* AI Predictive Maintenance */}
+              <AIPredictiveMaintenance
                 assetType="vessel"
+                assetId={vessel.id}
+                assetName={vessel.name}
+                equipment={[
+                  { 
+                    id: 'main-engine-001', 
+                    name: 'Main Engine', 
+                    type: 'main_engine',
+                    currentHealth: vessel.health_score || 78,
+                    operatingHours: vesselSpecs?.sensors?.mainEngine?.runningHours || 24500,
+                    temperature: vesselSpecs?.sensors?.mainEngine?.temperature || 72,
+                  },
+                  { 
+                    id: 'pump-dredge-001', 
+                    name: 'Dredge Pump', 
+                    type: 'pump_system',
+                    currentHealth: equipment.find(e => e.name.toLowerCase().includes('pump'))?.health_score || 68,
+                    operatingHours: equipment.find(e => e.name.toLowerCase().includes('pump'))?.hours_operated || 12000,
+                    vibration: equipment.find(e => e.name.toLowerCase().includes('pump'))?.vibration || 3.2,
+                  },
+                  { 
+                    id: 'hydraulic-001', 
+                    name: 'Hydraulic System', 
+                    type: 'hydraulic_system',
+                    currentHealth: equipment.find(e => e.name.toLowerCase().includes('hydraulic'))?.health_score || 82,
+                    operatingHours: equipment.find(e => e.name.toLowerCase().includes('hydraulic'))?.hours_operated || 18000,
+                    temperature: equipment.find(e => e.name.toLowerCase().includes('hydraulic'))?.temperature || 58,
+                  },
+                  { 
+                    id: 'generator-001', 
+                    name: 'Generator', 
+                    type: 'generator',
+                    currentHealth: equipment.find(e => e.name.toLowerCase().includes('generator'))?.health_score || 88,
+                    operatingHours: vesselSpecs?.sensors?.mainEngine?.runningHours ? vesselSpecs.sensors.mainEngine.runningHours * 0.8 : 19600,
+                  },
+                ]}
+                onResolve={(query) => {
+                  setResolveQuery(query)
+                  setActiveTab('analysis')
+                }}
               />
 
               {/* Route Planning Panel */}
@@ -1126,7 +1227,11 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
           <div className="grid grid-cols-3 gap-6 h-[calc(100vh-240px)]">
             {/* 3D Digital Twin - 2/3 width */}
             <div className="col-span-2 h-full">
-              <DigitalTwin vessel={vessel} equipment={equipment} />
+              <DigitalTwin 
+                vessel={vessel} 
+                equipment={equipment} 
+                vesselSubType={fleetVessel?.nmdc?.subType}
+              />
             </div>
             
             {/* Predictions Panel - 1/3 width */}
@@ -1473,68 +1578,232 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
               <TroubleshootPanel 
                 selectedVessel={vessel} 
                 equipmentType={selectedSystem?.name}
+                initialSymptom={resolveQuery}
               />
             </div>
 
             {/* Context Panel - Narrow sidebar */}
             <div className="col-span-4 space-y-3 overflow-y-auto">
-              {/* Active Issues - Only show if there are issues */}
-              {(criticalAlerts.length > 0 || criticalEquipment.length > 0) && (
-                <div className="rounded-lg bg-rose-500/10 border border-rose-500/20 p-3">
-                  <h3 className="text-[10px] font-medium text-rose-400 uppercase tracking-wide mb-2">Active Issues</h3>
-                  <div className="space-y-1">
-                    {criticalAlerts.slice(0, 2).map((alert, i) => (
-                      <div key={i} className="text-xs text-white/70 truncate">• {alert.title}</div>
-                    ))}
-                    {criticalEquipment.slice(0, 2).map((eq, i) => (
-                      <div key={i} className="text-xs text-white/70">• {eq.name}: {eq.health_score}%</div>
-                    ))}
+              {/* Expandable Health Section */}
+              <ExpandableSection
+                title="Health"
+                value={`${vessel.health_score ?? 100}%`}
+                valueColor={getHealthColor(vessel.health_score ?? 100)}
+                icon={<Heart className="w-4 h-4 text-emerald-400" />}
+                defaultOpen={false}
+              >
+                <div className="pt-3 space-y-3">
+                  <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full rounded-full transition-all ${
+                        (vessel.health_score ?? 100) >= 80 ? 'bg-emerald-500' :
+                        (vessel.health_score ?? 100) >= 60 ? 'bg-amber-500' : 'bg-rose-500'
+                      }`}
+                      style={{ width: `${vessel.health_score ?? 100}%` }}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="p-2 rounded bg-white/5">
+                      <div className="text-white/40">Propulsion</div>
+                      <div className="text-emerald-400 font-medium">{Math.round(75 + Math.random() * 20)}%</div>
+                    </div>
+                    <div className="p-2 rounded bg-white/5">
+                      <div className="text-white/40">Electrical</div>
+                      <div className="text-emerald-400 font-medium">{Math.round(80 + Math.random() * 15)}%</div>
+                    </div>
+                    <div className="p-2 rounded bg-white/5">
+                      <div className="text-white/40">Hydraulics</div>
+                      <div className="text-amber-400 font-medium">{Math.round(60 + Math.random() * 25)}%</div>
+                    </div>
+                    <div className="p-2 rounded bg-white/5">
+                      <div className="text-white/40">Safety</div>
+                      <div className="text-emerald-400 font-medium">{Math.round(85 + Math.random() * 10)}%</div>
+                    </div>
+                  </div>
+                  <div className="text-[10px] text-white/40 flex items-center gap-1">
+                    <TrendingUp className="w-3 h-3 text-emerald-400" />
+                    +2.3% improvement over last 7 days
                   </div>
                 </div>
-              )}
+              </ExpandableSection>
 
-              {/* Quick Stats */}
-              <div className="grid grid-cols-3 gap-2">
-                <div className="p-2 rounded-lg bg-white/[0.02] border border-white/8 text-center">
-                  <div className={`text-sm font-bold ${getHealthColor(vessel.health_score ?? 100)}`}>
-                    {vessel.health_score ?? 100}%
-                  </div>
-                  <div className="text-[9px] text-white/40">Health</div>
-                </div>
-                <div className="p-2 rounded-lg bg-white/[0.02] border border-white/8 text-center">
-                  <div className="text-sm font-bold text-white">{equipment.length}</div>
-                  <div className="text-[9px] text-white/40">Systems</div>
-                </div>
-                <div className="p-2 rounded-lg bg-white/[0.02] border border-white/8 text-center">
-                  <div className={`text-sm font-bold ${alerts.length > 0 ? 'text-amber-400' : 'text-white/50'}`}>
-                    {alerts.length}
-                  </div>
-                  <div className="text-[9px] text-white/40">Alerts</div>
-                </div>
-              </div>
-
-              {/* Equipment with Issues */}
-              {equipment.filter(e => (e.health_score ?? 100) < 80).length > 0 && (
-                <div className="rounded-lg bg-white/[0.02] border border-white/8 p-3">
-                  <h3 className="text-[10px] font-medium text-white/50 uppercase tracking-wide mb-2">Equipment Status</h3>
-                  <div className="space-y-1">
-                    {equipment
+              {/* Expandable Systems Section */}
+              <ExpandableSection
+                title="Systems"
+                value={equipment.length}
+                valueColor="text-white"
+                icon={<Cpu className="w-4 h-4 text-cyan-400" />}
+                defaultOpen={false}
+              >
+                <div className="pt-3 space-y-2 max-h-48 overflow-y-auto">
+                  {equipment.length > 0 ? (
+                    equipment
                       .sort((a, b) => (a.health_score ?? 100) - (b.health_score ?? 100))
-                      .slice(0, 5)
                       .map((eq) => (
-                        <div key={eq.id} className="flex items-center justify-between py-1">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                        <div key={eq.id} className="flex items-center justify-between py-1.5 border-b border-white/5 last:border-0 group">
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
                               (eq.health_score ?? 100) >= 80 ? 'bg-emerald-400' :
                               (eq.health_score ?? 100) >= 60 ? 'bg-amber-400' : 'bg-rose-400'
                             }`} />
-                            <span className="text-xs text-white/70 truncate">{eq.name}</span>
+                            <div className="min-w-0 flex-1">
+                              <div className="text-xs text-white/80 truncate">{eq.name}</div>
+                              <div className="text-[10px] text-white/40 capitalize">{eq.type}</div>
+                            </div>
                           </div>
-                          <span className={`text-xs font-medium ml-2 ${getHealthColor(eq.health_score ?? 100)}`}>
-                            {eq.health_score ?? 100}%
-                          </span>
+                          <div className="flex items-center gap-2">
+                            {(eq.health_score ?? 100) < 80 && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const healthStatus = (eq.health_score ?? 100) < 60 ? 'critical' : 'degraded';
+                                  const temp = eq.temperature ? `Temperature is ${eq.temperature} degrees C. ` : '';
+                                  const vib = eq.vibration ? `Vibration is ${eq.vibration} mm per s. ` : '';
+                                  const query = `${eq.name} showing ${healthStatus} health at ${eq.health_score} percent. ${temp}${vib}What is causing this and how do I fix it?`;
+                                  setResolveQuery(query);
+                                  setActiveTab('analysis');
+                                }}
+                                className="px-2 py-0.5 text-[9px] font-medium rounded bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 transition-colors flex items-center gap-1 opacity-0 group-hover:opacity-100"
+                              >
+                                <Wrench className="w-2.5 h-2.5" />
+                                Resolve
+                              </button>
+                            )}
+                            <span className={`text-xs font-medium ${getHealthColor(eq.health_score ?? 100)}`}>
+                              {eq.health_score ?? 100}%
+                            </span>
+                          </div>
                         </div>
-                      ))}
+                      ))
+                  ) : (
+                    <p className="text-xs text-white/40 text-center py-2">No systems data</p>
+                  )}
+                </div>
+                <button
+                  onClick={() => setActiveTab('systems')}
+                  className="w-full mt-2 text-xs text-primary-400 hover:text-primary-300 py-1.5 rounded bg-primary-500/10 transition-colors"
+                >
+                  View All Systems →
+                </button>
+              </ExpandableSection>
+
+              {/* Expandable Alerts Section */}
+              <ExpandableSection
+                title="Alerts"
+                value={alerts.length}
+                valueColor={alerts.length > 0 ? 'text-amber-400' : 'text-white/50'}
+                icon={<AlertTriangle className={`w-4 h-4 ${alerts.length > 0 ? 'text-amber-400' : 'text-white/30'}`} />}
+                defaultOpen={alerts.length > 0}
+              >
+                <div className="pt-3 space-y-2 max-h-64 overflow-y-auto">
+                  {alerts.length > 0 ? (
+                    alerts.map((alert) => (
+                      <div 
+                        key={alert.id}
+                        className={`p-2.5 rounded-lg border ${
+                          alert.severity === 'critical'
+                            ? 'bg-rose-500/10 border-rose-500/30'
+                            : alert.severity === 'warning'
+                            ? 'bg-amber-500/10 border-amber-500/30'
+                            : 'bg-blue-500/10 border-blue-500/30'
+                        }`}
+                      >
+                        <div className="flex items-start gap-2">
+                          {alert.severity === 'critical' ? (
+                            <XCircle className="w-3.5 h-3.5 text-rose-400 mt-0.5 flex-shrink-0" />
+                          ) : alert.severity === 'warning' ? (
+                            <AlertTriangle className="w-3.5 h-3.5 text-amber-400 mt-0.5 flex-shrink-0" />
+                          ) : (
+                            <Info className="w-3.5 h-3.5 text-blue-400 mt-0.5 flex-shrink-0" />
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="text-xs text-white font-medium">{alert.title}</div>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const cleanDesc = alert.description?.replace(/[()%"]/g, '') || '';
+                                  const query = `${alert.severity.toUpperCase()} ALERT - ${alert.title}. ${cleanDesc}. How do I diagnose and resolve this issue?`;
+                                  setResolveQuery(query);
+                                  setActiveTab('analysis');
+                                }}
+                                className="px-2 py-0.5 text-[9px] font-medium rounded bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 transition-colors flex items-center gap-1 flex-shrink-0"
+                              >
+                                <Wrench className="w-2.5 h-2.5" />
+                                Resolve
+                              </button>
+                            </div>
+                            <div className="text-[10px] text-white/50 mt-0.5 line-clamp-2">
+                              {alert.description}
+                            </div>
+                            {alert.type === 'equipment' && (
+                              <div className="text-[10px] text-white/30 mt-1">
+                                Equipment Alert
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-4">
+                      <CheckCircle2 className="w-8 h-8 text-emerald-400/50 mx-auto mb-2" />
+                      <p className="text-xs text-white/50">No active alerts</p>
+                      <p className="text-[10px] text-white/30">All systems operating normally</p>
+                    </div>
+                  )}
+                </div>
+              </ExpandableSection>
+
+              {/* Critical Issues Banner - Only show if there are critical items */}
+              {(criticalAlerts.length > 0 || criticalEquipment.length > 0) && (
+                <div className="rounded-lg bg-rose-500/10 border border-rose-500/20 p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-2 h-2 rounded-full bg-rose-400 animate-pulse" />
+                    <h3 className="text-[10px] font-medium text-rose-400 uppercase tracking-wide">Requires Attention</h3>
+                  </div>
+                  <div className="space-y-1.5">
+                    {criticalAlerts.slice(0, 2).map((alert, i) => (
+                      <div key={i} className="flex items-center justify-between gap-2 group">
+                        <div className="text-xs text-white/70 truncate flex items-center gap-1.5 flex-1 min-w-0">
+                          <XCircle className="w-3 h-3 text-rose-400 flex-shrink-0" />
+                          <span className="truncate">{alert.title}</span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            const cleanDesc = alert.description?.replace(/[()%"]/g, '') || '';
+                            const query = `CRITICAL ALERT - ${alert.title}. ${cleanDesc}. How do I diagnose and resolve this issue?`;
+                            setResolveQuery(query);
+                            setActiveTab('analysis');
+                          }}
+                          className="px-1.5 py-0.5 text-[8px] font-medium rounded bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 transition-colors flex items-center gap-0.5 flex-shrink-0 opacity-70 group-hover:opacity-100"
+                        >
+                          <Wrench className="w-2 h-2" />
+                          Resolve
+                        </button>
+                      </div>
+                    ))}
+                    {criticalEquipment.slice(0, 2).map((eq, i) => (
+                      <div key={i} className="flex items-center justify-between gap-2 group">
+                        <div className="text-xs text-white/70 flex items-center gap-1.5 flex-1 min-w-0">
+                          <TrendingDown className="w-3 h-3 text-amber-400 flex-shrink-0" />
+                          <span className="truncate">{eq.name}: {eq.health_score}%</span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            const temp = eq.temperature ? `Temperature is ${eq.temperature} degrees C. ` : '';
+                            const vib = eq.vibration ? `Vibration is ${eq.vibration} mm per s. ` : '';
+                            const query = `${eq.name} showing critical health at ${eq.health_score} percent. ${temp}${vib}What is causing this and how do I fix it?`;
+                            setResolveQuery(query);
+                            setActiveTab('analysis');
+                          }}
+                          className="px-1.5 py-0.5 text-[8px] font-medium rounded bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 transition-colors flex items-center gap-0.5 flex-shrink-0 opacity-70 group-hover:opacity-100"
+                        >
+                          <Wrench className="w-2 h-2" />
+                          Resolve
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}

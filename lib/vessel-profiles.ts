@@ -844,7 +844,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
       flag: 'UAE',
       classNotation: 'ABS Maltese Cross A1',
     },
-    systems: generateCraneBargeSystems('plb-648'),
+    systems: generatePipelayBargeSystems('plb-648'),
     docs: {
       fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
       specsUrl: 'https://www.nmdc-energy.com/assets/files/fleet/conventional%20flat%20bottom%20barges/PLB-648.pdf',
@@ -874,7 +874,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
       flag: 'UAE',
       classNotation: 'ABS A1 (E)',
     },
-    systems: generateCraneBargeSystems('dlb-750'),
+    systems: generatePipelayBargeSystems('dlb-750'),
     docs: {
       fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
       specsUrl: 'https://www.nmdc-energy.com/assets/files/fleet/conventional%20flat%20bottom%20barges/DLB-750.pdf',
@@ -904,7 +904,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
       flag: 'UAE',
       classNotation: 'ABS Maltese Cross 100 A1',
     },
-    systems: generateCraneBargeSystems('dlb-1000'),
+    systems: generatePipelayBargeSystems('dlb-1000'),
     docs: {
       fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
       specsUrl: 'https://www.nmdc-energy.com/assets/files/fleet/conventional%20flat%20bottom%20barges/DLB-1000.pdf',
@@ -936,7 +936,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
       flag: 'UAE',
       classNotation: 'ABS+A1 Self Elevating Unit +AMS +ACCU',
     },
-    systems: generateCraneBargeSystems('sep-450'),
+    systems: generateJackUpSystems('sep-450'),
     docs: {
       fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
       specsUrl: 'https://www.nmdc-energy.com/assets/files/fleet/jack-up%20barges/SEP-450.pdf',
@@ -966,7 +966,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
       flag: 'UAE',
       classNotation: 'ABS+A1 Self-Elevation Unit',
     },
-    systems: generateCraneBargeSystems('sep-550'),
+    systems: generateJackUpSystems('sep-550'),
     docs: {
       fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
       specsUrl: 'https://www.nmdc-energy.com/assets/files/fleet/jack-up%20barges/SEP-550.pdf',
@@ -978,6 +978,34 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
       'Hook up operations',
       'Sleepers & mattress installation',
       'Jacket & deck lifting',
+    ],
+  },
+  
+  'sep-650': {
+    id: 'sep-650',
+    name: 'SEP-650',
+    type: 'jack_up_barge',
+    subtype: 'Self-Elevating Platform',
+    company: 'nmdc_energy',
+    specs: {
+      lengthOverall: 80.0,
+      breadth: 36.0,
+      depth: 6.0,
+      accommodation: 260,
+      flag: 'UAE',
+      classNotation: 'ABS+A1 Self Elevating Unit',
+    },
+    systems: generateJackUpSystems('sep-650'),
+    docs: {
+      fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
+    },
+    officialUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
+    description: 'Jack-up with 4 triangular legs. Self-propelled platform for offshore operations.',
+    capabilities: [
+      'Self-elevating platform',
+      'Crane operations',
+      'Hook up operations',
+      'Jacket installation',
     ],
   },
   
@@ -997,7 +1025,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
       flag: 'UAE',
       classNotation: 'ABS+A1 Self Elevating Unit',
     },
-    systems: generateCraneBargeSystems('sep-750'),
+    systems: generateJackUpSystems('sep-750'),
     docs: {
       fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
       specsUrl: 'https://www.nmdc-energy.com/assets/files/fleet/jack-up%20barges/SEP-750.pdf',
@@ -1453,6 +1481,288 @@ function generateCraneBargeSystems(vesselId: string): VesselSystem[] {
               effects: ['Mooring safety compromised'],
               mitigations: ['Daily checks', 'Regular maintenance'],
               mtbf: 4000,
+            },
+          ],
+        },
+      ],
+    },
+  ];
+}
+
+function generateJackUpSystems(vesselId: string): VesselSystem[] {
+  return [
+    {
+      id: `${vesselId}-jacking`,
+      name: 'Jacking System',
+      category: 'hydraulic',
+      maintenanceIntervalHours: 250,
+      criticalityLevel: 'critical',
+      components: [
+        {
+          id: `${vesselId}-jacking-motors`,
+          name: 'Jacking Motors',
+          type: 'Hydraulic Motor',
+          manufacturer: 'Bosch Rexroth',
+          failureModes: [
+            {
+              mode: 'Pinion gear wear',
+              symptoms: ['Increased jacking time', 'Gear noise', 'Vibration'],
+              causes: ['Normal wear', 'Misalignment', 'Overload'],
+              effects: ['Slower jacking operations', 'Safety concerns'],
+              mitigations: ['Regular gear inspection', 'Alignment checks'],
+              mtbf: 5000,
+            },
+            {
+              mode: 'Hydraulic motor failure',
+              symptoms: ['No movement', 'Pressure loss', 'Overheating'],
+              causes: ['Seal failure', 'Contaminated fluid', 'Bearing wear'],
+              effects: ['Unable to jack up/down'],
+              mitigations: ['Oil analysis', 'Filter maintenance'],
+              mtbf: 8000,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      id: `${vesselId}-legs`,
+      name: 'Leg System',
+      category: 'safety',
+      maintenanceIntervalHours: 500,
+      criticalityLevel: 'critical',
+      components: [
+        {
+          id: `${vesselId}-leg-structure`,
+          name: 'Leg Structure',
+          type: 'Lattice Legs',
+          failureModes: [
+            {
+              mode: 'Structural fatigue',
+              symptoms: ['Crack indications', 'Corrosion spots'],
+              causes: ['Cyclic loading', 'Environmental exposure'],
+              effects: ['Structural integrity concerns'],
+              mitigations: ['Regular NDT inspection', 'Corrosion protection'],
+              mtbf: 50000,
+            },
+          ],
+        },
+        {
+          id: `${vesselId}-spud-cans`,
+          name: 'Spud Cans',
+          type: 'Foundation',
+          failureModes: [
+            {
+              mode: 'Spud can damage',
+              symptoms: ['Uneven settlement', 'Tilting'],
+              causes: ['Seabed conditions', 'Overload'],
+              effects: ['Platform stability issues'],
+              mitigations: ['Seabed survey', 'Load monitoring'],
+              mtbf: 20000,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      id: `${vesselId}-crane`,
+      name: 'Main Crane System',
+      category: 'crane',
+      maintenanceIntervalHours: 500,
+      criticalityLevel: 'high',
+      components: [
+        {
+          id: `${vesselId}-crane-main`,
+          name: 'Main Crane',
+          type: 'Pedestal Crane',
+          failureModes: [
+            {
+              mode: 'Wire rope fatigue',
+              symptoms: ['Broken wires', 'Strand distortion'],
+              causes: ['Cyclic loading', 'Sheave wear'],
+              effects: ['Lifting restriction'],
+              mitigations: ['Regular MPI', 'Sheave inspection'],
+              mtbf: 3000,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      id: `${vesselId}-power`,
+      name: 'Power Generation',
+      category: 'electrical',
+      maintenanceIntervalHours: 2000,
+      criticalityLevel: 'critical',
+      components: [
+        {
+          id: `${vesselId}-generators`,
+          name: 'Main Generators',
+          type: 'Diesel Generator',
+          failureModes: [
+            {
+              mode: 'Generator bearing failure',
+              symptoms: ['High temperature', 'Vibration', 'Noise'],
+              causes: ['Bearing wear', 'Misalignment'],
+              effects: ['Power outage risk'],
+              mitigations: ['Vibration monitoring', 'Temperature monitoring'],
+              mtbf: 15000,
+            },
+          ],
+        },
+      ],
+    },
+  ];
+}
+
+function generatePipelayBargeSystems(vesselId: string): VesselSystem[] {
+  return [
+    {
+      id: `${vesselId}-tensioner`,
+      name: 'Tensioner System',
+      category: 'hydraulic',
+      maintenanceIntervalHours: 500,
+      criticalityLevel: 'critical',
+      components: [
+        {
+          id: `${vesselId}-tensioner-tracks`,
+          name: 'Tensioner Tracks',
+          type: 'Track Tensioner',
+          manufacturer: 'Huisman',
+          failureModes: [
+            {
+              mode: 'Track pad wear',
+              symptoms: ['Reduced grip', 'Slippage', 'Uneven pressure'],
+              causes: ['Normal wear', 'Abrasive pipe coating'],
+              effects: ['Pipe slippage risk', 'Lay tension issues'],
+              mitigations: ['Regular pad inspection', 'Pressure monitoring'],
+              mtbf: 2000,
+            },
+            {
+              mode: 'Hydraulic cylinder leak',
+              symptoms: ['Pressure drop', 'Oil seepage', 'Uneven clamping'],
+              causes: ['Seal wear', 'Contaminated fluid'],
+              effects: ['Tensioner malfunction'],
+              mitigations: ['Seal inspection', 'Fluid analysis'],
+              mtbf: 4000,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      id: `${vesselId}-stinger`,
+      name: 'Stinger System',
+      category: 'hydraulic',
+      maintenanceIntervalHours: 1000,
+      criticalityLevel: 'critical',
+      components: [
+        {
+          id: `${vesselId}-stinger-structure`,
+          name: 'Stinger Structure',
+          type: 'Articulated Stinger',
+          failureModes: [
+            {
+              mode: 'Hinge pin wear',
+              symptoms: ['Play in joints', 'Alignment issues'],
+              causes: ['Cyclic loading', 'Corrosion'],
+              effects: ['Pipe overbend risk'],
+              mitigations: ['Regular inspection', 'Pin replacement'],
+              mtbf: 5000,
+            },
+            {
+              mode: 'Roller wear',
+              symptoms: ['Pipe coating damage', 'Increased friction'],
+              causes: ['Normal wear', 'Pipe movement'],
+              effects: ['Pipe damage risk'],
+              mitigations: ['Roller inspection', 'Replacement schedule'],
+              mtbf: 3000,
+            },
+          ],
+        },
+        {
+          id: `${vesselId}-stinger-hydraulics`,
+          name: 'Stinger Hydraulics',
+          type: 'Hydraulic Cylinders',
+          failureModes: [
+            {
+              mode: 'Cylinder seal failure',
+              symptoms: ['Oil leak', 'Position drift', 'Pressure loss'],
+              causes: ['Seal degradation', 'Rod damage'],
+              effects: ['Stinger angle control loss'],
+              mitigations: ['Seal replacement', 'Rod inspection'],
+              mtbf: 6000,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      id: `${vesselId}-crane`,
+      name: 'Main Crane System',
+      category: 'crane',
+      maintenanceIntervalHours: 500,
+      criticalityLevel: 'high',
+      components: [
+        {
+          id: `${vesselId}-crane-main`,
+          name: 'Main Crane',
+          type: 'Derrick Crane',
+          failureModes: [
+            {
+              mode: 'Slew bearing wear',
+              symptoms: ['Grinding noise', 'Rotation resistance'],
+              causes: ['Bearing wear', 'Lubrication failure'],
+              effects: ['Crane operation restricted'],
+              mitigations: ['Greasing schedule', 'Bearing monitoring'],
+              mtbf: 15000,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      id: `${vesselId}-mooring`,
+      name: 'Mooring System',
+      category: 'safety',
+      maintenanceIntervalHours: 1000,
+      criticalityLevel: 'high',
+      components: [
+        {
+          id: `${vesselId}-mooring-winches`,
+          name: 'Mooring Winches',
+          type: 'Anchor Handling Winch',
+          failureModes: [
+            {
+              mode: 'Brake failure',
+              symptoms: ['Brake slip', 'Overheating'],
+              causes: ['Pad wear', 'Hydraulic issue'],
+              effects: ['Mooring safety compromised'],
+              mitigations: ['Daily brake tests', 'Pad inspection'],
+              mtbf: 4000,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      id: `${vesselId}-ballast`,
+      name: 'Ballast System',
+      category: 'hydraulic',
+      maintenanceIntervalHours: 2000,
+      criticalityLevel: 'high',
+      components: [
+        {
+          id: `${vesselId}-ballast-pumps`,
+          name: 'Ballast Pumps',
+          type: 'Centrifugal Pump',
+          failureModes: [
+            {
+              mode: 'Pump seal failure',
+              symptoms: ['Leakage', 'Pressure drop'],
+              causes: ['Seal wear', 'Cavitation'],
+              effects: ['Ballast operation affected'],
+              mitigations: ['Seal inspection', 'Vibration monitoring'],
+              mtbf: 8000,
             },
           ],
         },

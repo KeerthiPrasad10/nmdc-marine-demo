@@ -254,7 +254,9 @@ export async function GET(request: NextRequest) {
 
             fleetVessels.push({
               ...simplified,
-              name: nmdcVessel.name, // Use NMDC name
+              name: nmdcVessel.name,
+              type: nmdcVessel.type,
+              subType: nmdcVessel.subType,
               nmdc: nmdcVessel,
               isOnline,
               distanceFromAbuDhabi: Math.round(distanceFromAbuDhabi * 10) / 10,

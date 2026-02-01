@@ -16,6 +16,7 @@ import Link from 'next/link';
 interface DigitalTwinProps {
   vessel: Vessel;
   equipment: Equipment[];
+  vesselSubType?: string;
 }
 
 function Scene({
@@ -26,6 +27,7 @@ function Scene({
   selectedSensor,
   onSensorClick,
   controlsRef,
+  vesselSubType,
 }: {
   vessel: Vessel;
   equipment: Equipment[];
@@ -34,6 +36,7 @@ function Scene({
   selectedSensor: string | null;
   onSensorClick: (sensor: SensorData) => void;
   controlsRef: React.RefObject<OrbitControlsImpl | null>;
+  vesselSubType?: string;
 }) {
   const sensors = generateSensorsFromEquipment(equipment);
   const heatmapData = generateHeatmapData(equipment, heatmapMode);
@@ -92,9 +95,10 @@ function Scene({
       {/* Grid helper for depth perception */}
       <gridHelper args={[20, 40, '#1a1a3a', '#0a0a1a']} position={[0, -0.49, 0]} />
 
-      {/* Vessel Model - Class-specific 3D model */}
+      {/* Vessel Model - Class-specific 3D model based on NMDC subType */}
       <VesselModelSelector
         vesselType={vessel.type}
+        vesselSubType={vesselSubType}
         healthScore={vessel.health_score ?? 100}
         isSelected={true}
       />
@@ -148,7 +152,7 @@ function ErrorState({ message }: { message: string }) {
   );
 }
 
-export function DigitalTwin({ vessel, equipment }: DigitalTwinProps) {
+export function DigitalTwin({ vessel, equipment, vesselSubType }: DigitalTwinProps) {
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const [showSensors, setShowSensors] = useState(true);
   const [heatmapMode, setHeatmapMode] = useState<HeatmapMode>('none');
@@ -221,6 +225,7 @@ export function DigitalTwin({ vessel, equipment }: DigitalTwinProps) {
             selectedSensor={selectedSensor}
             onSensorClick={handleSensorClick}
             controlsRef={controlsRef}
+            vesselSubType={vesselSubType}
           />
         </Canvas>
       </Suspense>
@@ -360,10 +365,12 @@ export function DigitalTwin({ vessel, equipment }: DigitalTwinProps) {
       )}
 
       {/* Vessel Info Overlay */}
-      <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-sm rounded-lg p-3 border border-white/10">
+      <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-sm rounded-lg p-3 border border-white/10 max-w-[200px]">
         <div className="text-xs text-white/50 mb-1">Digital Twin</div>
         <div className="text-sm font-medium text-white">{vessel.name}</div>
-        <div className="text-xs text-white/40 capitalize">{vessel.type.replace('_', ' ')}</div>
+        <div className="text-[10px] text-white/50 leading-tight">
+          {vesselSubType || vessel.type.replace(/_/g, ' ')}
+        </div>
         <div className="flex items-center gap-2 mt-2">
           <div className={`w-2 h-2 rounded-full ${
             (vessel.health_score ?? 100) >= 80 ? 'bg-emerald-400' :

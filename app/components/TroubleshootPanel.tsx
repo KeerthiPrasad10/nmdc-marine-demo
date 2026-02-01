@@ -243,6 +243,16 @@ export function TroubleshootPanel({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const prevSymptomRef = useRef(initialSymptom);
+  const initialMessageSentRef = useRef(false);
+
+  useEffect(() => {
+    if (initialSymptom && initialSymptom !== prevSymptomRef.current) {
+      setInput(initialSymptom);
+      prevSymptomRef.current = initialSymptom;
+      inputRef.current?.focus();
+    }
+  }, [initialSymptom]);
 
   // Knowledge base state
   const [knowledgeBases, setKnowledgeBases] = useState<KnowledgeBase[]>([]);
@@ -290,9 +300,10 @@ export function TroubleshootPanel({
     inputRef.current?.focus();
   }, []);
 
-  // Handle initial symptom if provided
+  // Handle initial symptom if provided - use ref to prevent double-execution in React Strict Mode
   useEffect(() => {
-    if (initialSymptom && !hasInteracted) {
+    if (initialSymptom && !hasInteracted && !initialMessageSentRef.current) {
+      initialMessageSentRef.current = true;
       sendMessage(initialSymptom);
     }
   }, [initialSymptom]);
@@ -613,9 +624,19 @@ export function TroubleshootPanel({
       // Try session-based messaging first (maintains context for follow-ups)
       if (currentSessionId && sessionsSupported) {
         try {
+          // Build context-enriched message for sessions
+          // This ensures the AI has vessel/equipment context even in follow-ups
+          let enrichedMessage = userQuery;
+          if (hasContext && appContext.vessel) {
+            const contextPrefix = `[Context: Vessel "${appContext.vessel.name}" (${appContext.vessel.type})${appContext.vessel.project ? `, Project: ${appContext.vessel.project}` : ''}${appContext.vessel.healthScore ? `, Health: ${appContext.vessel.healthScore}%` : ''}${appContext.equipment ? `, Equipment focus: ${appContext.equipment}` : ''}]\n\n`;
+            enrichedMessage = contextPrefix + userQuery;
+          }
+          
           console.log('[TroubleshootPanel] Using session for query:', { 
             sessionId: currentSessionId, 
-            hasImage: !!imageUrl 
+            hasImage: !!imageUrl,
+            vesselName: appContext.vessel?.name || 'none',
+            hasContext,
           });
           response = await fetch('/api/troubleshoot', {
             method: 'POST',
@@ -623,11 +644,11 @@ export function TroubleshootPanel({
             body: JSON.stringify({
               action: 'send_message',
               sessionId: currentSessionId,
-              message: userQuery,
+              message: enrichedMessage,
               imageUrl, // Sessions support images per API docs
               responseFormat: 'ui',
-              // Note: KB is inherited from session creation, don't pass here
-              // Context is embedded in message if needed for stateless fallback
+              // Note: KB is inherited from session creation
+              // Context is now embedded in message for AI awareness
             }),
           });
           
@@ -650,13 +671,23 @@ export function TroubleshootPanel({
       
       // Fallback to stateless query if no session or session failed
       if (!usedSession) {
-        console.log('[TroubleshootPanel] Using stateless query (no session context)');
+        // Build context-enriched message for stateless queries
+        let enrichedMessage = userQuery;
+        if (hasContext && appContext.vessel) {
+          const contextPrefix = `[Context: Vessel "${appContext.vessel.name}" (${appContext.vessel.type})${appContext.vessel.project ? `, Project: ${appContext.vessel.project}` : ''}${appContext.vessel.healthScore ? `, Health: ${appContext.vessel.healthScore}%` : ''}${appContext.equipment ? `, Equipment focus: ${appContext.equipment}` : ''}]\n\n`;
+          enrichedMessage = contextPrefix + userQuery;
+        }
+        
+        console.log('[TroubleshootPanel] Using stateless query:', {
+          vesselName: appContext.vessel?.name || 'none',
+          hasContext,
+        });
         response = await fetch('/api/troubleshoot', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: imageUrl ? 'analyze_image' : 'query',
-            message: userQuery,
+            message: enrichedMessage,
             imageUrl,
             knowledgeBaseId: selectedKnowledgeBase,
             responseFormat: 'ui',

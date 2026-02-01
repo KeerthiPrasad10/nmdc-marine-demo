@@ -148,9 +148,15 @@ export async function GET(request: NextRequest) {
         }
 
         // Datalastic uses lat/lon and type/type_specific fields
+        // Get the most specific vessel type available for display
+        const rawShipType = vesselInfo?.ship_type || vessel.type || '';
+        const rawSubType = vesselInfo?.ship_sub_type || vessel.type_specific || '';
+        const vesselClass = rawSubType || rawShipType || null;
+        
         const vesselData = {
           name: vessel.name || `Vessel ${vessel.mmsi}`,
           type: mapVesselType(vessel.type || vessel.type_specific || ''),
+          vessel_class: vesselClass, // Store original Datalastic type for display
           status: mapNavStatus(vessel.nav_status_code),
           position_lat: vessel.lat ?? vessel.latitude,
           position_lng: vessel.lon ?? vessel.longitude,
@@ -219,6 +225,7 @@ export async function GET(request: NextRequest) {
             status: vesselData.status,
             destination_port: vesselData.destination_port,
             eta: vesselData.eta,
+            vessel_class: vesselData.vessel_class, // Update vessel class from Datalastic
             updated_at: vesselData.updated_at,
           })
           .eq('id', existing.id);

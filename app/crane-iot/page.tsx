@@ -43,7 +43,7 @@ import {
   updateSensorValue,
   generateProductionTarget,
 } from '@/lib/crane-iot/mock-data';
-import { PredictiveAIPanel } from '@/app/components/PredictiveAI';
+import { AIPredictiveMaintenance } from '@/app/components/PredictiveMaintenance';
 
 // Sensor card component
 function SensorCard({ sensor }: { sensor: CraneSensor }) {
@@ -785,29 +785,49 @@ export default function CraneIoTDashboard() {
               />
             </div>
 
-            {/* Predictive AI */}
-            <PredictiveAIPanel
-              sensors={crane.sensors.map(s => ({
-                id: s.id,
-                name: s.name,
-                value: s.value,
-                unit: s.unit,
-                status: s.status,
-                type: s.type,
-              }))}
-              equipment={[
-                { id: 'crane-main', name: 'Main Hoist', health_score: 85, temperature: 52, vibration: 1.2 },
-                { id: 'crane-boom', name: 'Boom System', health_score: crane.metrics.efficiency > 80 ? 92 : 68, temperature: 45 },
-                { id: 'crane-slew', name: 'Slew Mechanism', health_score: 78, vibration: 2.1 },
-              ]}
-              alerts={safetyEvents.filter(e => !e.resolved).map(e => ({
-                id: e.id,
-                title: e.description,
-                severity: e.severity === 'critical' ? 'critical' : e.severity === 'high' ? 'warning' : 'info',
-                description: e.aiRecommendation,
-              }))}
-              vesselName={crane.name}
+            {/* AI Predictive Maintenance */}
+            <AIPredictiveMaintenance
               assetType="crane"
+              assetId={crane.id}
+              assetName={crane.name}
+              equipment={[
+                { 
+                  id: 'wire-rope-main', 
+                  name: 'Main Wire Rope', 
+                  type: 'wire_rope',
+                  currentHealth: 72,
+                  cycleCount: lifts.length > 0 ? productionTarget.currentMonthly + Math.floor(Math.random() * 2000) + 8000 : 9500,
+                  operatingHours: crane.metrics.operatingHours * 100 + 4200,
+                },
+                { 
+                  id: 'hoist-motor-001', 
+                  name: 'Main Hoist Motor', 
+                  type: 'hoist_motor',
+                  currentHealth: 85,
+                  operatingHours: crane.metrics.operatingHours * 100 + 18500,
+                  temperature: crane.sensors.find(s => s.type === 'vibration')?.value ? 58 + Math.random() * 15 : 62,
+                  vibration: crane.sensors.find(s => s.type === 'vibration')?.value || 2.1,
+                },
+                { 
+                  id: 'slew-bearing-001', 
+                  name: 'Slew Bearing', 
+                  type: 'slew_bearing',
+                  currentHealth: crane.metrics.efficiency > 80 ? 88 : 65,
+                  operatingHours: crane.metrics.operatingHours * 100 + 22000,
+                  vibration: crane.sensors.find(s => s.type === 'accelerometer')?.value ? crane.sensors.find(s => s.type === 'accelerometer')!.value * 5 : 1.8,
+                },
+                { 
+                  id: 'hydraulic-system-001', 
+                  name: 'Hydraulic System', 
+                  type: 'hydraulic_system',
+                  currentHealth: 78,
+                  operatingHours: crane.metrics.operatingHours * 100 + 15000,
+                  temperature: 55 + Math.random() * 10,
+                },
+              ]}
+              onResolve={(query) => {
+                router.push(`/troubleshoot?q=${encodeURIComponent(query)}&asset=${encodeURIComponent(crane.name)}`)
+              }}
             />
           </div>
         </div>

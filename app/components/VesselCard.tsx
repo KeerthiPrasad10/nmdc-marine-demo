@@ -38,6 +38,26 @@ const vesselIcons: Record<string, typeof Ship> = {
   survey_vessel: Radar,
 };
 
+const vesselTypeLabels: Record<string, string> = {
+  tugboat: 'Tugboat',
+  supply_vessel: 'Supply Vessel',
+  crane_barge: 'Crane Barge',
+  dredger: 'Dredger',
+  survey_vessel: 'Survey Vessel',
+  pipelay_barge: 'Pipelay Barge',
+  jack_up_barge: 'Jack-Up Barge',
+  accommodation_barge: 'Accommodation Barge',
+  work_barge: 'Work Barge',
+  derrick_barge: 'Derrick Barge',
+};
+
+function getVesselTypeDisplay(vessel: Vessel): string {
+  if (vessel.vessel_class) {
+    return vessel.vessel_class.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  }
+  return vesselTypeLabels[vessel.type] || vessel.type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
 const statusConfig = {
   operational: {
     color: 'bg-emerald-500',
@@ -97,8 +117,7 @@ export function VesselCard({ vessel, onClick, selected, compact = false, linkToD
 
   // Compact mode for sidebar - clean, minimal design
   if (compact) {
-    // Format vessel type for display
-    const vesselType = vessel.vessel_class || vessel.type?.replace('_', ' ') || 'Vessel';
+    const vesselType = getVesselTypeDisplay(vessel);
     
     return (
       <div
@@ -180,8 +199,8 @@ export function VesselCard({ vessel, onClick, selected, compact = false, linkToD
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-white truncate">{vessel.name}</h3>
-          <p className="text-xs text-white/40 capitalize">
-            {vessel.type.replace('_', ' ')}
+          <p className="text-xs text-white/40">
+            {getVesselTypeDisplay(vessel)}
           </p>
         </div>
         <div className="flex items-center gap-2">

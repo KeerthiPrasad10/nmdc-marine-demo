@@ -69,16 +69,25 @@ const vesselIcons: Record<string, typeof Ship> = {
   survey_vessel: Radar,
 };
 
-const vesselClassLabels: Record<string, string> = {
-  heavy_duty_csd: 'Heavy Duty CSD',
-  derrick_barge: 'Derrick Barge',
-  hopper_dredger: 'Hopper Dredger',
-  auxiliary_tug: 'Auxiliary Tug',
+const vesselTypeLabels: Record<string, string> = {
+  tugboat: 'Tugboat',
   supply_vessel: 'Supply Vessel',
-  survey_vessel: 'Survey Vessel',
   crane_barge: 'Crane Barge',
+  dredger: 'Dredger',
+  survey_vessel: 'Survey Vessel',
+  pipelay_barge: 'Pipelay Barge',
+  jack_up_barge: 'Jack-Up Barge',
   accommodation_barge: 'Accommodation Barge',
+  work_barge: 'Work Barge',
+  derrick_barge: 'Derrick Barge',
 };
+
+function getVesselTypeDisplay(vessel: Vessel): string {
+  if (vessel.vessel_class) {
+    return vessel.vessel_class.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  }
+  return vesselTypeLabels[vessel.type] || vessel.type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
 
 const fuelTypeLabels: Record<string, { label: string; color: string; description: string }> = {
   VLSFO: { label: 'VLSFO', color: 'text-blue-400', description: 'Very Low Sulfur Fuel Oil (0.5%)' },
@@ -164,7 +173,7 @@ export function VesselDetails({ vessel: vesselProp, equipment, onClose }: Vessel
           <div>
             <h2 className="font-semibold text-white">{vessel.name}</h2>
             <p className="text-xs text-white/40">
-              {vessel.type.replace('_', ' ')} • {vessel.project || 'Unassigned'}
+              {getVesselTypeDisplay(vessel)} • {vessel.project || 'Unassigned'}
             </p>
           </div>
         </div>
@@ -196,7 +205,7 @@ export function VesselDetails({ vessel: vesselProp, equipment, onClose }: Vessel
             </div>
             <div>
               <p className="text-white/40">Type</p>
-              <p className="font-medium text-white/80 capitalize">{vessel.type.replace('_', ' ')}</p>
+              <p className="font-medium text-white/80">{getVesselTypeDisplay(vessel)}</p>
             </div>
             <div>
               <p className="text-white/40">Status</p>
