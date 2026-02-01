@@ -34,8 +34,22 @@ import {
   XCircle,
   RefreshCw,
   Settings,
+  Brain,
+  ArrowUpRight,
+  ArrowDownRight,
+  Leaf,
+  Target,
+  Play,
+  ChevronRight,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { ImpactAnalysisPanel } from '@/app/components/ImpactAnalysisPanel';
+import { 
+  analyzeImpact, 
+  generateMockFleetState,
+  ProposedChange,
+  ImpactAnalysisResult,
+} from '@/lib/impact-analysis';
 
 export default function OrchestrationPage() {
   const router = useRouter();
@@ -60,6 +74,12 @@ export default function OrchestrationPage() {
   // Fleet optimization state
   const [optimizationResult, setOptimizationResult] = useState<FleetOptimizationResult | null>(null);
   const [isOptimizing, setIsOptimizing] = useState(false);
+  
+  // Impact analysis state
+  const [showImpactPanel, setShowImpactPanel] = useState(false);
+  const [impactResult, setImpactResult] = useState<ImpactAnalysisResult | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [pendingChange, setPendingChange] = useState<{ type: string; context: Record<string, unknown> } | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -206,6 +226,61 @@ export default function OrchestrationPage() {
     setSelectedAssignment(assignment);
   };
 
+  const analyzeChangeImpact = useCallback((changeType: string, context: Record<string, unknown> = {}) => {
+    setIsAnalyzing(true);
+    setPendingChange({ type: changeType, context });
+    setShowImpactPanel(true);
+    
+    setTimeout(() => {
+      const fleetState = generateMockFleetState();
+      
+      const vesselIds = context.vesselIds as string[] || NMDC_FLEET.slice(0, 2).map(v => v.mmsi);
+      const projectIds = context.projectIds as string[] || projects.slice(0, 2).map(p => p.id);
+      
+      const change: ProposedChange = {
+        id: `change-${Date.now()}`,
+        type: changeType as ProposedChange['type'],
+        title: getChangeTitle(changeType, context),
+        description: getChangeDescription(changeType, context),
+        effectiveDate: new Date(),
+        affectedVessels: vesselIds,
+        affectedProjects: projectIds,
+        parameters: context,
+      };
+      
+      const result = analyzeImpact(change, fleetState);
+      setImpactResult(result);
+      setIsAnalyzing(false);
+    }, 1200);
+  }, [projects]);
+
+  const getChangeTitle = (type: string, context: Record<string, unknown>): string => {
+    const titles: Record<string, string> = {
+      vessel_assignment: `Reassign ${context.vesselName || 'Vessel'}`,
+      schedule_change: 'Schedule Modification',
+      project_delay: `Delay ${context.projectName || 'Project'}`,
+      new_project: 'New Project Assignment',
+      maintenance_schedule: 'Maintenance Reschedule',
+      route_change: 'Route Optimization',
+    };
+    return titles[type] || 'Operational Change';
+  };
+
+  const getChangeDescription = (type: string, context: Record<string, unknown>): string => {
+    switch (type) {
+      case 'vessel_assignment':
+        return `Reassign ${context.vesselName || 'vessel'} to ${context.targetProject || 'new project'}`;
+      case 'schedule_change':
+        return `Modify schedule by ${context.days || 'several'} days`;
+      case 'project_delay':
+        return `Delay ${context.projectName || 'project'} by ${context.days || 7} days`;
+      case 'new_project':
+        return 'Evaluate impact of accepting new project on current operations';
+      default:
+        return 'Analyze operational change impact';
+    }
+  };
+
   const handleViewConflicts = () => {
     // Scroll to conflicts panel
     conflictsPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -251,6 +326,17 @@ export default function OrchestrationPage() {
             </div>
 
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowImpactPanel(!showImpactPanel)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors ${
+                  showImpactPanel 
+                    ? 'bg-violet-500/20 text-violet-400 border border-violet-500/30' 
+                    : 'bg-white/5 hover:bg-white/10 text-white/70'
+                }`}
+              >
+                <Brain className="w-4 h-4" />
+                Impact Analysis
+              </button>
               <button
                 onClick={fetchData}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 text-sm transition-colors"
@@ -365,6 +451,113 @@ export default function OrchestrationPage() {
           </div>
         )}
 
+        {/* Impact Analysis Panel (Slide-in) */}
+        {showImpactPanel && (
+          <div className="mb-6 bg-gradient-to-r from-violet-500/5 to-cyan-500/5 rounded-xl border border-violet-500/20 p-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-violet-500/20">
+                  <Brain className="w-5 h-5 text-violet-400" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-white">Predictive Impact Analysis</h3>
+                  <p className="text-xs text-white/50">Analyze upstream & downstream effects before making changes</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowImpactPanel(false)}
+                className="text-white/40 hover:text-white/60 text-sm"
+              >
+                Close
+              </button>
+            </div>
+            
+            {!impactResult && !isAnalyzing ? (
+              <div className="grid grid-cols-4 gap-3">
+                {[
+                  {
+                    type: 'vessel_assignment',
+                    icon: Ship,
+                    title: 'Reassign Vessel',
+                    description: 'Move a vessel to a different project',
+                    color: 'blue',
+                  },
+                  {
+                    type: 'schedule_change',
+                    icon: Calendar,
+                    title: 'Modify Schedule',
+                    description: 'Change project timelines',
+                    color: 'amber',
+                  },
+                  {
+                    type: 'new_project',
+                    icon: Target,
+                    title: 'New Project',
+                    description: 'Evaluate taking on new work',
+                    color: 'emerald',
+                  },
+                  {
+                    type: 'maintenance_schedule',
+                    icon: Settings,
+                    title: 'Reschedule Maintenance',
+                    description: 'Defer or accelerate PM tasks',
+                    color: 'violet',
+                  },
+                ].map(scenario => {
+                  const colorClasses: Record<string, string> = {
+                    blue: 'border-blue-500/30 hover:bg-blue-500/10 text-blue-400',
+                    amber: 'border-amber-500/30 hover:bg-amber-500/10 text-amber-400',
+                    emerald: 'border-emerald-500/30 hover:bg-emerald-500/10 text-emerald-400',
+                    violet: 'border-violet-500/30 hover:bg-violet-500/10 text-violet-400',
+                  };
+                  
+                  return (
+                    <button
+                      key={scenario.type}
+                      onClick={() => analyzeChangeImpact(scenario.type, {})}
+                      className={`p-4 rounded-xl bg-white/[0.02] border ${colorClasses[scenario.color]} transition-colors text-left`}
+                    >
+                      <scenario.icon className={`w-5 h-5 mb-2 ${colorClasses[scenario.color].split(' ').pop()}`} />
+                      <div className="text-sm font-medium text-white">{scenario.title}</div>
+                      <p className="text-xs text-white/40 mt-0.5">{scenario.description}</p>
+                      <div className="mt-2 flex items-center gap-1 text-[10px] text-white/30">
+                        <Play className="w-3 h-3" />
+                        Run Analysis
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : isAnalyzing ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-center">
+                  <div className="w-12 h-12 border-4 border-violet-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                  <p className="text-white/60">Analyzing impact chain...</p>
+                  <div className="flex items-center justify-center gap-4 mt-2 text-xs text-white/40">
+                    <span className="flex items-center gap-1"><ArrowUpRight className="w-3 h-3" /> Upstream</span>
+                    <span className="flex items-center gap-1"><ArrowDownRight className="w-3 h-3" /> Downstream</span>
+                  </div>
+                </div>
+              </div>
+            ) : impactResult ? (
+              <ImpactAnalysisPanel
+                result={impactResult}
+                compact
+                onDismiss={() => {
+                  setImpactResult(null);
+                  setPendingChange(null);
+                }}
+                onApplyChange={() => {
+                  alert('Change would be applied with all stakeholders notified of impacts.');
+                  setImpactResult(null);
+                  setPendingChange(null);
+                  setShowImpactPanel(false);
+                }}
+              />
+            ) : null}
+          </div>
+        )}
+
         {/* Main Grid */}
         <div className="grid grid-cols-4 gap-6">
           {/* Gantt Chart - Takes 3 columns */}
@@ -415,6 +608,24 @@ export default function OrchestrationPage() {
               />
             </div>
 
+            {/* Quick Impact Analysis */}
+            <div className="bg-white/[0.02] rounded-xl border border-white/10 p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Brain className="w-4 h-4 text-violet-400" />
+                <span className="text-xs font-medium text-white">Quick Impact Check</span>
+              </div>
+              <p className="text-[10px] text-white/40 mb-2">
+                Analyze effects before making changes
+              </p>
+              <button
+                onClick={() => setShowImpactPanel(true)}
+                className="w-full py-2 rounded-lg bg-violet-500/10 border border-violet-500/30 text-violet-400 text-xs font-medium hover:bg-violet-500/20 transition-colors flex items-center justify-center gap-1"
+              >
+                <Zap className="w-3 h-3" />
+                Run What-If Analysis
+              </button>
+            </div>
+
             {/* Conflicts Panel */}
             <div 
               ref={conflictsPanelRef}
@@ -460,6 +671,16 @@ export default function OrchestrationPage() {
                           <p className="text-[10px] text-white/50 mt-1">
                             {conflict.suggestedResolution}
                           </p>
+                          <button
+                            onClick={() => analyzeChangeImpact('schedule_change', {
+                              conflictId: conflict.id,
+                              description: conflict.description,
+                            })}
+                            className="mt-2 text-[10px] text-violet-400 hover:text-violet-300 flex items-center gap-1"
+                          >
+                            <Brain className="w-3 h-3" />
+                            Analyze Resolution Impact
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -473,7 +694,15 @@ export default function OrchestrationPage() {
         {/* Projects Summary */}
         <div className="mt-6 grid grid-cols-3 gap-4">
           {projects.filter(p => p.status === 'active').slice(0, 3).map(project => (
-            <ProjectCard key={project.id} project={project} />
+            <ProjectCard 
+              key={project.id} 
+              project={project} 
+              onAnalyzeImpact={() => analyzeChangeImpact('project_delay', {
+                projectId: project.id,
+                projectName: project.name,
+                days: 7,
+              })}
+            />
           ))}
         </div>
       </main>
@@ -529,7 +758,7 @@ function MetricCard({
 }
 
 // Project Card Component
-function ProjectCard({ project }: { project: Project }) {
+function ProjectCard({ project, onAnalyzeImpact }: { project: Project; onAnalyzeImpact?: () => void }) {
   const statusColors: Record<string, string> = {
     active: 'bg-emerald-500/20 text-emerald-400',
     planning: 'bg-blue-500/20 text-blue-400',
@@ -541,7 +770,7 @@ function ProjectCard({ project }: { project: Project }) {
   const budgetSpent = (project.budget.spent / project.budget.allocated) * 100;
 
   return (
-    <div className="bg-white/[0.02] rounded-xl border border-white/10 p-4">
+    <div className="bg-white/[0.02] rounded-xl border border-white/10 p-4 group">
       <div className="flex items-start justify-between mb-3">
         <div>
           <h3 className="text-sm font-medium text-white">{project.name}</h3>
@@ -587,6 +816,17 @@ function ProjectCard({ project }: { project: Project }) {
         <span>{project.assignedVessels.length} vessel(s)</span>
         <span>{project.location.name}</span>
       </div>
+
+      {/* Impact Analysis Button */}
+      {onAnalyzeImpact && (
+        <button
+          onClick={onAnalyzeImpact}
+          className="mt-3 w-full py-1.5 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-400 text-[10px] font-medium hover:bg-violet-500/20 transition-colors opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1"
+        >
+          <Brain className="w-3 h-3" />
+          What if delayed 7 days?
+        </button>
+      )}
     </div>
   );
 }

@@ -45,8 +45,20 @@ import {
   DollarSign,
   Sparkles,
   Loader2,
+  Zap,
+  ArrowUpRight,
+  ArrowDownRight,
+  Brain,
+  Play,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { ImpactAnalysisPanel, WhatIfSimulator } from '@/app/components/ImpactAnalysisPanel';
+import { 
+  analyzeImpact, 
+  generateMockFleetState,
+  ProposedChange,
+  ImpactAnalysisResult,
+} from '@/lib/impact-analysis';
 import {
   AreaChart,
   Area,
@@ -78,7 +90,11 @@ export default function ESGPage() {
   const [pathway, setPathway] = useState<DecarbonizationPathway | null>(null);
   const [emissionsTrend, setEmissionsTrend] = useState<Array<{ month: string; co2: number; target: number }>>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'vessels' | 'compliance' | 'pathway'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'vessels' | 'compliance' | 'pathway' | 'predictive'>('overview');
+  
+  const [impactResult, setImpactResult] = useState<ImpactAnalysisResult | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [selectedScenario, setSelectedScenario] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -183,6 +199,62 @@ export default function ESGPage() {
 
   const [isExporting, setIsExporting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+
+  const runImpactAnalysis = useCallback((scenarioType: string, parameters: Record<string, unknown>) => {
+    setIsAnalyzing(true);
+    setSelectedScenario(scenarioType);
+    
+    setTimeout(() => {
+      const fleetState = generateMockFleetState();
+      
+      const vesselIds = NMDC_FLEET.slice(0, 3).map(v => v.mmsi);
+      const projectIds = ['p1', 'p2'];
+      
+      const change: ProposedChange = {
+        id: `change-${Date.now()}`,
+        type: scenarioType as ProposedChange['type'],
+        title: getScenarioTitle(scenarioType),
+        description: getScenarioDescription(scenarioType, parameters),
+        effectiveDate: new Date(),
+        affectedVessels: vesselIds,
+        affectedProjects: projectIds,
+        parameters,
+      };
+      
+      const result = analyzeImpact(change, fleetState);
+      setImpactResult(result);
+      setIsAnalyzing(false);
+    }, 1500);
+  }, []);
+
+  const getScenarioTitle = (type: string): string => {
+    const titles: Record<string, string> = {
+      fuel_switch: 'Fleet Fuel Transition',
+      vessel_assignment: 'Vessel Reallocation',
+      maintenance_schedule: 'Maintenance Schedule Change',
+      new_project: 'New Project Acquisition',
+      equipment_failure: 'Equipment Failure Response',
+      route_change: 'Route Optimization',
+    };
+    return titles[type] || 'Operational Change';
+  };
+
+  const getScenarioDescription = (type: string, params: Record<string, unknown>): string => {
+    switch (type) {
+      case 'fuel_switch':
+        return `Transition fleet to ${params.newFuelType || 'LNG'} fuel to reduce emissions`;
+      case 'vessel_assignment':
+        return 'Reassign vessels to optimize fleet utilization and project coverage';
+      case 'maintenance_schedule':
+        return 'Adjust preventive maintenance schedules to minimize downtime';
+      case 'new_project':
+        return 'Evaluate impact of taking on a new high-priority client project';
+      case 'equipment_failure':
+        return 'Assess cascading impacts of critical equipment failure';
+      default:
+        return 'Evaluate operational change impact across the value chain';
+    }
+  };
 
   // Export vessel emissions data as CSV
   const exportDataAsCSV = useCallback(() => {
@@ -619,18 +691,22 @@ export default function ESGPage() {
               { id: 'vessels', label: 'Vessel Emissions', icon: Ship },
               { id: 'compliance', label: 'Compliance', icon: Target },
               { id: 'pathway', label: 'Decarbonization', icon: TrendingDown },
+              { id: 'predictive', label: 'Predictive Impact', icon: Brain },
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as typeof activeTab)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   activeTab === tab.id
-                    ? 'bg-white/10 text-white'
+                    ? tab.id === 'predictive' ? 'bg-violet-500/20 text-violet-400' : 'bg-white/10 text-white'
                     : 'text-white/50 hover:text-white/70 hover:bg-white/5'
                 }`}
               >
                 <tab.icon className="w-4 h-4" />
                 {tab.label}
+                {tab.id === 'predictive' && (
+                  <span className="px-1.5 py-0.5 rounded text-[10px] bg-violet-500/30 text-violet-300">NEW</span>
+                )}
               </button>
             ))}
           </div>
@@ -1052,6 +1128,267 @@ export default function ESGPage() {
                 ))}
               </div>
             </div>
+          </div>
+        )}
+
+        {activeTab === 'predictive' && (
+          <div className="space-y-6">
+            {/* Predictive Header */}
+            <div className="bg-gradient-to-r from-violet-500/10 to-cyan-500/10 rounded-xl border border-violet-500/30 p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-3 rounded-xl bg-violet-500/20">
+                  <Brain className="w-6 h-6 text-violet-400" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-white">Predictive Impact Analysis</h2>
+                  <p className="text-sm text-white/50">
+                    See upstream & downstream effects of any operational change on ESG, finances, and operations
+                  </p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-4 gap-4">
+                <div className="bg-white/5 rounded-lg p-4 text-center">
+                  <ArrowUpRight className="w-6 h-6 text-blue-400 mx-auto mb-2" />
+                  <div className="text-xs text-white/40">Upstream</div>
+                  <div className="text-sm font-medium text-white">Supply Chain, Crew, Parts</div>
+                </div>
+                <div className="bg-white/5 rounded-lg p-4 text-center">
+                  <Zap className="w-6 h-6 text-amber-400 mx-auto mb-2" />
+                  <div className="text-xs text-white/40">Change Event</div>
+                  <div className="text-sm font-medium text-white">Proposed Action</div>
+                </div>
+                <div className="bg-white/5 rounded-lg p-4 text-center">
+                  <ArrowDownRight className="w-6 h-6 text-violet-400 mx-auto mb-2" />
+                  <div className="text-xs text-white/40">Downstream</div>
+                  <div className="text-sm font-medium text-white">Revenue, Clients, ESG</div>
+                </div>
+                <div className="bg-white/5 rounded-lg p-4 text-center">
+                  <Target className="w-6 h-6 text-emerald-400 mx-auto mb-2" />
+                  <div className="text-xs text-white/40">Outcome</div>
+                  <div className="text-sm font-medium text-white">Recommendations</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-6">
+              {/* Scenario Selection */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-medium text-white flex items-center gap-2">
+                  <Play className="w-4 h-4 text-amber-400" />
+                  Run What-If Scenario
+                </h3>
+                
+                <div className="space-y-3">
+                  {[
+                    {
+                      id: 'fuel_switch_lng',
+                      type: 'fuel_switch',
+                      icon: Leaf,
+                      title: 'LNG Fuel Transition',
+                      description: 'Analyze impact of switching 5 vessels to LNG fuel',
+                      params: { newFuelType: 'LNG' },
+                      color: 'emerald',
+                    },
+                    {
+                      id: 'fuel_switch_hybrid',
+                      type: 'fuel_switch',
+                      icon: Fuel,
+                      title: 'Hybrid Propulsion',
+                      description: 'Evaluate hybrid electric-diesel conversion',
+                      params: { newFuelType: 'Hybrid' },
+                      color: 'cyan',
+                    },
+                    {
+                      id: 'schedule_change',
+                      type: 'schedule_change',
+                      icon: Calendar,
+                      title: 'Schedule Optimization',
+                      description: 'Reschedule operations for weather windows',
+                      params: { delayDays: 5 },
+                      color: 'amber',
+                    },
+                    {
+                      id: 'maintenance_defer',
+                      type: 'maintenance_schedule',
+                      icon: Building2,
+                      title: 'Defer Maintenance',
+                      description: 'Push non-critical maintenance by 30 days',
+                      params: { deferDays: 30 },
+                      color: 'violet',
+                    },
+                    {
+                      id: 'new_project',
+                      type: 'new_project',
+                      icon: Target,
+                      title: 'New ADNOC Project',
+                      description: 'Evaluate taking on a $15M installation project',
+                      params: { estimatedCost: 15000000, requiredVesselTypes: ['dredger', 'jack_up_barge'] },
+                      color: 'blue',
+                    },
+                    {
+                      id: 'equipment_failure',
+                      type: 'equipment_failure',
+                      icon: AlertTriangle,
+                      title: 'Equipment Failure',
+                      description: 'Simulate main engine failure on Al Mirfa',
+                      params: { severity: 'critical', estimatedDowntime: 14 },
+                      color: 'rose',
+                    },
+                  ].map(scenario => {
+                    const colorClasses: Record<string, string> = {
+                      emerald: 'border-emerald-500/30 hover:bg-emerald-500/10',
+                      cyan: 'border-cyan-500/30 hover:bg-cyan-500/10',
+                      amber: 'border-amber-500/30 hover:bg-amber-500/10',
+                      violet: 'border-violet-500/30 hover:bg-violet-500/10',
+                      blue: 'border-blue-500/30 hover:bg-blue-500/10',
+                      rose: 'border-rose-500/30 hover:bg-rose-500/10',
+                    };
+                    const iconColors: Record<string, string> = {
+                      emerald: 'text-emerald-400',
+                      cyan: 'text-cyan-400',
+                      amber: 'text-amber-400',
+                      violet: 'text-violet-400',
+                      blue: 'text-blue-400',
+                      rose: 'text-rose-400',
+                    };
+                    
+                    return (
+                      <button
+                        key={scenario.id}
+                        onClick={() => runImpactAnalysis(scenario.type, scenario.params)}
+                        disabled={isAnalyzing}
+                        className={`w-full p-4 rounded-xl bg-white/[0.02] border ${colorClasses[scenario.color]} transition-colors text-left disabled:opacity-50 ${
+                          selectedScenario === scenario.type ? 'ring-2 ring-violet-500/50' : ''
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={`p-2 rounded-lg bg-white/5`}>
+                            <scenario.icon className={`w-5 h-5 ${iconColors[scenario.color]}`} />
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium text-white">{scenario.title}</div>
+                            <p className="text-xs text-white/50 mt-0.5">{scenario.description}</p>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Impact Analysis Results */}
+              <div className="col-span-2">
+                {isAnalyzing ? (
+                  <div className="h-full flex flex-col items-center justify-center bg-white/[0.02] rounded-xl border border-white/10 p-8">
+                    <div className="w-16 h-16 border-4 border-violet-500 border-t-transparent rounded-full animate-spin mb-4" />
+                    <p className="text-white font-medium">Analyzing Impact Chain...</p>
+                    <p className="text-sm text-white/50 mt-1">Calculating upstream & downstream effects</p>
+                    <div className="mt-4 flex items-center gap-6 text-xs text-white/40">
+                      <span className="flex items-center gap-1">
+                        <ArrowUpRight className="w-3 h-3" /> Supply Chain
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <DollarSign className="w-3 h-3" /> Financial
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Leaf className="w-3 h-3" /> ESG
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Users className="w-3 h-3" /> Crew
+                      </span>
+                    </div>
+                  </div>
+                ) : impactResult ? (
+                  <ImpactAnalysisPanel
+                    result={impactResult}
+                    onDismiss={() => {
+                      setImpactResult(null);
+                      setSelectedScenario(null);
+                    }}
+                    onApplyChange={() => {
+                      alert('In production, this would initiate the change process with all stakeholders notified.');
+                      setImpactResult(null);
+                      setSelectedScenario(null);
+                    }}
+                  />
+                ) : (
+                  <div className="h-full flex flex-col items-center justify-center bg-white/[0.02] rounded-xl border border-white/10 border-dashed p-8">
+                    <Brain className="w-16 h-16 text-white/20 mb-4" />
+                    <p className="text-white/60 font-medium">Select a Scenario</p>
+                    <p className="text-sm text-white/40 mt-1 text-center max-w-md">
+                      Choose a what-if scenario to see how it impacts the entire operation chain — 
+                      from supply chain and crew upstream, to revenue, clients, and ESG downstream.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Key Insights */}
+            {impactResult && (
+              <div className="grid grid-cols-4 gap-4">
+                <div className={`p-4 rounded-xl border ${
+                  impactResult.esgImpact.co2Change < 0 
+                    ? 'bg-emerald-500/10 border-emerald-500/30' 
+                    : 'bg-rose-500/10 border-rose-500/30'
+                }`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Leaf className={impactResult.esgImpact.co2Change < 0 ? 'w-5 h-5 text-emerald-400' : 'w-5 h-5 text-rose-400'} />
+                    <span className="text-xs text-white/50">Carbon Impact</span>
+                  </div>
+                  <div className={`text-2xl font-bold ${impactResult.esgImpact.co2Change < 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {impactResult.esgImpact.co2Change > 0 ? '+' : ''}{impactResult.esgImpact.co2Change.toFixed(1)}%
+                  </div>
+                  <p className="text-xs text-white/40 mt-1">Annual CO₂ emissions</p>
+                </div>
+                
+                <div className={`p-4 rounded-xl border ${
+                  impactResult.financialSummary.totalFinancialImpact < 500000
+                    ? 'bg-emerald-500/10 border-emerald-500/30' 
+                    : 'bg-amber-500/10 border-amber-500/30'
+                }`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <DollarSign className="w-5 h-5 text-amber-400" />
+                    <span className="text-xs text-white/50">Financial Impact</span>
+                  </div>
+                  <div className="text-2xl font-bold text-amber-400">
+                    ${(impactResult.financialSummary.totalFinancialImpact / 1000).toFixed(0)}K
+                  </div>
+                  <p className="text-xs text-white/40 mt-1">Total cost/benefit</p>
+                </div>
+                
+                <div className={`p-4 rounded-xl border ${
+                  impactResult.operationalImpact.scheduleDelayDays < 7
+                    ? 'bg-blue-500/10 border-blue-500/30' 
+                    : 'bg-orange-500/10 border-orange-500/30'
+                }`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Calendar className="w-5 h-5 text-blue-400" />
+                    <span className="text-xs text-white/50">Schedule Impact</span>
+                  </div>
+                  <div className="text-2xl font-bold text-blue-400">
+                    {impactResult.operationalImpact.scheduleDelayDays} days
+                  </div>
+                  <p className="text-xs text-white/40 mt-1">Project timeline shift</p>
+                </div>
+                
+                <div className={`p-4 rounded-xl border ${
+                  impactResult.esgImpact.esgScoreChange >= 0
+                    ? 'bg-violet-500/10 border-violet-500/30' 
+                    : 'bg-rose-500/10 border-rose-500/30'
+                }`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Target className={impactResult.esgImpact.esgScoreChange >= 0 ? 'w-5 h-5 text-violet-400' : 'w-5 h-5 text-rose-400'} />
+                    <span className="text-xs text-white/50">ESG Score</span>
+                  </div>
+                  <div className={`text-2xl font-bold ${impactResult.esgImpact.esgScoreChange >= 0 ? 'text-violet-400' : 'text-rose-400'}`}>
+                    {impactResult.esgImpact.esgScoreChange > 0 ? '+' : ''}{impactResult.esgImpact.esgScoreChange} pts
+                  </div>
+                  <p className="text-xs text-white/40 mt-1">Overall ESG rating</p>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </main>
