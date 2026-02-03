@@ -45,7 +45,7 @@ export interface VesselAssignment {
 
 export interface ScheduleConflict {
   id: string;
-  type: 'vessel_double_booking' | 'crew_shortage' | 'equipment_unavailable' | 'weather_risk';
+  type: 'vessel_double_booking' | 'crew_shortage' | 'equipment_unavailable' | 'weather_risk' | 'equipment_risk';
   severity: 'critical' | 'warning' | 'info';
   affectedVessels: string[];
   affectedProjects: string[];
