@@ -26,6 +26,28 @@ export interface ProjectSite {
 
 export const PROJECT_SITES: ProjectSite[] = [
   {
+    id: 'proj-adnoc-001',
+    name: 'ADNOC Offshore Pipeline Installation',
+    client: 'ADNOC',
+    type: 'marine_construction',
+    status: 'active',
+    location: {
+      lat: 24.1108,
+      lng: 52.7306,
+      area: 'Ruwais Offshore, Abu Dhabi',
+    },
+    description: 'Critical offshore pipeline installation for ADNOC gas export facility. 48km subsea pipeline from Ruwais terminal to offshore platform. Weather window critical.',
+    startDate: '2025-11-01',
+    endDate: '2026-04-30',
+    progress: 35,
+    assignedVessels: ['470339000', '471026000', '470284000'], // DLB-750, DELMA 2000, DLB-1000
+    scope: {
+      area: '48 km pipeline',
+      depth: '-45m',
+    },
+    value: 'AED 460M ($125M)',
+  },
+  {
     id: 'proj-001',
     name: 'Khalifa Port Expansion Phase 3',
     client: 'Abu Dhabi Ports',
@@ -158,6 +180,28 @@ export const PROJECT_SITES: ProjectSite[] = [
     value: 'AED 150M',
   },
   {
+    id: 'proj-zakum',
+    name: 'Upper Zakum Platform Hook-up',
+    client: 'ZADCO',
+    type: 'marine_construction',
+    status: 'active',
+    location: {
+      lat: 24.85,
+      lng: 53.45,
+      area: 'Upper Zakum Field',
+    },
+    description: 'Platform hook-up and commissioning works for Upper Zakum oil field expansion. Jack-up operations for equipment installation and tie-ins.',
+    startDate: '2025-10-01',
+    endDate: '2026-03-31',
+    progress: 42,
+    assignedVessels: ['470114000', '470426000', '470395000'], // SEP-550, SEP-650, SEP-750
+    scope: {
+      area: '3 platforms',
+      depth: '-35m',
+    },
+    value: 'AED 280M ($76M)',
+  },
+  {
     id: 'proj-007',
     name: 'Fujairah Port - East Container Terminal',
     client: 'Fujairah Ports',
@@ -236,6 +280,103 @@ export const PROJECT_STATUS_CONFIG: Record<ProjectSite['status'], { label: strin
   planned: { label: 'Planned', color: '#3b82f6' },
   on_hold: { label: 'On Hold', color: '#f59e0b' },
 };
+
+// Project risk assessment based on vessel health
+import { getVesselIssueSummary } from '@/lib/vessel-issues';
+import { getNMDCVesselByMMSI } from '@/lib/nmdc/fleet';
+
+export interface ProjectRisk {
+  project: ProjectSite;
+  riskLevel: 'critical' | 'high' | 'medium' | 'low' | 'none';
+  healthScore: number;
+  vesselIssues: Array<{
+    vesselName: string;
+    mmsi: string;
+    issueCount: number;
+    worstHealth: number;
+    hasCritical: boolean;
+  }>;
+  impactSummary: string;
+  clientImpact: string;
+  financialRisk: string;
+}
+
+export function getProjectRisk(project: ProjectSite): ProjectRisk {
+  const vesselIssues: ProjectRisk['vesselIssues'] = [];
+  let minHealth = 100;
+  let totalIssues = 0;
+  let hasCriticalIssue = false;
+
+  for (const mmsi of project.assignedVessels) {
+    const vessel = getNMDCVesselByMMSI(mmsi);
+    const issueSummary = getVesselIssueSummary(mmsi);
+    
+    if (issueSummary.issueCount > 0) {
+      vesselIssues.push({
+        vesselName: vessel?.name || mmsi,
+        mmsi,
+        issueCount: issueSummary.issueCount,
+        worstHealth: issueSummary.worstHealth || 100,
+        hasCritical: issueSummary.hasCritical,
+      });
+      
+      if (issueSummary.worstHealth && issueSummary.worstHealth < minHealth) {
+        minHealth = issueSummary.worstHealth;
+      }
+      totalIssues += issueSummary.issueCount;
+      if (issueSummary.hasCritical) hasCriticalIssue = true;
+    }
+  }
+
+  // Determine risk level
+  let riskLevel: ProjectRisk['riskLevel'] = 'none';
+  if (hasCriticalIssue || minHealth < 60) riskLevel = 'critical';
+  else if (totalIssues > 3 || minHealth < 70) riskLevel = 'high';
+  else if (totalIssues > 0 || minHealth < 80) riskLevel = 'medium';
+  else if (minHealth < 90) riskLevel = 'low';
+
+  // Generate impact summaries
+  const impactSummary = vesselIssues.length > 0
+    ? `${vesselIssues.length} vessel${vesselIssues.length > 1 ? 's' : ''} with ${totalIssues} equipment issue${totalIssues > 1 ? 's' : ''}`
+    : 'All systems operational';
+
+  const clientImpact = riskLevel === 'critical' 
+    ? `Potential ${Math.ceil(Math.random() * 5 + 3)}-day delay, client notification required`
+    : riskLevel === 'high'
+    ? `Schedule at risk, proactive client update recommended`
+    : riskLevel === 'medium'
+    ? `Minor impact possible, monitoring recommended`
+    : 'On track';
+
+  const projectValue = project.value ? parseFloat(project.value.replace(/[^\d.]/g, '')) : 0;
+  const financialRisk = riskLevel === 'critical'
+    ? `$${(projectValue * 0.05).toFixed(1)}M+ at risk (penalties/delays)`
+    : riskLevel === 'high'
+    ? `$${(projectValue * 0.02).toFixed(1)}M exposure`
+    : 'Minimal';
+
+  return {
+    project,
+    riskLevel,
+    healthScore: minHealth,
+    vesselIssues,
+    impactSummary,
+    clientImpact,
+    financialRisk,
+  };
+}
+
+export function getProjectsAtRisk(): ProjectRisk[] {
+  return PROJECT_SITES
+    .filter(p => p.status === 'active')
+    .map(getProjectRisk)
+    .filter(r => r.riskLevel !== 'none')
+    .sort((a, b) => {
+      const order = { critical: 0, high: 1, medium: 2, low: 3, none: 4 };
+      return order[a.riskLevel] - order[b.riskLevel];
+    });
+}
+
 
 
 

@@ -1,18 +1,19 @@
 import { Project, VesselAssignment, ScheduleConflict, FleetMetrics } from './types';
 
-// Generate mock projects
+// Generate mock projects - ALIGNED with lib/nmdc/projects.ts PROJECT_SITES
+// Uses actual vessel MMSIs to match vessels with equipment issues
 export function generateMockProjects(): Project[] {
   const now = new Date();
   
   return [
     {
-      id: 'proj-001',
-      name: 'Ruwais LNG Terminal Expansion',
+      id: 'proj-adnoc-001',
+      name: 'ADNOC Offshore Pipeline Installation',
       client: 'ADNOC',
       type: 'construction',
       status: 'active',
       priority: 'critical',
-      location: { name: 'Ruwais, UAE', lat: 24.1, lng: 52.7 },
+      location: { name: 'Ruwais Offshore, Abu Dhabi', lat: 24.1, lng: 52.7 },
       schedule: {
         startDate: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
         endDate: new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000),
@@ -22,118 +23,76 @@ export function generateMockProjects(): Project[] {
         },
       },
       requirements: {
-        vesselTypes: ['crane_barge', 'supply_vessel'],
-        crewCount: 45,
-        equipment: ['Heavy lift crane', 'Dive support'],
+        vesselTypes: ['pipelay_barge', 'derrick_barge'],
+        crewCount: 300,
+        equipment: ['Tensioner system', 'Stinger', 'Heavy lift crane'],
       },
-      assignedVessels: ['vessel-1', 'vessel-3'],
+      assignedVessels: ['470339000', '471026000', '470284000'], // DLB-750, DELMA 2000, DLB-1000
       progress: 35,
-      budget: { allocated: 12500000, spent: 4375000, currency: 'USD' },
+      budget: { allocated: 125000000, spent: 43750000, currency: 'USD' },
     },
     {
-      id: 'proj-002',
-      name: 'Palm Jumeirah Channel Dredging',
-      client: 'Nakheel',
+      id: 'proj-zakum',
+      name: 'Upper Zakum Platform Hook-up',
+      client: 'ZADCO',
+      type: 'construction',
+      status: 'active',
+      priority: 'high',
+      location: { name: 'Upper Zakum Field', lat: 24.85, lng: 53.45 },
+      schedule: {
+        startDate: new Date(now.getTime() - 45 * 24 * 60 * 60 * 1000),
+        endDate: new Date(now.getTime() + 45 * 24 * 60 * 60 * 1000),
+      },
+      requirements: {
+        vesselTypes: ['jack_up'],
+        crewCount: 260,
+        equipment: ['Jacking system', 'Crane', 'Welding equipment'],
+      },
+      assignedVessels: ['470114000', '470426000', '470395000'], // SEP-550, SEP-650, SEP-750
+      progress: 42,
+      budget: { allocated: 76000000, spent: 31920000, currency: 'USD' },
+    },
+    {
+      id: 'proj-001',
+      name: 'Khalifa Port Expansion Phase 3',
+      client: 'Abu Dhabi Ports',
       type: 'dredging',
       status: 'active',
       priority: 'high',
-      location: { name: 'Dubai, UAE', lat: 25.1, lng: 55.1 },
+      location: { name: 'Khalifa Port, Abu Dhabi', lat: 24.8, lng: 54.6 },
       schedule: {
-        startDate: new Date(now.getTime() - 15 * 24 * 60 * 60 * 1000),
-        endDate: new Date(now.getTime() + 45 * 24 * 60 * 60 * 1000),
+        startDate: new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000),
+        endDate: new Date(now.getTime() + 120 * 24 * 60 * 60 * 1000),
       },
       requirements: {
         vesselTypes: ['dredger'],
-        crewCount: 25,
+        crewCount: 80,
         equipment: ['Suction dredge', 'Survey equipment'],
       },
-      assignedVessels: ['vessel-2'],
-      progress: 55,
-      budget: { allocated: 8500000, spent: 4675000, currency: 'USD' },
-    },
-    {
-      id: 'proj-003',
-      name: 'Offshore Platform Decommissioning',
-      client: 'BP',
-      type: 'decommissioning',
-      status: 'planning',
-      priority: 'medium',
-      location: { name: 'Abu Dhabi Offshore', lat: 24.5, lng: 54.0 },
-      schedule: {
-        startDate: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000),
-        endDate: new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000),
-      },
-      requirements: {
-        vesselTypes: ['crane_barge', 'tugboat', 'supply_vessel'],
-        crewCount: 60,
-        equipment: ['Heavy lift crane', 'Cutting equipment', 'Dive support'],
-      },
-      assignedVessels: ['vessel-4', 'vessel-5'],
-      progress: 0,
-      budget: { allocated: 22000000, spent: 0, currency: 'USD' },
-    },
-    {
-      id: 'proj-004',
-      name: 'Submarine Cable Installation',
-      client: 'Etisalat',
-      type: 'installation',
-      status: 'active',
-      priority: 'high',
-      location: { name: 'Fujairah, UAE', lat: 25.1, lng: 56.3 },
-      schedule: {
-        startDate: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
-        endDate: new Date(now.getTime() + 21 * 24 * 60 * 60 * 1000),
-      },
-      requirements: {
-        vesselTypes: ['supply_vessel', 'survey_vessel'],
-        crewCount: 30,
-        equipment: ['Cable laying equipment', 'ROV'],
-      },
-      assignedVessels: ['vessel-6', 'vessel-7'],
-      progress: 40,
-      budget: { allocated: 5500000, spent: 2200000, currency: 'USD' },
-    },
-    {
-      id: 'proj-005',
-      name: 'Port Rashid Maintenance',
-      client: 'DP World',
-      type: 'maintenance',
-      status: 'on-hold',
-      priority: 'low',
-      location: { name: 'Dubai, UAE', lat: 25.27, lng: 55.28 },
-      schedule: {
-        startDate: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),
-        endDate: new Date(now.getTime() + 45 * 24 * 60 * 60 * 1000),
-      },
-      requirements: {
-        vesselTypes: ['tugboat'],
-        crewCount: 15,
-        equipment: ['Standard marine equipment'],
-      },
-      assignedVessels: ['vessel-8'],
-      progress: 0,
-      budget: { allocated: 1200000, spent: 0, currency: 'USD' },
+      assignedVessels: ['470563000', '471072000'], // AL SADR, ARZANA
+      progress: 35,
+      budget: { allocated: 230000000, spent: 80500000, currency: 'USD' },
     },
     {
       id: 'proj-006',
-      name: 'Seabed Survey - New Island',
-      client: 'Government of Abu Dhabi',
-      type: 'survey',
+      name: 'Das Island Support Base',
+      client: 'ADNOC Offshore',
+      type: 'construction',
       status: 'active',
       priority: 'medium',
-      location: { name: 'Al Saadiyat, UAE', lat: 24.55, lng: 54.43 },
+      location: { name: 'Das Island', lat: 25.15, lng: 52.87 },
       schedule: {
-        startDate: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000),
-        endDate: new Date(now.getTime() + 12 * 24 * 60 * 60 * 1000),
+        startDate: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000),
+        endDate: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),
       },
       requirements: {
-        vesselTypes: ['survey_vessel'],
-        crewCount: 12,
-        equipment: ['Multibeam sonar', 'GPS positioning'],
+        vesselTypes: ['supply_vessel', 'tug'],
+        crewCount: 45,
+        equipment: ['Standard marine equipment'],
       },
-      assignedVessels: ['vessel-9'],
-      progress: 25,
-      budget: { allocated: 850000, spent: 212500, currency: 'USD' },
+      assignedVessels: ['470927000', '470337000'], // UMM SHAIF, NPCC SAADIYAT
+      progress: 75,
+      budget: { allocated: 40000000, spent: 30000000, currency: 'USD' },
     },
   ];
 }
@@ -198,35 +157,35 @@ export function generateMockAssignments(projects: Project[], vessels: Array<{ id
   return assignments;
 }
 
-// Generate schedule conflicts
+// Generate schedule conflicts - uses actual vessel names and project IDs
 export function generateMockConflicts(): ScheduleConflict[] {
   return [
     {
       id: 'conflict-001',
-      type: 'weather_risk',
-      severity: 'warning',
-      affectedVessels: ['vessel-1', 'vessel-3'],
-      affectedProjects: ['proj-001'],
-      description: 'High wind advisory (35+ knots) forecasted for Ruwais area in 5 days',
-      suggestedResolution: 'Accelerate current phase or prepare for 2-day standby',
+      type: 'equipment_risk',
+      severity: 'critical',
+      affectedVessels: ['470339000'], // DLB-750
+      affectedProjects: ['proj-adnoc-001'],
+      description: 'DLB-750 Tensioner System at 58% health - risk to ADNOC Pipeline project',
+      suggestedResolution: 'Schedule preventive maintenance before weather window or assign DLB-1000 as backup',
     },
     {
       id: 'conflict-002',
-      type: 'vessel_double_booking',
-      severity: 'critical',
-      affectedVessels: ['vessel-4'],
-      affectedProjects: ['proj-003', 'proj-004'],
-      description: 'NMDC Al Mirfa scheduled for two projects with overlapping dates',
-      suggestedResolution: 'Reassign NMDC Yas Al Bahr to project 004 or delay project 003 by 5 days',
+      type: 'weather_risk',
+      severity: 'warning',
+      affectedVessels: ['470339000', '471026000', '470284000'], // DLB-750, DELMA 2000, DLB-1000
+      affectedProjects: ['proj-adnoc-001'],
+      description: 'High wind advisory (35+ knots) forecasted for Ruwais offshore area in 5 days',
+      suggestedResolution: 'Accelerate current pipe-lay phase or prepare for 2-day standby',
     },
     {
       id: 'conflict-003',
-      type: 'crew_shortage',
+      type: 'equipment_risk',
       severity: 'warning',
-      affectedVessels: ['vessel-2'],
-      affectedProjects: ['proj-002'],
-      description: '3 certified crane operators on leave during critical lift phase',
-      suggestedResolution: 'Request temporary crew from NMDC Al Hudayriat or delay lift operations',
+      affectedVessels: ['470114000'], // SEP-550
+      affectedProjects: ['proj-zakum'],
+      description: 'SEP-550 Jacking System at 64% health - potential impact on Zakum hook-up schedule',
+      suggestedResolution: 'Complete accumulator service during next jacking cycle transition',
     },
   ];
 }
@@ -239,11 +198,11 @@ export function generateFleetMetrics(vessels: Array<{ id: string; status: string
     totalVessels: vessels.length,
     activeVessels,
     utilization: Math.round((activeVessels / vessels.length) * 100),
-    activeProjects: 4,
+    activeProjects: 4, // ADNOC Pipeline, Zakum Hook-up, Khalifa Port, Das Island
     completedProjects: 12,
-    upcomingMaintenance: 3,
-    conflictCount: 2,
-    revenuePerDay: 485000,
+    upcomingMaintenance: 8, // Vessels with equipment issues
+    conflictCount: 3,
+    revenuePerDay: 850000, // ~$850K/day for major offshore projects
   };
 }
 

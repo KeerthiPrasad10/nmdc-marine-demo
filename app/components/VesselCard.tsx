@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Vessel } from '@/lib/supabase';
 import { getWeatherAtLocation, getWeatherIcon } from '@/lib/weather';
+import type { VesselIssueSummary } from '@/lib/vessel-issues';
 import {
   Anchor,
   Ship,
@@ -20,7 +21,15 @@ import {
   ChevronRight,
   Cpu,
   MapPin,
+  Briefcase,
 } from 'lucide-react';
+
+interface AssignedProject {
+  id: string;
+  name: string;
+  client: string;
+  priority?: 'critical' | 'high' | 'medium' | 'low';
+}
 
 interface VesselCardProps {
   vessel: Vessel;
@@ -28,6 +37,8 @@ interface VesselCardProps {
   selected?: boolean;
   compact?: boolean;
   linkToDetail?: boolean;
+  issueSummary?: VesselIssueSummary;
+  assignedProject?: AssignedProject;
 }
 
 const vesselIcons: Record<string, typeof Ship> = {
@@ -85,7 +96,7 @@ const statusConfig = {
   },
 };
 
-export function VesselCard({ vessel, onClick, selected, compact = false, linkToDetail = false }: VesselCardProps) {
+export function VesselCard({ vessel, onClick, selected, compact = false, linkToDetail = false, issueSummary, assignedProject }: VesselCardProps) {
   const Icon = vesselIcons[vessel.type] || Ship;
   const status = statusConfig[vessel.status || 'operational'];
   const StatusIcon = status.icon;
@@ -115,6 +126,14 @@ export function VesselCard({ vessel, onClick, selected, compact = false, linkToD
     critical: 'text-red-500',
   };
 
+  // Determine if vessel has equipment issues that need attention
+  const hasIssues = issueSummary && issueSummary.issueCount > 0;
+  const issueIndicatorColor = issueSummary?.hasCritical 
+    ? 'bg-rose-500' 
+    : issueSummary?.hasHighPriority 
+      ? 'bg-amber-500' 
+      : 'bg-yellow-500';
+
   // Compact mode for sidebar - clean, minimal design
   if (compact) {
     const vesselType = getVesselTypeDisplay(vessel);
@@ -124,19 +143,46 @@ export function VesselCard({ vessel, onClick, selected, compact = false, linkToD
         onClick={onClick}
         className={`group relative overflow-hidden rounded-lg border transition-all duration-200 ${
           onClick ? 'cursor-pointer hover:bg-white/5' : ''
-        } ${selected ? 'border-white/30 bg-white/5' : 'border-white/5 bg-transparent hover:border-white/10'}`}
+        } ${
+          hasIssues && issueSummary?.hasHighPriority
+            ? 'border-amber-500/40 bg-amber-500/5'
+            : selected 
+              ? 'border-white/30 bg-white/5' 
+              : 'border-white/5 bg-transparent hover:border-white/10'
+        }`}
       >
+        {/* Equipment Issue Indicator Bar */}
+        {hasIssues && issueSummary?.hasHighPriority && (
+          <div className={`absolute left-0 top-0 bottom-0 w-1 ${issueIndicatorColor}`} />
+        )}
+        
         <div className="flex items-center gap-3 p-2.5">
           <div
-            className={`flex h-7 w-7 items-center justify-center rounded ${
-              selected ? 'bg-white/20 text-white' : 'bg-white/5 text-white/40'
+            className={`relative flex h-7 w-7 items-center justify-center rounded ${
+              hasIssues && issueSummary?.hasHighPriority
+                ? 'bg-amber-500/20 text-amber-400'
+                : selected 
+                  ? 'bg-white/20 text-white' 
+                  : 'bg-white/5 text-white/40'
             }`}
           >
             <Icon className="h-3.5 w-3.5" />
+            {/* Issue count badge */}
+            {hasIssues && (
+              <span className={`absolute -top-1 -right-1 h-3.5 w-3.5 rounded-full ${issueIndicatorColor} text-[9px] font-bold text-white flex items-center justify-center`}>
+                {issueSummary.issueCount}
+              </span>
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <h3 className={`text-sm font-medium truncate ${selected ? 'text-white' : 'text-white/80'}`}>
+              <h3 className={`text-sm font-medium truncate ${
+                hasIssues && issueSummary?.hasHighPriority 
+                  ? 'text-amber-300' 
+                  : selected 
+                    ? 'text-white' 
+                    : 'text-white/80'
+              }`}>
                 {vessel.name}
               </h3>
               {vessel.status === 'alert' && (
@@ -146,14 +192,41 @@ export function VesselCard({ vessel, onClick, selected, compact = false, linkToD
                 <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
               )}
             </div>
+            {/* Project assignment - always show vessel type, then project below */}
             <p className="text-[10px] text-white/30 truncate capitalize">{vesselType}</p>
-            <div className="flex items-center gap-2 mt-0.5 text-xs text-white/40">
-              <span className={healthColor}>{vessel.health_score ?? 100}%</span>
-              <span>·</span>
-              <span className={fuelColor}>{Math.round(vessel.fuel_level ?? 100)}% fuel</span>
-              <span>·</span>
-              <span>{vessel.speed?.toFixed(1) ?? 0} kn</span>
-            </div>
+            {assignedProject && (
+              <div className="flex items-center gap-1 mt-0.5">
+                <Briefcase className={`h-2.5 w-2.5 flex-shrink-0 ${
+                  assignedProject.priority === 'critical' ? 'text-rose-400' :
+                  assignedProject.priority === 'high' ? 'text-amber-400' :
+                  'text-cyan-400'
+                }`} />
+                <span className={`text-[10px] font-medium truncate ${
+                  assignedProject.priority === 'critical' ? 'text-rose-400' :
+                  assignedProject.priority === 'high' ? 'text-amber-400' :
+                  'text-cyan-400'
+                }`}>
+                  {assignedProject.name}
+                </span>
+              </div>
+            )}
+            {/* Show equipment health if has issues, otherwise show fuel/speed */}
+            {hasIssues ? (
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <AlertTriangle className="h-3 w-3 text-amber-400" />
+                <span className="text-[10px] text-amber-400 font-medium">
+                  {issueSummary.issueCount} issue{issueSummary.issueCount > 1 ? 's' : ''} • {issueSummary.worstHealth}% health
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 mt-0.5 text-xs text-white/40">
+                <span className={healthColor}>{vessel.health_score ?? 100}%</span>
+                <span>·</span>
+                <span className={fuelColor}>{Math.round(vessel.fuel_level ?? 100)}% fuel</span>
+                <span>·</span>
+                <span>{vessel.speed?.toFixed(1) ?? 0} kn</span>
+              </div>
+            )}
           </div>
           {/* Links on hover */}
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">

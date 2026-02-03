@@ -1,16 +1,22 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { supabase, Weather, Vessel } from '@/lib/supabase';
 import type { FleetVessel } from './api/fleet/route';
 import { generateAlertsFromFleet, getAlertCounts, type NMDCAlert } from '@/lib/nmdc/alerts';
+import { getNMDCVesselByMMSI } from '@/lib/nmdc/fleet';
 import { 
   PROJECT_SITES, 
   PROJECT_TYPE_CONFIG, 
   PROJECT_STATUS_CONFIG,
   getProjectStats,
-  type ProjectSite 
+  getProjectsByVessel,
+  getProjectsAtRisk,
+  getProjectRisk,
+  type ProjectSite,
+  type ProjectRisk,
 } from '@/lib/nmdc/projects';
+import { getVesselIssueSummary, type VesselIssueSummary } from '@/lib/vessel-issues';
 import {
   Header,
   MetricCard,
@@ -196,7 +202,49 @@ export default function Dashboard() {
   }, [fetchFleet, fetchWeather]);
 
   // Convert fleet vessels to DB format for component compatibility
-  const vessels = fleetVessels.map(toDbVessel);
+  const rawVessels = fleetVessels.map(toDbVessel);
+  
+  // Get issue summaries for all vessels (keyed by MMSI)
+  const issueSummaries = useMemo(() => {
+    const summaries: Record<string, VesselIssueSummary> = {};
+    for (const vessel of rawVessels) {
+      const mmsi = vessel.mmsi || vessel.id;
+      summaries[mmsi] = getVesselIssueSummary(mmsi);
+    }
+    return summaries;
+  }, [rawVessels]);
+  
+  // Sort vessels: those with high-priority issues first, then by name
+  const vessels = useMemo(() => {
+    return [...rawVessels].sort((a, b) => {
+      const aIssues = issueSummaries[a.mmsi || a.id];
+      const bIssues = issueSummaries[b.mmsi || b.id];
+      
+      // Vessels with critical/high priority issues come first
+      const aHasHighPriority = aIssues?.hasHighPriority ? 1 : 0;
+      const bHasHighPriority = bIssues?.hasHighPriority ? 1 : 0;
+      
+      if (aHasHighPriority !== bHasHighPriority) {
+        return bHasHighPriority - aHasHighPriority;
+      }
+      
+      // Then by worst health score (lower = more urgent)
+      const aWorstHealth = aIssues?.worstHealth ?? 100;
+      const bWorstHealth = bIssues?.worstHealth ?? 100;
+      
+      if (aWorstHealth !== bWorstHealth) {
+        return aWorstHealth - bWorstHealth;
+      }
+      
+      // Finally alphabetically
+      return a.name.localeCompare(b.name);
+    });
+  }, [rawVessels, issueSummaries]);
+  
+  // Count vessels with attention needed
+  const vesselsWithIssues = useMemo(() => {
+    return Object.values(issueSummaries).filter(s => s.hasHighPriority).length;
+  }, [issueSummaries]);
   
   // Get the full vessel object for the selected vessel
   const selectedVesselData = selectedVessel 
@@ -293,6 +341,31 @@ export default function Dashboard() {
             {/* Vessels Panel */}
             {leftPanel === 'vessels' && (
               <>
+                {/* Projects at Risk Banner */}
+                {(() => {
+                  const projectsAtRisk = getProjectsAtRisk();
+                  return projectsAtRisk.length > 0 ? (
+                    <button
+                      onClick={() => setLeftPanel('projects')}
+                      className="w-full p-3 border-b border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/15 transition-all text-left"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="h-4 w-4 text-rose-400" />
+                          <span className="text-sm font-medium text-rose-400">
+                            {projectsAtRisk.length} Project{projectsAtRisk.length > 1 ? 's' : ''} at Risk
+                          </span>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-rose-400" />
+                      </div>
+                      <p className="text-[10px] text-rose-300/70 mt-1">
+                        {projectsAtRisk.map(r => r.project.name).slice(0, 2).join(', ')}
+                        {projectsAtRisk.length > 2 ? ` +${projectsAtRisk.length - 2} more` : ''}
+                      </p>
+                    </button>
+                  ) : null;
+                })()}
+                
                 {/* Metrics Grid */}
                 <div className="p-4 border-b border-white/8">
                   <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">
@@ -355,18 +428,48 @@ export default function Dashboard() {
 
                 {/* Vessel List */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                  <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">
-                    Vessels ({vessels.length})
-                  </h3>
-                  {vessels.map((vessel) => (
-                    <VesselCard
-                      key={vessel.id}
-                      vessel={vessel}
-                      compact
-                      selected={selectedVessel === vessel.id}
-                      onClick={() => handleSelectVessel(vessel.id)}
-                    />
-                  ))}
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider">
+                      Vessels ({vessels.length})
+                    </h3>
+                    {vesselsWithIssues > 0 && (
+                      <span className="flex items-center gap-1 text-[10px] font-medium text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
+                        <AlertTriangle className="h-3 w-3" />
+                        {vesselsWithIssues} need attention
+                      </span>
+                    )}
+                  </div>
+                  {vessels.map((vessel) => {
+                    const mmsi = vessel.mmsi || vessel.id;
+                    const projects = getProjectsByVessel(mmsi);
+                    const project = projects[0];
+                    
+                    // Determine priority based on client and value
+                    const getPriority = (p: ProjectSite): 'critical' | 'high' | 'medium' | 'low' => {
+                      if (p.client === 'ADNOC' || p.client === 'ZADCO') return 'critical';
+                      if (p.client === 'Abu Dhabi Ports' || p.client === 'ADNOC Offshore') return 'high';
+                      return 'medium';
+                    };
+                    
+                    const assignedProject = project ? {
+                      id: project.id,
+                      name: project.name,
+                      client: project.client,
+                      priority: getPriority(project),
+                    } : undefined;
+                    
+                    return (
+                      <VesselCard
+                        key={vessel.id}
+                        vessel={vessel}
+                        compact
+                        selected={selectedVessel === vessel.id}
+                        onClick={() => handleSelectVessel(vessel.id)}
+                        issueSummary={issueSummaries[mmsi]}
+                        assignedProject={assignedProject}
+                      />
+                    );
+                  })}
                 </div>
               </>
             )}
@@ -374,6 +477,71 @@ export default function Dashboard() {
             {/* Projects Panel */}
             {leftPanel === 'projects' && (
               <>
+                {/* Projects at Risk - Primary Focus */}
+                {(() => {
+                  const projectsAtRisk = getProjectsAtRisk();
+                  return projectsAtRisk.length > 0 ? (
+                    <div className="p-4 border-b border-rose-500/30 bg-rose-500/5">
+                      <div className="flex items-center gap-2 mb-3">
+                        <AlertTriangle className="h-4 w-4 text-rose-400" />
+                        <h3 className="text-xs font-semibold text-rose-400 uppercase tracking-wider">
+                          {projectsAtRisk.length} Project{projectsAtRisk.length > 1 ? 's' : ''} at Risk
+                        </h3>
+                      </div>
+                      <div className="space-y-2">
+                        {projectsAtRisk.slice(0, 3).map((risk) => (
+                          <button
+                            key={risk.project.id}
+                            onClick={() => setSelectedProject(risk.project)}
+                            className={`w-full text-left p-3 rounded-lg border transition-all ${
+                              risk.riskLevel === 'critical' 
+                                ? 'border-rose-500/50 bg-rose-500/10 hover:bg-rose-500/20' 
+                                : 'border-amber-500/50 bg-amber-500/10 hover:bg-amber-500/20'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <h4 className="text-sm font-medium text-white truncate">{risk.project.name}</h4>
+                                <p className="text-[10px] text-white/50">{risk.project.client}</p>
+                              </div>
+                              <span className={`text-[10px] px-2 py-0.5 rounded font-medium ${
+                                risk.riskLevel === 'critical' ? 'bg-rose-500/30 text-rose-300' : 'bg-amber-500/30 text-amber-300'
+                              }`}>
+                                {risk.riskLevel.toUpperCase()}
+                              </span>
+                            </div>
+                            <div className="mt-2 space-y-1">
+                              <p className={`text-[10px] ${risk.riskLevel === 'critical' ? 'text-rose-300' : 'text-amber-300'}`}>
+                                ⚠️ {risk.impactSummary}
+                              </p>
+                              <p className="text-[10px] text-white/40">
+                                📊 {risk.clientImpact}
+                              </p>
+                              {risk.riskLevel === 'critical' && (
+                                <p className="text-[10px] text-rose-400">
+                                  💰 {risk.financialRisk}
+                                </p>
+                              )}
+                            </div>
+                            <div className="mt-2 flex flex-wrap gap-1">
+                              {risk.vesselIssues.map((vi) => (
+                                <span 
+                                  key={vi.mmsi}
+                                  className={`text-[9px] px-1.5 py-0.5 rounded ${
+                                    vi.hasCritical ? 'bg-rose-500/30 text-rose-300' : 'bg-amber-500/30 text-amber-300'
+                                  }`}
+                                >
+                                  {vi.vesselName} ({vi.worstHealth}%)
+                                </span>
+                              ))}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null;
+                })()}
+
                 {/* Project Stats */}
                 <div className="p-4 border-b border-white/8">
                   <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">
@@ -405,28 +573,53 @@ export default function Dashboard() {
                     const typeConfig = PROJECT_TYPE_CONFIG[project.type];
                     const statusConfig = PROJECT_STATUS_CONFIG[project.status];
                     const isSelected = selectedProject?.id === project.id;
+                    const risk = project.status === 'active' ? getProjectRisk(project) : null;
+                    const hasRisk = risk && risk.riskLevel !== 'none';
                     
                     return (
                       <button
                         key={project.id}
                         onClick={() => setSelectedProject(isSelected ? null : project)}
-                        className={`w-full text-left p-3 border-b border-white/5 transition-all ${
-                          isSelected ? 'bg-white/10' : 'hover:bg-white/5'
+                        className={`w-full text-left p-3 border-b transition-all ${
+                          hasRisk && risk.riskLevel === 'critical'
+                            ? 'border-l-2 border-l-rose-500 border-b-white/5 bg-rose-500/5 hover:bg-rose-500/10'
+                            : hasRisk
+                            ? 'border-l-2 border-l-amber-500 border-b-white/5 bg-amber-500/5 hover:bg-amber-500/10'
+                            : isSelected 
+                            ? 'border-b-white/5 bg-white/10' 
+                            : 'border-b-white/5 hover:bg-white/5'
                         }`}
                       >
                         <div className="flex items-start gap-3">
                           <div
-                            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-sm"
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-sm ${
+                              hasRisk && risk.riskLevel === 'critical' ? 'ring-2 ring-rose-500/50' :
+                              hasRisk ? 'ring-2 ring-amber-500/50' : ''
+                            }`}
                             style={{ backgroundColor: `${typeConfig.color}20` }}
                           >
                             {typeConfig.icon}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h3 className="text-sm font-medium text-white truncate">{project.name}</h3>
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-sm font-medium text-white truncate">{project.name}</h3>
+                              {hasRisk && (
+                                <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${
+                                  risk.riskLevel === 'critical' ? 'bg-rose-500/30 text-rose-300' : 'bg-amber-500/30 text-amber-300'
+                                }`}>
+                                  ⚠️ {risk.riskLevel.toUpperCase()}
+                                </span>
+                              )}
+                            </div>
                             <div className="flex items-center gap-1 mt-0.5">
                               <MapPin className="h-3 w-3 text-white/30" />
                               <p className="text-xs text-white/50 truncate">{project.location.area}</p>
                             </div>
+                            {hasRisk && (
+                              <p className={`text-[10px] mt-1 ${risk.riskLevel === 'critical' ? 'text-rose-300' : 'text-amber-300'}`}>
+                                {risk.impactSummary}
+                              </p>
+                            )}
                             <div className="flex items-center gap-2 mt-1.5">
                               <span
                                 className="text-[10px] px-1.5 py-0.5 rounded"
@@ -438,9 +631,9 @@ export default function Dashboard() {
                                 {statusConfig.label}
                               </span>
                               {project.assignedVessels.length > 0 && (
-                                <span className="flex items-center gap-1 text-[10px] text-white/40">
+                                <span className="flex items-center gap-1 text-[10px] text-cyan-400">
                                   <Ship className="h-3 w-3" />
-                                  {project.assignedVessels.length}
+                                  {project.assignedVessels.map(mmsi => getNMDCVesselByMMSI(mmsi)?.name).filter(Boolean).join(', ')}
                                 </span>
                               )}
                             </div>
@@ -474,6 +667,21 @@ export default function Dashboard() {
                                 <span className="text-amber-400">{project.value}</span>
                               )}
                             </div>
+                            {project.assignedVessels.length > 0 && (
+                              <div className="mt-2 p-2 bg-white/5 rounded-lg">
+                                <p className="text-[10px] text-white/40 mb-1">Assigned Vessels:</p>
+                                <div className="flex flex-wrap gap-1">
+                                  {project.assignedVessels.map(mmsi => {
+                                    const vessel = getNMDCVesselByMMSI(mmsi);
+                                    return vessel ? (
+                                      <span key={mmsi} className="text-[10px] px-2 py-0.5 bg-cyan-500/20 text-cyan-400 rounded">
+                                        {vessel.name}
+                                      </span>
+                                    ) : null;
+                                  })}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                       </button>

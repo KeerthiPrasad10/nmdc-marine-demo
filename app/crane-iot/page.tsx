@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   ArrowLeft,
   Activity,
@@ -549,8 +550,16 @@ export default function CraneIoTDashboard() {
                   <Activity className="w-6 h-6 text-amber-400" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-white">Crane IoT Dashboard</h1>
-                  <p className="text-sm text-white/50">{crane.name} · {crane.location}</p>
+                  <h1 className="text-xl font-bold text-white">{crane.name}</h1>
+                  <p className="text-sm text-white/50">
+                    {crane.vessel && (
+                      <Link href={`/vessel/${crane.vessel.mmsi}`} className="text-cyan-400 hover:text-cyan-300 transition-colors">
+                        {crane.vessel.name}
+                      </Link>
+                    )}
+                    {crane.vessel && ' · '}
+                    {crane.location}
+                  </p>
                 </div>
               </div>
             </div>

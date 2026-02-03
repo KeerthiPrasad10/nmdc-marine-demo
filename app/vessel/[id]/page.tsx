@@ -425,7 +425,8 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
     return 'text-rose-400';
   };
 
-  const criticalEquipment = equipment.filter(e => (e.health_score ?? 100) < 70);
+  const vesselIssueData = getVesselIssues(vesselId);
+  const equipmentWithIssues = vesselIssueData?.issues || [];
   const criticalAlerts = alerts.filter(a => a.severity === 'critical');
 
   return (
@@ -540,6 +541,17 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
                 {tab.label}
               </button>
             ))}
+            
+            {/* Crane IoT Link - Only for vessels with cranes */}
+            {['471026000', '470212000'].includes(vesselId) && (
+              <Link
+                href="/crane-iot"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ml-2 bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20"
+              >
+                <Activity className="w-4 h-4" />
+                Crane IoT
+              </Link>
+            )}
           </div>
         </div>
       </header>
@@ -550,28 +562,34 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
           <div className="grid grid-cols-3 gap-6">
             {/* Left Column - Vessel Info */}
             <div className="col-span-2 space-y-6">
-              {/* Alert Banner if critical issues */}
-              {(criticalAlerts.length > 0 || criticalEquipment.length > 0) && (
-                <div className="rounded-xl bg-rose-500/10 border border-rose-500/30 p-4">
-                  <div className="flex items-center gap-3">
-                    <AlertTriangle className="w-5 h-5 text-rose-400" />
-                    <div>
-                      <h3 className="font-semibold text-rose-400">Attention Required</h3>
-                      <p className="text-sm text-white/60">
-                        {criticalAlerts.length > 0 && `${criticalAlerts.length} critical alert(s)`}
-                        {criticalAlerts.length > 0 && criticalEquipment.length > 0 && ' • '}
-                        {criticalEquipment.length > 0 && `${criticalEquipment.length} equipment issue(s)`}
-                      </p>
+              {/* Alert Banner if issues exist */}
+              {(criticalAlerts.length > 0 || equipmentWithIssues.length > 0) && (() => {
+                const hasCriticalEquipment = equipmentWithIssues.some(eq => eq.pmPrediction?.priority === 'critical');
+                const hasCriticalAlert = criticalAlerts.length > 0;
+                const isCritical = hasCriticalEquipment || hasCriticalAlert;
+                
+                return (
+                  <div className={`rounded-xl p-4 ${isCritical ? 'bg-rose-500/10 border border-rose-500/30' : 'bg-amber-500/10 border border-amber-500/30'}`}>
+                    <div className="flex items-center gap-3">
+                      <AlertTriangle className={`w-5 h-5 ${isCritical ? 'text-rose-400' : 'text-amber-400'}`} />
+                      <div>
+                        <h3 className={`font-semibold ${isCritical ? 'text-rose-400' : 'text-amber-400'}`}>Attention Required</h3>
+                        <p className="text-sm text-white/60">
+                          {criticalAlerts.length > 0 && `${criticalAlerts.length} critical alert(s)`}
+                          {criticalAlerts.length > 0 && equipmentWithIssues.length > 0 && ' • '}
+                          {equipmentWithIssues.length > 0 && `${equipmentWithIssues.length} equipment issue(s)`}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setActiveTab('systems')}
+                        className={`ml-auto px-3 py-1.5 rounded-lg text-sm transition-colors ${isCritical ? 'bg-rose-500/20 text-rose-400 hover:bg-rose-500/30' : 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30'}`}
+                      >
+                        View Details →
+                      </button>
                     </div>
-                    <button
-                      onClick={() => setActiveTab('systems')}
-                      className="ml-auto px-3 py-1.5 rounded-lg bg-rose-500/20 text-rose-400 text-sm hover:bg-rose-500/30 transition-colors"
-                    >
-                      View Details →
-                    </button>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Specifications Card */}
               <div className="rounded-xl bg-white/[0.02] border border-white/8 p-6">
@@ -1447,8 +1465,8 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
               {/* Quick Stats */}
               <div className="grid grid-cols-2 gap-2">
                 <div className="p-3 rounded-lg bg-white/[0.02] border border-white/8 text-center">
-                  <div className={`text-lg font-bold ${criticalEquipment.length > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                    {criticalEquipment.length}
+                  <div className={`text-lg font-bold ${equipmentWithIssues.length > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                    {equipmentWithIssues.length}
                   </div>
                   <div className="text-[10px] text-white/40">Critical</div>
                 </div>
@@ -1755,13 +1773,17 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
                 </div>
               </ExpandableSection>
 
-              {/* Critical Issues Banner - Only show if there are critical items */}
-              {(criticalAlerts.length > 0 || criticalEquipment.length > 0) && (
-                <div className="rounded-lg bg-rose-500/10 border border-rose-500/20 p-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-2 h-2 rounded-full bg-rose-400 animate-pulse" />
-                    <h3 className="text-[10px] font-medium text-rose-400 uppercase tracking-wide">Requires Attention</h3>
-                  </div>
+              {/* Issues Banner - Color based on severity */}
+              {(criticalAlerts.length > 0 || equipmentWithIssues.length > 0) && (() => {
+                const hasCriticalEquipment = equipmentWithIssues.some(eq => eq.pmPrediction?.priority === 'critical');
+                const isCritical = criticalAlerts.length > 0 || hasCriticalEquipment;
+                
+                return (
+                  <div className={`rounded-lg p-3 ${isCritical ? 'bg-rose-500/10 border border-rose-500/20' : 'bg-amber-500/10 border border-amber-500/20'}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className={`w-2 h-2 rounded-full animate-pulse ${isCritical ? 'bg-rose-400' : 'bg-amber-400'}`} />
+                      <h3 className={`text-[10px] font-medium uppercase tracking-wide ${isCritical ? 'text-rose-400' : 'text-amber-400'}`}>Requires Attention</h3>
+                    </div>
                   <div className="space-y-1.5">
                     {criticalAlerts.slice(0, 2).map((alert, i) => (
                       <div key={i} className="flex items-center justify-between gap-2 group">
@@ -1783,17 +1805,17 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
                         </button>
                       </div>
                     ))}
-                    {criticalEquipment.slice(0, 2).map((eq, i) => (
+                    {equipmentWithIssues.slice(0, 2).map((eq, i) => (
                       <div key={i} className="flex items-center justify-between gap-2 group">
                         <div className="text-xs text-white/70 flex items-center gap-1.5 flex-1 min-w-0">
                           <TrendingDown className="w-3 h-3 text-amber-400 flex-shrink-0" />
-                          <span className="truncate">{eq.name}: {eq.health_score}%</span>
+                          <span className="truncate">{eq.equipmentName}: {eq.healthScore}%</span>
                         </div>
                         <button
                           onClick={() => {
                             const temp = eq.temperature ? `Temperature is ${eq.temperature} degrees C. ` : '';
                             const vib = eq.vibration ? `Vibration is ${eq.vibration} mm per s. ` : '';
-                            const query = `${eq.name} showing critical health at ${eq.health_score} percent. ${temp}${vib}What is causing this and how do I fix it?`;
+                            const query = `${eq.equipmentName} showing critical health at ${eq.healthScore} percent. ${temp}${vib}What is causing this and how do I fix it?`;
                             setResolveQuery(query);
                             setActiveTab('analysis');
                           }}
@@ -1806,7 +1828,8 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
                     ))}
                   </div>
                 </div>
-              )}
+                );
+              })()}
 
               {/* Tip */}
               <p className="text-[10px] text-white/30 px-1">

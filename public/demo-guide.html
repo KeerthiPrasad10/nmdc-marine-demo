@@ -3,20 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NMDC Energy - Digital Solutions Demo Guide</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <title>NMDC Fleet Intelligence - Demo Guide</title>
   <style>
     :root {
       --bg-primary: #0a0a0a;
       --bg-secondary: #111111;
-      --bg-card: rgba(255, 255, 255, 0.02);
-      --border: rgba(255, 255, 255, 0.08);
+      --bg-card: #1a1a1a;
+      --border-color: rgba(255,255,255,0.08);
       --text-primary: #ffffff;
-      --text-secondary: rgba(255, 255, 255, 0.7);
-      --text-muted: rgba(255, 255, 255, 0.4);
-      --accent-violet: #a855f7;
+      --text-secondary: rgba(255,255,255,0.7);
+      --text-muted: rgba(255,255,255,0.4);
+      --accent-primary: #8b5cf6;
       --accent-cyan: #06b6d4;
       --accent-emerald: #10b981;
       --accent-amber: #f59e0b;
@@ -31,236 +28,356 @@
     }
 
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: var(--bg-primary);
       color: var(--text-primary);
       line-height: 1.6;
-      min-height: 100vh;
     }
 
     .container {
       max-width: 1200px;
       margin: 0 auto;
-      padding: 0 24px;
+      padding: 2rem;
     }
 
-    /* Header */
     header {
-      background: linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%);
-      border-bottom: 1px solid var(--border);
-      padding: 60px 0;
+      text-align: center;
+      padding: 3rem 0;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 3rem;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .tagline {
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+    }
+
+    .product-line {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin: 2rem 0;
       text-align: center;
     }
 
-    header h1 {
-      font-size: 2.5rem;
-      font-weight: 700;
-      margin-bottom: 12px;
-      background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.7) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+    .product-line h2 {
+      font-size: 1.2rem;
+      color: var(--accent-cyan);
+      margin-bottom: 0.5rem;
     }
 
-    header .subtitle {
-      font-size: 1.1rem;
+    .product-line p {
       color: var(--text-secondary);
-      max-width: 700px;
-      margin: 0 auto;
+      font-size: 1rem;
     }
 
-    header .badge {
-      display: inline-block;
-      margin-top: 20px;
-      padding: 8px 16px;
-      background: rgba(168, 85, 247, 0.2);
-      border: 1px solid rgba(168, 85, 247, 0.3);
-      border-radius: 20px;
-      font-size: 0.85rem;
-      color: var(--accent-violet);
+    .demo-story {
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(6, 182, 212, 0.1));
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      border-radius: 16px;
+      padding: 2rem;
+      margin: 2rem 0;
     }
 
-    /* Navigation */
-    nav {
-      background: var(--bg-secondary);
-      border-bottom: 1px solid var(--border);
-      padding: 16px 0;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-
-    nav .container {
+    .demo-story h2 {
+      color: var(--accent-primary);
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
       display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
     }
 
-    nav a {
-      padding: 8px 16px;
+    .story-setup {
       background: var(--bg-card);
-      border: 1px solid var(--border);
       border-radius: 8px;
-      color: var(--text-secondary);
-      text-decoration: none;
-      font-size: 0.9rem;
-      transition: all 0.2s;
+      padding: 1.5rem;
+      margin: 1rem 0;
+      border-left: 4px solid var(--accent-primary);
     }
 
-    nav a:hover {
-      background: rgba(168, 85, 247, 0.1);
-      border-color: rgba(168, 85, 247, 0.3);
+    .story-setup .persona {
+      font-weight: 600;
+      color: var(--accent-cyan);
+      margin-bottom: 0.5rem;
+    }
+
+    .act {
+      margin: 2rem 0;
+      padding: 1.5rem;
+      background: var(--bg-card);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+    }
+
+    .act h3 {
+      color: var(--accent-emerald);
+      font-size: 1.2rem;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .act h3 .page {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: normal;
+    }
+
+    .act-content {
+      margin-top: 1rem;
+    }
+
+    .action-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      margin: 1rem 0;
+      padding: 1rem;
+      background: rgba(255,255,255,0.02);
+      border-radius: 8px;
+    }
+
+    .action-number {
+      width: 28px;
+      height: 28px;
+      background: var(--accent-primary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+
+    .action-content {
+      flex: 1;
+    }
+
+    .action-content strong {
       color: var(--text-primary);
     }
 
-    /* Main Content */
-    main {
-      padding: 48px 0 80px;
+    .action-content p {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      margin-top: 0.25rem;
     }
 
-    /* Section */
+    .verified-data {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1rem 0;
+    }
+
+    .verified-data h4 {
+      color: var(--accent-emerald);
+      font-size: 0.9rem;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .data-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .data-item {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+    }
+
+    .data-item .label {
+      color: var(--text-muted);
+    }
+
+    .data-item .value {
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    .data-item .value.amber {
+      color: var(--accent-amber);
+    }
+
+    .data-item .value.emerald {
+      color: var(--accent-emerald);
+    }
+
+    .data-item .value.rose {
+      color: var(--accent-rose);
+    }
+
+    .say-this {
+      background: rgba(6, 182, 212, 0.1);
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1rem 0;
+      font-style: italic;
+      color: var(--text-secondary);
+    }
+
+    .say-this::before {
+      content: '💬 Say: ';
+      font-style: normal;
+      color: var(--accent-cyan);
+      font-weight: 600;
+    }
+
+    .transition {
+      text-align: center;
+      padding: 1rem;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .transition::before {
+      content: '→ ';
+    }
+
+    .transition::after {
+      content: ' →';
+    }
+
     section {
-      margin-bottom: 64px;
+      margin-bottom: 3rem;
     }
 
     section h2 {
-      font-size: 1.75rem;
-      font-weight: 700;
-      margin-bottom: 24px;
-      padding-bottom: 12px;
-      border-bottom: 2px solid var(--border);
-      display: flex;
-      align-items: center;
-      gap: 12px;
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border-color);
     }
 
-    section h2 .number {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 36px;
-      height: 36px;
-      background: linear-gradient(135deg, var(--accent-violet), var(--accent-cyan));
-      border-radius: 8px;
-      font-size: 1rem;
-    }
-
-    section h3 {
-      font-size: 1.25rem;
-      font-weight: 600;
-      color: var(--text-primary);
-      margin: 32px 0 16px;
-    }
-
-    section h4 {
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--accent-cyan);
-      margin: 24px 0 12px;
-    }
-
-    /* Cards */
-    .card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 24px;
-      margin-bottom: 16px;
-    }
-
-    .card-grid {
+    .feature-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 16px;
-      margin: 16px 0;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      margin: 1rem 0;
     }
 
     .feature-card {
       background: var(--bg-card);
-      border: 1px solid var(--border);
+      border: 1px solid var(--border-color);
       border-radius: 12px;
-      padding: 20px;
-      transition: all 0.2s;
-    }
-
-    .feature-card:hover {
-      border-color: rgba(168, 85, 247, 0.3);
-      transform: translateY(-2px);
+      padding: 1.25rem;
     }
 
     .feature-card h5 {
-      font-size: 1rem;
-      font-weight: 600;
-      margin-bottom: 8px;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 0.5rem;
     }
 
     .feature-card p {
+      color: var(--text-muted);
       font-size: 0.9rem;
-      color: var(--text-secondary);
     }
 
-    /* Tables */
+    .icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+    }
+
+    .icon.purple { background: rgba(139, 92, 246, 0.2); }
+    .icon.cyan { background: rgba(6, 182, 212, 0.2); }
+    .icon.emerald { background: rgba(16, 185, 129, 0.2); }
+    .icon.amber { background: rgba(245, 158, 11, 0.2); }
+    .icon.rose { background: rgba(244, 63, 94, 0.2); }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 6px;
+    }
+
+    .status-dot.green { background: var(--accent-emerald); }
+    .status-dot.amber { background: var(--accent-amber); }
+    .status-dot.red { background: var(--accent-rose); }
+    .status-dot.blue { background: var(--accent-blue); }
+
     table {
       width: 100%;
       border-collapse: collapse;
-      margin: 16px 0;
-      font-size: 0.9rem;
+      margin: 1rem 0;
     }
 
     th, td {
-      padding: 12px 16px;
+      padding: 0.75rem 1rem;
       text-align: left;
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid var(--border-color);
     }
 
     th {
-      background: rgba(255, 255, 255, 0.03);
-      font-weight: 600;
       color: var(--text-muted);
-      font-size: 0.8rem;
+      font-weight: 500;
+      font-size: 0.85rem;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
     }
 
     td {
       color: var(--text-secondary);
     }
 
-    tr:hover td {
-      background: rgba(255, 255, 255, 0.02);
+    .nav-tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin: 1rem 0;
+      flex-wrap: wrap;
     }
 
-    /* URL Badge */
-    .url-badge {
-      display: inline-block;
-      padding: 4px 10px;
-      background: rgba(6, 182, 212, 0.1);
-      border: 1px solid rgba(6, 182, 212, 0.3);
-      border-radius: 4px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.85rem;
-      color: var(--accent-cyan);
-      margin-left: 12px;
-    }
-
-    /* Info Boxes */
-    .info-box {
-      background: rgba(168, 85, 247, 0.1);
-      border: 1px solid rgba(168, 85, 247, 0.2);
-      border-left: 4px solid var(--accent-violet);
+    .nav-tab {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
       border-radius: 8px;
-      padding: 16px 20px;
-      margin: 16px 0;
+      padding: 0.5rem 1rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
     }
 
-    .info-box.success {
-      background: rgba(16, 185, 129, 0.1);
-      border-color: rgba(16, 185, 129, 0.2);
-      border-left-color: var(--accent-emerald);
+    .nav-tab.active {
+      background: var(--accent-primary);
+      border-color: var(--accent-primary);
+      color: white;
+    }
+
+    .info-box {
+      background: rgba(139, 92, 246, 0.1);
+      border: 1px solid rgba(139, 92, 246, 0.2);
+      border-left: 4px solid var(--accent-primary);
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1rem 0;
     }
 
     .info-box.warning {
@@ -277,818 +394,513 @@
 
     .info-box strong {
       display: block;
-      margin-bottom: 4px;
-      color: var(--text-primary);
+      margin-bottom: 0.5rem;
     }
 
-    .info-box p {
-      font-size: 0.9rem;
-      color: var(--text-secondary);
+    .equipment-list {
+      margin: 1rem 0;
     }
 
-    /* Demo Flow */
-    .demo-flow {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 20px;
-      margin: 16px 0;
-    }
-
-    .demo-flow h5 {
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: var(--accent-emerald);
-      margin-bottom: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .demo-flow ol {
-      padding-left: 20px;
-      color: var(--text-secondary);
-    }
-
-    .demo-flow li {
-      margin-bottom: 8px;
-      font-size: 0.9rem;
-    }
-
-    /* Talking Point */
-    .talking-point {
-      background: linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%);
-      border: 1px solid rgba(168, 85, 247, 0.2);
+    .equipment-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.75rem;
+      background: rgba(255,255,255,0.02);
       border-radius: 8px;
-      padding: 16px 20px;
-      margin: 16px 0;
-      font-style: italic;
-      color: var(--text-secondary);
+      margin: 0.5rem 0;
     }
 
-    .talking-point::before {
-      content: '💬 ';
-    }
-
-    /* Timeline */
-    .timeline {
-      position: relative;
-      padding-left: 30px;
-      margin: 24px 0;
-    }
-
-    .timeline::before {
-      content: '';
-      position: absolute;
-      left: 8px;
-      top: 0;
-      bottom: 0;
-      width: 2px;
-      background: var(--border);
-    }
-
-    .timeline-item {
-      position: relative;
-      padding-bottom: 24px;
-    }
-
-    .timeline-item::before {
-      content: '';
-      position: absolute;
-      left: -26px;
-      top: 4px;
-      width: 12px;
-      height: 12px;
-      background: var(--accent-violet);
-      border-radius: 50%;
-    }
-
-    .timeline-item h5 {
-      font-size: 1rem;
+    .equipment-item .health {
       font-weight: 600;
-      margin-bottom: 4px;
+      min-width: 50px;
     }
 
-    .timeline-item p {
-      font-size: 0.9rem;
-      color: var(--text-secondary);
+    .equipment-item .name {
+      flex: 1;
     }
 
-    .timeline-item .time {
-      font-size: 0.8rem;
-      color: var(--text-muted);
+    .equipment-item .priority {
+      font-size: 0.75rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
     }
 
-    /* Icon Indicators */
-    .icon {
-      display: inline-block;
-      width: 24px;
-      height: 24px;
-      border-radius: 6px;
-      text-align: center;
-      line-height: 24px;
-      font-size: 14px;
-      margin-right: 8px;
+    .priority.high {
+      background: rgba(244, 63, 94, 0.2);
+      color: var(--accent-rose);
     }
 
-    .icon.violet { background: rgba(168, 85, 247, 0.2); }
-    .icon.cyan { background: rgba(6, 182, 212, 0.2); }
-    .icon.emerald { background: rgba(16, 185, 129, 0.2); }
-    .icon.amber { background: rgba(245, 158, 11, 0.2); }
-    .icon.rose { background: rgba(244, 63, 94, 0.2); }
-
-    /* Status Dots */
-    .status-dot {
-      display: inline-block;
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      margin-right: 6px;
+    .priority.medium {
+      background: rgba(245, 158, 11, 0.2);
+      color: var(--accent-amber);
     }
 
-    .status-dot.green { background: var(--accent-emerald); }
-    .status-dot.amber { background: var(--accent-amber); }
-    .status-dot.red { background: var(--accent-rose); }
-    .status-dot.blue { background: var(--accent-blue); }
-
-    /* Quick Reference */
-    .quick-ref {
-      background: linear-gradient(135deg, rgba(6, 182, 212, 0.05) 0%, rgba(168, 85, 247, 0.05) 100%);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 32px;
-      margin: 32px 0;
+    .priority.low {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--accent-emerald);
     }
 
-    .quick-ref h3 {
-      margin-top: 0;
-      margin-bottom: 20px;
-      text-align: center;
-    }
-
-    /* Footer */
     footer {
-      background: var(--bg-secondary);
-      border-top: 1px solid var(--border);
-      padding: 32px 0;
       text-align: center;
-    }
-
-    footer p {
+      padding: 2rem;
+      border-top: 1px solid var(--border-color);
       color: var(--text-muted);
-      font-size: 0.9rem;
-    }
-
-    /* Print Styles */
-    @media print {
-      body { background: white; color: black; }
-      nav { display: none; }
-      .card, .feature-card, .info-box, .demo-flow { 
-        border-color: #ddd; 
-        background: #f9f9f9;
-      }
-      .talking-point { background: #f0f0f0; }
-    }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-      header h1 { font-size: 1.75rem; }
-      .card-grid { grid-template-columns: 1fr; }
-      nav .container { justify-content: flex-start; overflow-x: auto; }
+      margin-top: 3rem;
     }
   </style>
 </head>
 <body>
-  <header>
     <div class="container">
-      <h1>NMDC Energy - Digital Solutions</h1>
-      <p class="subtitle">AI-powered industrial asset management platform demonstrating IoT sensor integration, real-time monitoring, and predictive analytics for crane operations, marine vessels, and offshore assets.</p>
-      <span class="badge">Demo Guide v2.0</span>
-    </div>
+    <header>
+      <h1>🚢 NMDC Fleet Intelligence</h1>
+      <p class="tagline">Comprehensive Demo Guide</p>
   </header>
 
-  <nav>
-    <div class="container">
-      <a href="#crane">🏗️ Crane IoT</a>
-      <a href="#marine">🚢 Marine Assets</a>
-      <a href="#predictive">🔮 Predictive AI</a>
-      <a href="#esg">🌿 ESG</a>
-      <a href="#orchestration">📊 Orchestration</a>
-      <a href="#demo-script">🎬 Demo Script</a>
-      <a href="#quick-ref">📋 Quick Reference</a>
+    <!-- Product Description -->
+    <div class="product-line">
+      <h2>Product in One Line</h2>
+      <p><strong>AI-powered maritime operations platform that predicts equipment failures, traces operational impacts across the entire fleet ecosystem, and enables proactive decision-making from equipment sensors to boardroom strategy.</strong></p>
     </div>
-  </nav>
 
-  <main>
-    <div class="container">
+    <!-- Main Demo Story -->
+    <div class="demo-story">
+      <h2>🎬 Complete Demo Story: "The DELMA 2000 Decision"</h2>
+      <p style="color: var(--text-muted); margin-bottom: 1rem;">Duration: 12-15 minutes | All data verified against application</p>
 
-      <!-- Section 1: Crane Efficiency -->
-      <section id="crane">
-        <h2><span class="number">1</span> Crane Efficiency Improvement <span class="url-badge">/crane-iot</span></h2>
-        
-        <div class="info-box">
-          <strong>Overview</strong>
-          <p>IoT sensors mounted on crane hooks capture and analyze data on material flow, production rates, and crane utilization. AI technology classifies items, measures weights, and tracks lift cycles, offering detailed insights through an online dashboard.</p>
+      <div class="story-setup">
+        <p class="persona">You are Fatima Al Rashid, VP of Fleet Operations at NMDC Energy</p>
+        <p>It's Tuesday morning. NMDC operates 12 vessels across the Arabian Gulf. The <strong>Ruwais LNG Terminal Expansion</strong> for ADNOC is your highest-priority project—$12.5M budget, 35% complete. You need to ensure nothing disrupts this critical operation.</p>
+      </div>
+
+      <!-- ACT 1 -->
+      <div class="act">
+        <h3>📍 ACT 1: Fleet Overview <span class="page">Page: Dashboard (/)</span></h3>
+        <div class="act-content">
+          <div class="action-item">
+            <div class="action-number">1</div>
+            <div class="action-content">
+              <strong>Show the Fleet Map</strong>
+              <p>Point out the 12 vessels operating across UAE waters. Each icon represents real vessel positions from live AIS data.</p>
+            </div>
         </div>
 
-        <h3>Key Features</h3>
+          <div class="action-item">
+            <div class="action-number">2</div>
+            <div class="action-content">
+              <strong>Point to "X need attention" Badge</strong>
+              <p>Above the vessel list, notice the <span style="color: var(--accent-amber);">amber badge showing "8 need attention"</span> — these are vessels with equipment issues.</p>
+            </div>
+          </div>
+          
+          <div class="action-item">
+            <div class="action-number">3</div>
+            <div class="action-content">
+              <strong>Show Vessel Cards with Issues</strong>
+              <p>Vessels with equipment issues now have an <span style="color: var(--accent-amber);">amber left border</span>, a <span style="color: var(--accent-amber);">badge showing issue count</span>, and are sorted to the top. DELMA 2000 shows "3 equipment issues • 63% health".</p>
+          </div>
+          </div>
 
-        <div class="card-grid">
-          <div class="feature-card">
-            <h5><span class="icon cyan">📹</span> Live Camera Feeds</h5>
-            <p>4 AI-enabled cameras (hook, load, boom, ground) provide live feeds and lift sequences for review. Purple "AI" badge indicates active machine vision.</p>
+          <div class="verified-data">
+            <h4>✓ Verified Dashboard Metrics</h4>
+            <div class="data-grid">
+              <div class="data-item"><span class="label">Total Vessels</span><span class="value">12</span></div>
+              <div class="data-item"><span class="label">Vessels Need Attention</span><span class="value amber">8</span></div>
+              <div class="data-item"><span class="label">DELMA 2000</span><span class="value amber">3 issues • 63% health</span></div>
+              <div class="data-item"><span class="label">DLB-750</span><span class="value rose">3 issues • 58% health</span></div>
           </div>
-          <div class="feature-card">
-            <h5><span class="icon violet">📊</span> Hook IoT Sensors</h5>
-            <p>Real-time data from load cell, boom angle, hoist speed, vibration, proximity, and accelerometer sensors.</p>
           </div>
-          <div class="feature-card">
-            <h5><span class="icon emerald">🎯</span> Production Metrics</h5>
-            <p>Track daily targets, lifts/hour, total tonnage moved, and efficiency percentage in real-time.</p>
+
+          <div class="say-this">
+            "See these amber cards at the top? The system automatically surfaces vessels with equipment issues. DELMA 2000 has 3 equipment issues with the worst at 63% health. That's not something fuel gauges or basic monitoring would catch—this is predictive intelligence."
           </div>
-          <div class="feature-card">
-            <h5><span class="icon amber">🤖</span> AI Classification</h5>
-            <p>Automatic material identification (steel, concrete, pipes, equipment) with confidence scores.</p>
           </div>
         </div>
 
-        <h4>IoT Sensor Details</h4>
-        <table>
-          <thead>
-            <tr>
-              <th>Sensor</th>
-              <th>What It Measures</th>
-              <th>Demo Point</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><span class="status-dot green"></span>Load Cell</td>
-              <td>Current weight on hook</td>
-              <td>"Real-time weight ensures we don't exceed safe working load"</td>
-            </tr>
-            <tr>
-              <td><span class="status-dot blue"></span>Boom Angle</td>
-              <td>Crane arm angle</td>
-              <td>"Monitors for tip-over risk conditions"</td>
-            </tr>
-            <tr>
-              <td><span class="status-dot amber"></span>Hoist Speed</td>
-              <td>Lifting velocity</td>
-              <td>"Detects overspeeding that could compromise safety"</td>
-            </tr>
-            <tr>
-              <td><span class="status-dot green"></span>Vibration</td>
-              <td>Hook/cable vibration</td>
-              <td>"Early warning for mechanical issues"</td>
-            </tr>
-            <tr>
-              <td><span class="status-dot blue"></span>Proximity</td>
-              <td>Objects near hook</td>
-              <td>"Collision avoidance with personnel and structures"</td>
-            </tr>
-            <tr>
-              <td><span class="status-dot amber"></span>Accelerometer</td>
-              <td>Sudden movements</td>
-              <td>"Detects swing, shock loads, and unsafe maneuvers"</td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="transition">Click on DELMA 2000 to navigate to vessel details</div>
 
-        <h4>Lift Cycle Timeline</h4>
-        <p>Each lift shows item classification, load weight, duration, and safety score. Click to expand and see:</p>
-        
-        <div class="card">
-          <strong>Safety Score Breakdown</strong>
-          <ul style="margin-top: 12px; padding-left: 20px; color: var(--text-secondary);">
-            <li><strong>Load Control</strong> - Swing, stability during lift</li>
-            <li><strong>Speed Compliance</strong> - Operating within speed limits</li>
-            <li><strong>Zone Safety</strong> - Exclusion zone compliance</li>
-            <li><strong>Rigging Quality</strong> - Tagline, sling condition</li>
-            <li><strong>Communication</strong> - Operator-spotter coordination</li>
-          </ul>
+      <!-- ACT 2 -->
+      <div class="act">
+        <h3>🔍 ACT 2: Equipment Discovery <span class="page">Page: Vessel Detail (/vessel/[id])</span></h3>
+        <div class="act-content">
+          <div class="action-item">
+            <div class="action-number">1</div>
+            <div class="action-content">
+              <strong>Notice the "Attention Required" Banner</strong>
+              <p>A red banner shows "3 equipment issues" requiring attention. This is the AI surfacing problems before they become failures.</p>
+        </div>
         </div>
 
-        <div class="demo-flow">
-          <h5>📋 Demo Flow</h5>
-          <ol>
-            <li>Show the live camera feeds with AI detection badges</li>
-            <li>Point out real-time updating sensor values (green = normal, amber = warning, red = critical)</li>
-            <li>Expand a lift cycle to show safety score breakdown</li>
-            <li>Click on a safety event to show linked lift details and AI recommendation</li>
-            <li>Highlight the Predictive AI panel predictions</li>
-          </ol>
+          <div class="action-item">
+            <div class="action-number">2</div>
+            <div class="action-content">
+              <strong>Click "View Details" → Systems Tab</strong>
+              <p>This reveals the equipment health breakdown with predictive maintenance insights.</p>
+        </div>
         </div>
 
-        <div class="talking-point">
-          "This data improves construction planning and scheduling, increases productivity, and enhances safety by identifying and correcting unsafe behaviors among site workers."
+          <div class="verified-data">
+            <h4>✓ DELMA 2000 Equipment Issues (Verified)</h4>
+            <div class="equipment-list">
+              <div class="equipment-item">
+                <span class="health" style="color: var(--accent-rose);">63%</span>
+                <span class="name"><strong>Main Crane System</strong> — Gearbox oil analysis warning</span>
+                <span class="priority high">HIGH</span>
+          </div>
+              <div class="equipment-item">
+                <span class="health" style="color: var(--accent-amber);">71%</span>
+                <span class="name"><strong>Ballast System</strong> — Pump seal leakage detected</span>
+                <span class="priority medium">MEDIUM</span>
+          </div>
+              <div class="equipment-item">
+                <span class="health" style="color: var(--accent-amber);">74%</span>
+                <span class="name"><strong>Mooring System</strong> — Wire rope fairlead bearing noise</span>
+                <span class="priority low">LOW</span>
+          </div>
+          </div>
+        </div>
+
+          <div class="say-this">
+            "The Main Crane gearbox shows 63% health with iron particle count at 85 ppm—that's bearing wear. The AI predicts 300 operating hours until potential failure. That's 12 days of continuous operation."
+          </div>
+
+          <div class="action-item">
+            <div class="action-number">3</div>
+            <div class="action-content">
+              <strong>Open the Digital Twin Tab</strong>
+              <p>Show the 3D vessel model with real-time sensor overlays. Click on the crane area to see the sensor readings.</p>
+            </div>
+            </div>
+
+          <div class="action-item">
+            <div class="action-number">4</div>
+            <div class="action-content">
+              <strong>Show the Predictions Panel</strong>
+              <p>Expand to see AI-generated predictions including time-to-failure estimates and confidence scores.</p>
+            </div>
+            </div>
+          </div>
+        </div>
+
+      <div class="transition">Navigate to Troubleshoot tab to get AI diagnosis</div>
+
+      <!-- ACT 3 -->
+      <div class="act">
+        <h3>🤖 ACT 3: AI Troubleshooting <span class="page">Troubleshoot Tab (same page)</span></h3>
+        <div class="act-content">
+          <div class="action-item">
+            <div class="action-number">1</div>
+            <div class="action-content">
+              <strong>Click "Troubleshoot" on the Main Crane Issue</strong>
+              <p>This launches the AI assistant with full context about the equipment problem.</p>
+        </div>
+        </div>
+
+          <div class="action-item">
+            <div class="action-number">2</div>
+            <div class="action-content">
+              <strong>Watch the AI Diagnosis</strong>
+              <p>The AI analyzes the problem and provides step-by-step diagnosis, root cause analysis, and repair recommendations.</p>
+          </div>
+        </div>
+
+          <div class="say-this">
+            "The AI doesn't just detect problems—it diagnoses them. It's analyzing oil particle data, vibration patterns, and temperature trends to pinpoint that the issue is bearing wear in the main hoist gearbox."
+          </div>
+
+          <div class="action-item">
+            <div class="action-number">3</div>
+            <div class="action-content">
+              <strong>Ask Follow-up Questions</strong>
+              <p>Type: "What parts do I need to order?" or "How long will the repair take?"</p>
+          </div>
+          </div>
+          </div>
+        </div>
+
+      <div class="transition">Navigate to ESG page to show impact analysis</div>
+
+      <!-- ACT 4 -->
+      <div class="act">
+        <h3>📊 ACT 4: Impact Analysis <span class="page">Page: ESG Intelligence (/esg)</span></h3>
+        <div class="act-content">
+          <div class="action-item">
+            <div class="action-number">1</div>
+            <div class="action-content">
+              <strong>Show ESG Overview</strong>
+              <p>Fleet emissions, compliance targets (IMO 2030, CII Rating), and ESG score breakdown.</p>
+        </div>
+        </div>
+
+          <div class="verified-data">
+            <h4>✓ ESG Metrics (Verified)</h4>
+            <div class="data-grid">
+              <div class="data-item"><span class="label">Overall ESG Score</span><span class="value">76</span></div>
+              <div class="data-item"><span class="label">Environmental</span><span class="value">72</span></div>
+              <div class="data-item"><span class="label">Social</span><span class="value">81</span></div>
+              <div class="data-item"><span class="label">Governance</span><span class="value">78</span></div>
+              <div class="data-item"><span class="label">IMO 2030 Progress</span><span class="value emerald">28% of 40%</span></div>
+              <div class="data-item"><span class="label">CII Rating Status</span><span class="value amber">At Risk (78/85)</span></div>
+        </div>
+          </div>
+
+          <div class="action-item">
+            <div class="action-number">2</div>
+            <div class="action-content">
+              <strong>Click "Predictive Impact" Tab</strong>
+              <p>Show the What-If scenario simulator with impact analysis capabilities.</p>
+            </div>
+        </div>
+
+          <div class="action-item">
+            <div class="action-number">3</div>
+            <div class="action-content">
+              <strong>Run "Equipment Failure" Scenario</strong>
+              <p>Select the scenario that simulates the crane failure impact.</p>
+          </div>
+          </div>
+
+          <div class="say-this">
+            "If the DELMA 2000 crane fails during the Ruwais project, here's what happens: We lose 2-3 days minimum for emergency repairs. That triggers a $150K penalty clause. But it also impacts our CII rating because we'd need to rush another vessel, burning more fuel. The ripple effect hits our IMO 2030 targets."
+          </div>
+          </div>
+        </div>
+
+      <div class="transition">Navigate to Orchestration to show proactive resolution</div>
+
+      <!-- ACT 5 -->
+      <div class="act">
+        <h3>⚡ ACT 5: Proactive Resolution <span class="page">Page: Fleet Orchestration (/orchestration)</span></h3>
+        <div class="act-content">
+          <div class="action-item">
+            <div class="action-number">1</div>
+            <div class="action-content">
+              <strong>Show Active Projects</strong>
+              <p>Highlight the Ruwais LNG Terminal project card showing $12.5M budget, 35% progress, and the upcoming weather window.</p>
+          </div>
+        </div>
+
+          <div class="verified-data">
+            <h4>✓ Project Data (Verified from mock-data.ts)</h4>
+            <div class="data-grid">
+              <div class="data-item"><span class="label">Project</span><span class="value">Ruwais LNG Terminal Expansion</span></div>
+              <div class="data-item"><span class="label">Client</span><span class="value">ADNOC</span></div>
+              <div class="data-item"><span class="label">Budget</span><span class="value">$12.5M</span></div>
+              <div class="data-item"><span class="label">Progress</span><span class="value">35%</span></div>
+              <div class="data-item"><span class="label">Weather Window</span><span class="value">5-20 days out</span></div>
+              <div class="data-item"><span class="label">Priority</span><span class="value rose">CRITICAL</span></div>
+            </div>
+            </div>
+
+          <div class="action-item">
+            <div class="action-number">2</div>
+            <div class="action-content">
+              <strong>Show Schedule Conflicts</strong>
+              <p>Point out any orange or red conflict indicators in the Gantt chart.</p>
+          </div>
+        </div>
+
+          <div class="action-item">
+            <div class="action-number">3</div>
+            <div class="action-content">
+              <strong>Click "Impact Analysis" Button</strong>
+              <p>Open the Quick What-If Panel and run a scenario to reassign the vessel.</p>
+        </div>
+        </div>
+
+          <div class="say-this">
+            "Here's the key insight: The system predicted this problem 12 days before potential failure. By scheduling preventive maintenance during the 3-day gap before the weather window, we avoid all downstream impacts. Zero project delay, zero penalties, zero ESG impact."
+          </div>
+          </div>
+          </div>
+
+      <!-- Closing -->
+      <div class="act" style="border: 2px solid var(--accent-emerald); background: rgba(16, 185, 129, 0.05);">
+        <h3>🎯 THE CLOSE</h3>
+        <div class="act-content">
+          <div class="say-this" style="background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3);">
+            "Traditional systems tell you a crane broke. We tell you 12 days before it breaks, show you exactly why, trace the impact across your entire operation—from the bearing to the boardroom—and help you make the decision that protects your project, your budget, and your ESG commitments. That's the difference between reactive maintenance and predictive fleet intelligence."
+          </div>
+        </div>
+        </div>
+    </div>
+
+    <!-- Alternative Vessel: SEP-550 -->
+    <section>
+      <h2>📋 Alternative Demo: SEP-550</h2>
+      <p style="color: var(--text-muted); margin-bottom: 1rem;">If DELMA 2000 isn't available or you prefer a jack-up barge story</p>
+
+      <div class="verified-data">
+        <h4>✓ SEP-550 Data (Verified)</h4>
+        <div class="data-grid">
+          <div class="data-item"><span class="label">Type</span><span class="value">Self-Elevating Platform</span></div>
+          <div class="data-item"><span class="label">Dashboard Fuel</span><span class="value amber">46% (Amber)</span></div>
+          <div class="data-item"><span class="label">Dashboard Health</span><span class="value emerald">73% (White)</span></div>
+          <div class="data-item"><span class="label">Crew</span><span class="value">271</span></div>
+          <div class="data-item"><span class="label">Project</span><span class="value">Offshore Hook-up Operations</span></div>
+          </div>
+          </div>
+
+      <div class="equipment-list">
+        <h4 style="color: var(--text-muted); margin: 1rem 0 0.5rem;">Equipment Issues on Detail Page:</h4>
+        <div class="equipment-item">
+          <span class="health" style="color: var(--accent-amber);">64%</span>
+          <span class="name"><strong>Jacking System</strong> — HPU accumulator pressure decay</span>
+          <span class="priority high">HIGH</span>
+          </div>
+        <div class="equipment-item">
+          <span class="health" style="color: var(--accent-amber);">72%</span>
+          <span class="name"><strong>Main Crane System</strong> — Boom structural fatigue monitoring</span>
+          <span class="priority medium">MEDIUM</span>
+          </div>
+        <div class="equipment-item">
+          <span class="health" style="color: var(--accent-emerald);">76%</span>
+          <span class="name"><strong>Power Generation</strong> — Generator #2 cooling fan efficiency</span>
+          <span class="priority low">LOW</span>
+          </div>
+          </div>
+
+      <div class="info-box" style="background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3); border-left-color: var(--accent-emerald);">
+        <strong>✅ Improved UI</strong>
+        <p>SEP-550 now shows an <strong>amber indicator</strong> on the dashboard with "3 equipment issues • 64% health" (Jacking System). Operators can immediately see which vessels need attention without clicking into each one.</p>
         </div>
       </section>
 
-      <!-- Section 2: Marine Asset Monitoring -->
-      <section id="marine">
-        <h2><span class="number">2</span> Marine Asset Monitoring <span class="url-badge">/live</span></h2>
-        
-        <div class="info-box">
-          <strong>Overview</strong>
-          <p>Real-time visibility and control over all marine vessels and offshore assets by tracking location, health, performance, fuel usage, and safety conditions through sensors, AI analytics, and reliable connectivity.</p>
-        </div>
-
-        <h3>Key Features</h3>
-
-        <div class="card-grid">
-          <div class="feature-card">
-            <h5><span class="icon cyan">🗺️</span> Live Fleet Map</h5>
-            <p>Interactive dark-themed map with AIS tracking. Color-coded vessel markers by type (dredger, tug, supply, survey, barge).</p>
-          </div>
-          <div class="feature-card">
-            <h5><span class="icon violet">📡</span> Real-time AIS Data</h5>
-            <p>Live position, speed, heading, and last update time for each vessel. Auto-refresh option available.</p>
-          </div>
-          <div class="feature-card">
-            <h5><span class="icon emerald">💚</span> Health Monitoring</h5>
-            <p>Equipment health scores, fuel levels, crew counts, and operational status for each vessel.</p>
-          </div>
-          <div class="feature-card">
-            <h5><span class="icon amber">📋</span> Project Tracking</h5>
-            <p>View all project sites with progress, assigned vessels, and budget tracking.</p>
-          </div>
-        </div>
-
-        <h4>Vessel Detail Page</h4>
-        <table>
-          <thead>
-            <tr>
-              <th>Tab</th>
-              <th>Features</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><strong>Overview</strong></td>
-              <td>Specifications, live sensors, capabilities, equipment status, emissions</td>
-            </tr>
-            <tr>
-              <td><strong>3D Digital Twin</strong></td>
-              <td>Interactive 3D model with sensor overlays and heatmap visualization</td>
-            </tr>
-            <tr>
-              <td><strong>Systems & Maintenance</strong></td>
-              <td>Equipment list, work orders, PM recommendations, schedule</td>
-            </tr>
-            <tr>
-              <td><strong>Resolve</strong></td>
-              <td>AI-powered troubleshooting assistant with OEM manual integration</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <h4>Live Sensor Data</h4>
-        <div class="card">
-          <div class="card-grid">
-            <div>
-              <strong>🔧 Main Engine</strong>
-              <ul style="margin-top: 8px; padding-left: 16px; color: var(--text-secondary); font-size: 0.9rem;">
-                <li>RPM, Temperature, Oil Pressure</li>
-                <li>Fuel Rate, Running Hours</li>
-                <li>Status indicator</li>
-              </ul>
-            </div>
-            <div>
-              <strong>⚡ Generator</strong>
-              <ul style="margin-top: 8px; padding-left: 16px; color: var(--text-secondary); font-size: 0.9rem;">
-                <li>Load %, Voltage, Frequency</li>
-                <li>Fuel Level</li>
-                <li>Status indicator</li>
-              </ul>
-            </div>
-            <div>
-              <strong>🧭 Navigation</strong>
-              <ul style="margin-top: 8px; padding-left: 16px; color: var(--text-secondary); font-size: 0.9rem;">
-                <li>GPS Accuracy, Compass Heading</li>
-                <li>Wind Speed & Direction</li>
-              </ul>
-            </div>
-            <div>
-              <strong>🛡️ Safety Systems</strong>
-              <ul style="margin-top: 8px; padding-left: 16px; color: var(--text-secondary); font-size: 0.9rem;">
-                <li>Fire Alarms, Bilge Level</li>
-                <li>Lifeboat Status, EPIRB</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        <div class="demo-flow">
-          <h5>📋 Demo Flow</h5>
-          <ol>
-            <li>Start at Fleet Dashboard (<code>/</code>) - show vessel list with health indicators</li>
-            <li>Navigate to Live Map (<code>/live</code>) - show vessel positions on map</li>
-            <li>Click a vessel marker to see popup with speed, heading, health</li>
-            <li>Click "Details" to navigate to vessel detail page</li>
-            <li>Show live sensor data panel with real-time values</li>
-            <li>Switch to Projects tab to show project assignments</li>
-          </ol>
-        </div>
-
-        <div class="talking-point">
-          "The solution helps reduce downtime, improve operational efficiency, enhance crew and asset safety, optimize fuel consumption, and support ESG compliance by monitoring emissions and environmental indicators."
-        </div>
-      </section>
-
-      <!-- Section 3: Predictive Maintenance -->
-      <section id="predictive">
-        <h2><span class="number">3</span> Predictive Maintenance <span class="url-badge">/vessel/[id]</span></h2>
-        
-        <div class="info-box">
-          <strong>Overview</strong>
-          <p>AI-powered vessel management system that analyzes real-time sensor data to provide actionable insights for fuel efficiency, emissions reduction, and operational decision-making. Predictive maintenance capabilities anticipate and address potential equipment issues before they lead to downtime.</p>
-        </div>
-
-        <h3>Predictive AI Analysis</h3>
-
-        <div class="card">
-          <strong>Analysis Steps (Animated)</strong>
-          <div style="margin-top: 16px; display: flex; flex-wrap: wrap; gap: 12px;">
-            <span style="padding: 6px 12px; background: rgba(16, 185, 129, 0.1); border-radius: 6px; font-size: 0.85rem;">1. Scanning equipment health</span>
-            <span style="padding: 6px 12px; background: rgba(16, 185, 129, 0.1); border-radius: 6px; font-size: 0.85rem;">2. Analyzing sensor patterns</span>
-            <span style="padding: 6px 12px; background: rgba(16, 185, 129, 0.1); border-radius: 6px; font-size: 0.85rem;">3. Correlating alerts</span>
-            <span style="padding: 6px 12px; background: rgba(16, 185, 129, 0.1); border-radius: 6px; font-size: 0.85rem;">4. Running ML models</span>
-            <span style="padding: 6px 12px; background: rgba(16, 185, 129, 0.1); border-radius: 6px; font-size: 0.85rem;">5. Generating recommendations</span>
-          </div>
-        </div>
-
-        <h4>Prediction Types</h4>
-        <table>
-          <thead>
-            <tr>
-              <th>Type</th>
-              <th>Icon</th>
-              <th>Description</th>
-              <th>Example</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><span class="status-dot red"></span>Failure</td>
-              <td>⚠️</td>
-              <td>Imminent component failure risk</td>
-              <td>"Main Hoist Failure Risk - 24-48 hours"</td>
-            </tr>
-            <tr>
-              <td><span class="status-dot amber"></span>Maintenance</td>
-              <td>🔧</td>
-              <td>Scheduled maintenance needed</td>
-              <td>"Boom System Maintenance Due - 7-14 days"</td>
-            </tr>
-            <tr>
-              <td><span class="status-dot blue"></span>Safety</td>
-              <td>🛡️</td>
-              <td>Safety-related concerns</td>
-              <td>"Sensor Anomaly Detected - Immediate"</td>
-            </tr>
-            <tr>
-              <td><span class="status-dot green"></span>Optimization</td>
-              <td>⚡</td>
-              <td>Performance improvement</td>
-              <td>"12% efficiency gain opportunity"</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <h4>3D Digital Twin</h4>
-        <div class="card-grid">
-          <div class="feature-card">
-            <h5><span class="icon violet">🎮</span> Interactive Model</h5>
-            <p>Rotatable, zoomable 3D vessel model with real-time sensor point overlays.</p>
-          </div>
-          <div class="feature-card">
-            <h5><span class="icon cyan">🎨</span> Heatmap Views</h5>
-            <p>Toggle temperature, vibration, or stress pattern visualization across the vessel.</p>
-          </div>
-          <div class="feature-card">
-            <h5><span class="icon emerald">📍</span> Sensor Points</h5>
-            <p>Color-coded dots: 🟢 Normal, 🟡 Warning, 🔴 Critical. Click for details.</p>
-          </div>
-        </div>
-
-        <h4>Maintenance Intelligence</h4>
-        <div class="card">
-          <strong>Systems & Maintenance Tab Features:</strong>
-          <ul style="margin-top: 12px; padding-left: 20px; color: var(--text-secondary);">
-            <li><strong>Past Work Orders</strong> - CM (Corrective) and PM (Preventive) history</li>
-            <li><strong>PM Recommendations</strong> - AI-generated suggestions based on patterns:
-              <ul style="margin-top: 8px;">
-                <li>"Increase PM frequency for bearings (3 repairs in 6 months)"</li>
-                <li>"Extend oil change interval (analysis shows good condition at 750h)"</li>
-                <li>"Schedule overhaul at OEM-recommended hours"</li>
-              </ul>
-            </li>
-            <li><strong>PM Schedule</strong> - Upcoming maintenance windows</li>
-          </ul>
-        </div>
-
-        <div class="demo-flow">
-          <h5>📋 Demo Flow</h5>
-          <ol>
-            <li>Navigate to vessel detail page</li>
-            <li>Wait for Predictive AI analysis animation to complete</li>
-            <li>Click on a prediction to expand - show confidence score and recommendation</li>
-            <li>Switch to "3D Digital Twin" tab - rotate model, click sensor points</li>
-            <li>Switch to "Systems & Maintenance" tab - show work order history</li>
-            <li>Highlight PM recommendations panel</li>
-            <li>Show "Resolve" tab for AI troubleshooting</li>
-          </ol>
-        </div>
-
-        <div class="info-box success">
-          <strong>Key Benefits</strong>
-          <p>Acting on predictive insights avoids failures, downtime, waste and inefficiencies. Provides real-time project and asset health status. Live insights offer new ways to control, coordinate and collaborate, supporting speed to action.</p>
-        </div>
-
-        <div class="talking-point">
-          "Increased visibility of emissions and energy usage, driving greater understanding, ownership and action to reduce emissions in support of net-zero goals."
-        </div>
-      </section>
-
-      <!-- Section 4: ESG -->
-      <section id="esg">
-        <h2><span class="number">4</span> ESG & Emissions Tracking <span class="url-badge">/esg</span></h2>
-        
-        <div class="info-box">
-          <strong>Overview</strong>
-          <p>Environmental, Social & Governance intelligence center for tracking emissions, compliance status, and decarbonization pathways across the fleet.</p>
-        </div>
-
-        <h4>Dashboard Metrics</h4>
-        <div class="card-grid">
-          <div class="feature-card">
-            <h5><span class="icon rose">🏭</span> Total CO₂</h5>
-            <p>Fleet-wide emissions in tonnes with trend indicators</p>
-          </div>
-          <div class="feature-card">
-            <h5><span class="icon amber">⛽</span> Fuel Consumed</h5>
-            <p>Total fuel usage in kiloliters</p>
-          </div>
-          <div class="feature-card">
-            <h5><span class="icon cyan">📈</span> Efficiency</h5>
-            <p>Average g CO₂ per tonne-mile</p>
-          </div>
-          <div class="feature-card">
-            <h5><span class="icon emerald">🏆</span> ESG Score</h5>
-            <p>Overall score out of 100</p>
-          </div>
-        </div>
-
-        <h4>ESG Score Breakdown</h4>
-        <table>
-          <thead>
-            <tr>
-              <th>Category</th>
-              <th>Factors</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><span class="status-dot green"></span><strong>Environmental</strong></td>
-              <td>Emissions reduction, fuel efficiency, spill prevention, waste management</td>
-            </tr>
-            <tr>
-              <td><span class="status-dot blue"></span><strong>Social</strong></td>
-              <td>Crew safety scores, training completion, welfare programs, work hours</td>
-            </tr>
-            <tr>
-              <td><span class="status-dot amber"></span><strong>Governance</strong></td>
-              <td>Compliance rates, reporting accuracy, audit findings, policy adherence</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <h4>Compliance Tracking</h4>
-        <div class="card">
-          <strong>Regulatory Targets Monitored:</strong>
-          <ul style="margin-top: 12px; padding-left: 20px; color: var(--text-secondary);">
-            <li>IMO 2030 Targets - Carbon intensity reduction</li>
-            <li>EU ETS Requirements - Emissions trading scheme</li>
-            <li>MARPOL Compliance - Pollution prevention</li>
-            <li>CII Ratings - Carbon Intensity Indicator (A-E)</li>
-          </ul>
-          <div style="margin-top: 16px; display: flex; gap: 12px;">
-            <span style="padding: 4px 12px; background: rgba(16, 185, 129, 0.2); border-radius: 4px; color: var(--accent-emerald); font-size: 0.85rem;">✓ On Track</span>
-            <span style="padding: 4px 12px; background: rgba(245, 158, 11, 0.2); border-radius: 4px; color: var(--accent-amber); font-size: 0.85rem;">⚠ At Risk</span>
-            <span style="padding: 4px 12px; background: rgba(244, 63, 94, 0.2); border-radius: 4px; color: var(--accent-rose); font-size: 0.85rem;">✗ Behind</span>
-          </div>
-        </div>
-
-        <h4>Decarbonization Pathway</h4>
-        <div class="card">
-          <p style="color: var(--text-secondary); margin-bottom: 16px;">Multi-year roadmap showing:</p>
-          <div class="card-grid">
-            <div style="text-align: center;">
-              <div style="font-size: 1.5rem; font-weight: 700; color: var(--accent-emerald);">$15M</div>
-              <div style="font-size: 0.85rem; color: var(--text-muted);">Total Investment</div>
-            </div>
-            <div style="text-align: center;">
-              <div style="font-size: 1.5rem; font-weight: 700; color: var(--accent-cyan);">$22M</div>
-              <div style="font-size: 0.85rem; color: var(--text-muted);">Expected Savings</div>
-            </div>
-            <div style="text-align: center;">
-              <div style="font-size: 1.5rem; font-weight: 700; color: var(--accent-violet);">4.5 yrs</div>
-              <div style="font-size: 0.85rem; color: var(--text-muted);">Payback Period</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="info-box">
-          <strong>Export Features</strong>
-          <p><strong>Export CSV</strong> - Download emissions data for all vessels<br>
-          <strong>Generate ESG Report</strong> - Create printable HTML report with charts and compliance status</p>
-        </div>
-      </section>
-
-      <!-- Section 5: Orchestration -->
-      <section id="orchestration">
-        <h2><span class="number">5</span> Fleet Orchestration <span class="url-badge">/orchestration</span></h2>
-        
-        <div class="info-box">
-          <strong>Overview</strong>
-          <p>Mission control and resource allocation for optimizing vessel assignments across projects with AI-powered scheduling suggestions.</p>
-        </div>
-
-        <div class="card-grid">
-          <div class="feature-card">
-            <h5><span class="icon violet">📊</span> Gantt Chart</h5>
-            <p>Visual timeline of vessel assignments, project timelines, and conflicts highlighted in red.</p>
-          </div>
-          <div class="feature-card">
-            <h5><span class="icon cyan">🤖</span> Schedule Optimizer</h5>
-            <p>AI suggestions: reschedule, reroute, reassign, delay/accelerate operations.</p>
-          </div>
-          <div class="feature-card">
-            <h5><span class="icon rose">⚠️</span> Conflict Detection</h5>
-            <p>Automatic detection of double-booking, resource conflicts, maintenance overlaps.</p>
-          </div>
-          <div class="feature-card">
-            <h5><span class="icon emerald">📈</span> Metrics Dashboard</h5>
-            <p>Fleet utilization, active projects, daily revenue, upcoming maintenance.</p>
-          </div>
-        </div>
-
-        <div class="demo-flow">
-          <h5>📋 Demo Flow</h5>
-          <ol>
-            <li>Show metrics row at top (utilization %, active projects, conflicts)</li>
-            <li>Hover over optimization suggestions - see affected vessels highlighted on Gantt</li>
-            <li>Click "Optimize Schedule" button to run AI optimization</li>
-            <li>Review optimization results panel</li>
-            <li>Show conflict detection panel with severity indicators</li>
-          </ol>
-        </div>
-      </section>
-
-      <!-- Demo Script -->
-      <section id="demo-script">
-        <h2><span class="number">6</span> Demo Script - Suggested Flow</h2>
-        
-        <div class="timeline">
-          <div class="timeline-item">
-            <h5>Opening</h5>
-            <span class="time">2 minutes</span>
-            <p>Start at main dashboard (<code>/</code>). Show fleet overview and metrics. Point out live data indicators.</p>
-          </div>
-          <div class="timeline-item">
-            <h5>Crane Efficiency</h5>
-            <span class="time">5 minutes</span>
-            <p>Navigate to <code>/crane-iot</code>. Show live sensors and camera feeds. Demonstrate lift timeline with safety scores. Expand a safety event to show AI recommendation.</p>
-          </div>
-          <div class="timeline-item">
-            <h5>Marine Asset Monitoring</h5>
-            <span class="time">5 minutes</span>
-            <p>Return to <code>/</code>. Select a vessel from the list. Navigate to vessel detail page. Show live sensor data and specifications. Quick demo of 3D Digital Twin.</p>
-          </div>
-          <div class="timeline-item">
-            <h5>Predictive Maintenance</h5>
-            <span class="time">5 minutes</span>
-            <p>Stay on vessel detail page. Show Predictive AI panel predictions. Navigate to Systems & Maintenance tab. Show work order history and PM recommendations. Quick demo of Resolve troubleshooting.</p>
-          </div>
-          <div class="timeline-item">
-            <h5>ESG & Compliance</h5>
-            <span class="time">3 minutes</span>
-            <p>Navigate to <code>/esg</code>. Show emissions dashboard. Highlight compliance status. Show decarbonization pathway.</p>
-          </div>
-          <div class="timeline-item">
-            <h5>Closing</h5>
-            <span class="time">2 minutes</span>
-            <p>Navigate to <code>/orchestration</code>. Show Gantt chart and optimization. Summarize key benefits: real-time visibility, predictive insights, operational efficiency, safety enhancement, ESG compliance.</p>
-          </div>
-        </div>
-      </section>
-
-      <!-- Quick Reference -->
-      <section id="quick-ref">
-        <div class="quick-ref">
-          <h3>🚀 Quick Navigation Reference</h3>
+    <!-- Page Reference -->
+    <section>
+      <h2>📑 Application Pages Quick Reference</h2>
           <table>
             <thead>
               <tr>
-                <th>Feature</th>
+            <th>Page</th>
                 <th>URL</th>
-                <th>Key Demo Points</th>
+            <th>Key Features</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td><strong>Main Dashboard</strong></td>
-                <td><code>/</code></td>
-                <td>Fleet overview, vessel list, alerts, project tracking</td>
+            <td><span class="status-dot green"></span>Dashboard</td>
+            <td>/</td>
+            <td>Fleet map, vessel list, alerts panel, AI troubleshooting</td>
               </tr>
               <tr>
-                <td><strong>Crane IoT</strong></td>
-                <td><code>/crane-iot</code></td>
-                <td>IoT sensors, AI classification, lift cycles, safety monitoring</td>
+            <td><span class="status-dot blue"></span>Vessel Detail</td>
+            <td>/vessel/[id]</td>
+            <td>Digital twin, systems health, predictions, troubleshooting</td>
               </tr>
               <tr>
-                <td><strong>Fleet Map</strong></td>
-                <td><code>/live</code></td>
-                <td>AIS tracking, vessel positions, real-time updates</td>
+            <td><span class="status-dot green"></span>ESG Intelligence</td>
+            <td>/esg</td>
+            <td>Emissions, compliance, ESG scores, impact analysis</td>
               </tr>
               <tr>
-                <td><strong>Vessel Detail</strong></td>
-                <td><code>/vessel/[mmsi]</code></td>
-                <td>Specifications, live sensors, 3D model, maintenance</td>
+            <td><span class="status-dot amber"></span>Orchestration</td>
+            <td>/orchestration</td>
+            <td>Projects, Gantt chart, conflicts, what-if scenarios</td>
               </tr>
               <tr>
-                <td><strong>ESG Center</strong></td>
-                <td><code>/esg</code></td>
-                <td>Emissions tracking, compliance, decarbonization pathway</td>
+            <td><span class="status-dot blue"></span>Crane IoT</td>
+            <td>/crane-iot</td>
+            <td>Live camera feeds, sensor data, lift cycles, safety events</td>
               </tr>
               <tr>
-                <td><strong>Orchestration</strong></td>
-                <td><code>/orchestration</code></td>
-                <td>Scheduling, optimization, conflict detection</td>
+            <td><span class="status-dot green"></span>Live Vessels</td>
+            <td>/live</td>
+            <td>Real-time AIS positions for all NMDC vessels</td>
               </tr>
-              <tr>
-                <td><strong>Troubleshoot</strong></td>
-                <td><code>/troubleshoot</code></td>
-                <td>AI-powered fault diagnosis, OEM manual queries</td>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Fleet Overview -->
+    <section>
+      <h2>🚢 Fleet Vessels with Equipment Issues</h2>
+      <p style="color: var(--text-muted); margin-bottom: 1rem;">These vessels have predefined equipment issues that will show on their detail pages:</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Vessel</th>
+            <th>Type</th>
+            <th>Dashboard Display</th>
+            <th>Worst Equipment Issue</th>
               </tr>
-              <tr>
-                <td><strong>Routes</strong></td>
-                <td><code>/routes</code></td>
-                <td>Route planning and weather-aware optimization</td>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>DLB-750</strong></td>
+            <td>Pipelay Barge</td>
+            <td><span style="color: var(--accent-rose);">⚠️ 3 issues • 58%</span></td>
+            <td>Tensioner 58% (HIGH) — Lowest in fleet</td>
+          </tr>
+          <tr>
+            <td><strong>DLB-1000</strong></td>
+            <td>Pipelay Barge</td>
+            <td><span style="color: var(--accent-amber);">⚠️ 3 issues • 62%</span></td>
+            <td>Tensioner 62% (HIGH)</td>
+          </tr>
+          <tr>
+            <td><strong>DELMA 2000</strong></td>
+            <td>Derrick Barge</td>
+            <td><span style="color: var(--accent-amber);">⚠️ 3 issues • 63%</span></td>
+            <td>Main Crane 63% (HIGH)</td>
+          </tr>
+          <tr>
+            <td><strong>SEP-550</strong></td>
+            <td>Jack-Up Barge</td>
+            <td><span style="color: var(--accent-amber);">⚠️ 3 issues • 64%</span></td>
+            <td>Jacking System 64% (HIGH)</td>
+          </tr>
+          <tr>
+            <td><strong>SEP-450</strong></td>
+            <td>Jack-Up Barge</td>
+            <td><span style="color: var(--accent-amber);">⚠️ 3 issues • 66%</span></td>
+            <td>Jacking System 66% (HIGH)</td>
+          </tr>
+          <tr>
+            <td><strong>SEP-650</strong></td>
+            <td>Jack-Up Barge</td>
+            <td><span style="color: var(--accent-amber);">⚠️ 3 issues • 69%</span></td>
+            <td>Jacking System 69% (MEDIUM)</td>
               </tr>
             </tbody>
           </table>
+
+      <div class="info-box">
+        <strong>💡 Best Demo Vessels</strong>
+        <p><strong>DLB-750</strong> — Worst equipment health in fleet (Tensioner at 58%). Now shows prominently with amber border at top of list.</p>
+        <p><strong>DELMA 2000</strong> — Main Crane at 63%, assigned to ADNOC project. Great for showing impact chain to project delivery.</p>
+        <p><strong>SEP-550</strong> — Jacking System at 64%. Good for jack-up specific troubleshooting scenarios.</p>
         </div>
       </section>
 
-      <!-- Technical Notes -->
+    <!-- Data Sources -->
       <section>
-        <h2>Technical Notes</h2>
-        
-        <div class="card-grid">
-          <div class="info-box">
-            <strong>Data Sources</strong>
-            <p><span class="status-dot green"></span><strong>Live AIS</strong> - Real vessel positions<br>
-            <span class="status-dot blue"></span><strong>Simulated</strong> - Sensor data, health scores<br>
-            <span class="status-dot amber"></span><strong>Static</strong> - Vessel specifications, profiles</p>
+      <h2>📊 Data Sources</h2>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <h5><span class="icon emerald">🛰️</span> Live AIS Data</h5>
+          <p>Real vessel positions from Datalastic API. Updates automatically.</p>
           </div>
-          <div class="info-box warning">
-            <strong>Performance Tips</strong>
-            <p>• First load may take 2-3 seconds<br>
-            • Use "Cached" mode to conserve API credits<br>
-            • 3D Digital Twin requires WebGL support</p>
+        <div class="feature-card">
+          <h5><span class="icon amber">⚙️</span> Simulated Operations</h5>
+          <p>Health scores, fuel levels calculated from MMSI seed. Consistent between refreshes.</p>
           </div>
+        <div class="feature-card">
+          <h5><span class="icon purple">🔧</span> Equipment Issues</h5>
+          <p>Predefined in vessel-issues.ts. Show on vessel detail page only.</p>
         </div>
-
-        <h4>Common Questions</h4>
-        <div class="card">
-          <p><strong>Q: Is this real AIS data?</strong><br>
-          A: Yes, vessel positions are from live AIS feeds. Sensor data is simulated for demo purposes.</p>
-          <hr style="border: none; border-top: 1px solid var(--border); margin: 16px 0;">
-          <p><strong>Q: How does the AI work?</strong><br>
-          A: Predictive models analyze patterns in sensor readings, correlate with historical failure data, and generate predictions with confidence scores.</p>
-          <hr style="border: none; border-top: 1px solid var(--border); margin: 16px 0;">
-          <p><strong>Q: Can this integrate with existing systems?</strong><br>
-          A: Yes, the platform is designed with API-first architecture and can integrate with SCADA, ERP, and CMMS systems.</p>
+        <div class="feature-card">
+          <h5><span class="icon cyan">📋</span> Project Data</h5>
+          <p>Mock projects in orchestration/mock-data.ts. Ruwais LNG is critical priority.</p>
+        </div>
         </div>
       </section>
-
-    </div>
-  </main>
 
   <footer>
-    <div class="container">
-      <p>NMDC Energy - Digital Solutions Demo Guide</p>
-      <p style="margin-top: 8px;">Last Updated: January 2026 • Platform Version: 2.0</p>
-      <p style="margin-top: 16px;">
-        <button onclick="window.print()" style="padding: 10px 20px; background: var(--accent-violet); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
-          🖨️ Print / Save as PDF
-        </button>
-      </p>
-    </div>
+      <p>NMDC Fleet Intelligence Demo Guide</p>
+      <p style="font-size: 0.8rem; margin-top: 0.5rem;">All data verified against application source code — February 2026</p>
   </footer>
-
+  </div>
 </body>
 </html>
-
-

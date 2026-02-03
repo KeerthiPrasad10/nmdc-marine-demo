@@ -132,6 +132,11 @@ export interface CraneAsset {
   capacity: number; // tons
   location: string;
   project: string;
+  vessel?: {
+    mmsi: string;
+    name: string;
+    type: string;
+  };
   status: 'operational' | 'maintenance' | 'idle' | 'offline';
   sensors: CraneSensor[];
   cameras: CameraFeed[];

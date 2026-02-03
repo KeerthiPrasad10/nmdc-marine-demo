@@ -116,3 +116,4 @@ function getFuelRate(vesselType: string): number {
 
 
 
+

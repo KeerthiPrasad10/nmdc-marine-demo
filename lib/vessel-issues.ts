@@ -946,3 +946,51 @@ export function getEquipmentOverrides(mmsi: string): Map<string, Partial<{
   
   return overrides
 }
+
+export interface VesselIssueSummary {
+  issueCount: number
+  worstPriority: 'critical' | 'high' | 'medium' | 'low' | null
+  worstHealth: number
+  hasHighPriority: boolean
+  hasCritical: boolean
+}
+
+export function getVesselIssueSummary(mmsi: string): VesselIssueSummary {
+  const vesselIssues = getVesselIssues(mmsi)
+  
+  if (!vesselIssues || vesselIssues.issues.length === 0) {
+    return {
+      issueCount: 0,
+      worstPriority: null,
+      worstHealth: 100,
+      hasHighPriority: false,
+      hasCritical: false,
+    }
+  }
+  
+  const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 }
+  let worstPriority: 'critical' | 'high' | 'medium' | 'low' = 'low'
+  let worstHealth = 100
+  let hasCritical = false
+  let hasHighPriority = false
+  
+  for (const issue of vesselIssues.issues) {
+    const priority = issue.pmPrediction.priority
+    if (priorityOrder[priority] < priorityOrder[worstPriority]) {
+      worstPriority = priority
+    }
+    if (issue.healthScore < worstHealth) {
+      worstHealth = issue.healthScore
+    }
+    if (priority === 'critical') hasCritical = true
+    if (priority === 'critical' || priority === 'high') hasHighPriority = true
+  }
+  
+  return {
+    issueCount: vesselIssues.issues.length,
+    worstPriority,
+    worstHealth,
+    hasHighPriority,
+    hasCritical,
+  }
+}
