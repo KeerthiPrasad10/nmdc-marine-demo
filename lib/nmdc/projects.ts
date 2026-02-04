@@ -24,6 +24,20 @@ export interface ProjectSite {
   value?: string; // Contract value
 }
 
+// NMDC Energy vessels available for project assignment:
+// - 470212000: DLS-4200 (Derrick Lay Semi-Submersible)
+// - 471026000: DELMA 2000 (Pipelay Crane Vessel)  
+// - 470285000: PLB-648 (Pipelay Barge)
+// - 470339000: DLB-750 (Pipelay Barge - Side Lay)
+// - 470284000: DLB-1000 (Pipelay Barge)
+// - 470340000: SEP-450 (Self-Elevating Platform)
+// - 470114000: SEP-550 (Self-Elevating Platform)
+// - 470426000: SEP-650 (Self-Elevating Platform)
+// - 470395000: SEP-750 (Self-Elevating Platform)
+// - 470927000: UMM SHAIF (DP3 Offshore Support & Cable Lay)
+// - 470337000: NPCC SAADIYAT (Tug/AHTS)
+// - 470642000: NPCC YAS (Tug/AHTS)
+
 export const PROJECT_SITES: ProjectSite[] = [
   {
     id: 'proj-adnoc-001',
@@ -49,133 +63,132 @@ export const PROJECT_SITES: ProjectSite[] = [
   },
   {
     id: 'proj-001',
-    name: 'Khalifa Port Expansion Phase 3',
-    client: 'Abu Dhabi Ports',
-    type: 'port_development',
+    name: 'Hail & Ghasha Gas Development',
+    client: 'ADNOC Gas',
+    type: 'marine_construction',
     status: 'active',
     location: {
       lat: 24.8095,
-      lng: 54.6458,
-      area: 'Khalifa Port, Abu Dhabi',
+      lng: 52.6458,
+      area: 'Hail & Ghasha Fields',
     },
-    description: 'Capital dredging and quay wall construction for the third phase expansion of Khalifa Port, including deepening of approach channel to -18m CD.',
+    description: 'Offshore EPC for sour gas gathering pipelines and platform tie-ins. Heavy lift operations for module installation at multiple wellhead platforms.',
     startDate: '2024-03-01',
     endDate: '2026-06-30',
     progress: 35,
-    assignedVessels: ['470563000', '471072000', '470678000'], // AL SADR, ARZANA, BARRACUDA
+    assignedVessels: ['470212000', '470285000', '470927000'], // DLS-4200, PLB-648, UMM SHAIF
     scope: {
-      dredgeVolume: '12 million m³',
-      depth: '-18m CD',
+      area: '32 km pipeline + 4 platforms',
+      depth: '-35m',
     },
     value: 'AED 850M',
   },
   {
     id: 'proj-002',
-    name: 'Jubail Island Development',
-    client: 'Jubail Island Investment Company',
-    type: 'reclamation',
+    name: 'Umm Lulu Platform Maintenance',
+    client: 'ADNOC Offshore',
+    type: 'marine_construction',
     status: 'active',
     location: {
       lat: 24.5847,
-      lng: 54.4982,
-      area: 'Jubail Island, Abu Dhabi',
+      lng: 53.4982,
+      area: 'Umm Lulu Field',
     },
-    description: 'Marine works for the development of Jubail Island, including land reclamation, beach nourishment, and channel dredging for marina access.',
+    description: 'Platform maintenance and upgrade works at Umm Lulu oil field. Jack-up operations for equipment replacement and structural repairs.',
     startDate: '2024-01-15',
     endDate: '2025-12-31',
     progress: 62,
-    assignedVessels: ['470624000', '470806000'], // GHASHA, AL YASSAT
+    assignedVessels: ['470340000', '470337000', '470642000'], // SEP-450, NPCC SAADIYAT, NPCC YAS
     scope: {
-      dredgeVolume: '8.5 million m³',
-      area: '180 hectares',
+      area: '2 platforms',
+      depth: '-28m',
     },
     value: 'AED 420M',
   },
   {
     id: 'proj-003',
-    name: 'Ras Al Khaimah Coastal Protection',
-    client: 'RAK Municipality',
-    type: 'coastal_protection',
-    status: 'active',
-    location: {
-      lat: 25.7895,
-      lng: 55.9432,
-      area: 'Ras Al Khaimah',
-    },
-    description: 'Coastal protection works including rock revetment, beach nourishment, and groyne construction along 12km of coastline.',
-    startDate: '2024-06-01',
-    endDate: '2025-08-31',
-    progress: 28,
-    assignedVessels: ['470646000', '471018000'], // INCHCAPE 5, AL MIRFA
-    scope: {
-      area: '12 km coastline',
-      dredgeVolume: '2.5 million m³',
-    },
-    value: 'AED 180M',
-  },
-  {
-    id: 'proj-004',
-    name: 'Ruwais Industrial Zone - Channel Maintenance',
-    client: 'ADNOC',
-    type: 'dredging',
-    status: 'active',
-    location: {
-      lat: 24.1108,
-      lng: 52.7306,
-      area: 'Ruwais, Abu Dhabi',
-    },
-    description: 'Maintenance dredging of the approach channel and turning basin at Ruwais Industrial Zone to maintain design depths for VLCC access.',
-    startDate: '2025-01-10',
-    progress: 15,
-    assignedVessels: ['470593000', '470922000'], // KHALEEJ BAY, AL JABER XII
-    scope: {
-      dredgeVolume: '3.2 million m³',
-      depth: '-22m CD',
-    },
-    value: 'AED 95M',
-  },
-  {
-    id: 'proj-005',
-    name: 'Saadiyat Island - Cultural District Marina',
-    client: 'Tourism Development & Investment Company',
+    name: 'Das Island Flowline Replacement',
+    client: 'ADNOC Gas Processing',
     type: 'marine_construction',
-    status: 'planned',
-    location: {
-      lat: 24.5369,
-      lng: 54.4345,
-      area: 'Saadiyat Island, Abu Dhabi',
-    },
-    description: 'Construction of a new marina facility adjacent to the Cultural District, including dredging, breakwater construction, and floating pontoons installation.',
-    startDate: '2025-04-01',
-    endDate: '2027-03-31',
-    progress: 0,
-    assignedVessels: [],
-    scope: {
-      dredgeVolume: '1.8 million m³',
-      area: '45 hectares',
-      depth: '-6m CD',
-    },
-    value: 'AED 280M',
-  },
-  {
-    id: 'proj-006',
-    name: 'Das Island - Offshore Support Base',
-    client: 'ADNOC Offshore',
-    type: 'port_development',
     status: 'active',
     location: {
       lat: 25.1522,
       lng: 52.8731,
       area: 'Das Island',
     },
-    description: 'Expansion of offshore support facilities at Das Island including new berths, dredging works, and shore protection.',
+    description: 'Replacement of aging subsea flowlines at Das Island LNG facility. Includes pipeline removal and new installation with corrosion-resistant coating.',
+    startDate: '2024-06-01',
+    endDate: '2025-08-31',
+    progress: 28,
+    assignedVessels: ['470285000', '470339000'], // PLB-648, DLB-750
+    scope: {
+      area: '18 km pipeline',
+      depth: '-22m',
+    },
+    value: 'AED 180M',
+  },
+  {
+    id: 'proj-004',
+    name: 'Nasr Field Subsea Expansion',
+    client: 'ADNOC Offshore',
+    type: 'marine_construction',
+    status: 'active',
+    location: {
+      lat: 24.3108,
+      lng: 53.1306,
+      area: 'Nasr Field',
+    },
+    description: 'Subsea infrastructure installation for Nasr field capacity expansion. Includes subsea manifolds, umbilicals, and tie-back pipelines.',
+    startDate: '2025-01-10',
+    progress: 15,
+    assignedVessels: ['470284000', '470927000'], // DLB-1000, UMM SHAIF
+    scope: {
+      area: '24 km pipeline + 3 manifolds',
+      depth: '-40m',
+    },
+    value: 'AED 195M',
+  },
+  {
+    id: 'proj-005',
+    name: 'Lower Zakum Artificial Islands',
+    client: 'ADNOC Onshore',
+    type: 'marine_construction',
+    status: 'planned',
+    location: {
+      lat: 24.5369,
+      lng: 53.4345,
+      area: 'Lower Zakum Field',
+    },
+    description: 'Offshore EPC support for artificial islands development. Heavy lift installation of processing modules and pipeline tie-ins.',
+    startDate: '2025-04-01',
+    endDate: '2027-03-31',
+    progress: 0,
+    assignedVessels: [],
+    scope: {
+      area: '4 artificial islands',
+      depth: '-15m',
+    },
+    value: 'AED 580M',
+  },
+  {
+    id: 'proj-006',
+    name: 'Satah Al Razboot (SARB) Hook-up',
+    client: 'ADNOC Offshore',
+    type: 'marine_construction',
+    status: 'active',
+    location: {
+      lat: 24.4522,
+      lng: 53.2731,
+      area: 'SARB Field',
+    },
+    description: 'Platform hook-up and commissioning for SARB offshore complex. Jack-up operations for module installation and pipeline tie-ins.',
     startDate: '2024-09-01',
     endDate: '2025-11-30',
     progress: 45,
-    assignedVessels: ['470510000', '470805000'], // AL HAMRA, MARAWAH
+    assignedVessels: ['470114000', '470426000'], // SEP-550, SEP-650
     scope: {
-      dredgeVolume: '1.5 million m³',
-      depth: '-12m CD',
+      area: '2 platforms',
+      depth: '-32m',
     },
     value: 'AED 150M',
   },
@@ -194,7 +207,7 @@ export const PROJECT_SITES: ProjectSite[] = [
     startDate: '2025-10-01',
     endDate: '2026-03-31',
     progress: 42,
-    assignedVessels: ['470114000', '470426000', '470395000'], // SEP-550, SEP-650, SEP-750
+    assignedVessels: ['470395000', '470340000', '470337000'], // SEP-750, SEP-450, NPCC SAADIYAT
     scope: {
       area: '3 platforms',
       depth: '-35m',
@@ -203,23 +216,23 @@ export const PROJECT_SITES: ProjectSite[] = [
   },
   {
     id: 'proj-007',
-    name: 'Fujairah Port - East Container Terminal',
-    client: 'Fujairah Ports',
-    type: 'port_development',
+    name: 'Bu Hasa Pipeline Extension',
+    client: 'ADNOC Onshore',
+    type: 'marine_construction',
     status: 'completed',
     location: {
-      lat: 25.1264,
-      lng: 56.3428,
-      area: 'Fujairah',
+      lat: 23.5264,
+      lng: 53.3428,
+      area: 'Bu Hasa Field',
     },
-    description: 'Capital dredging for the new East Container Terminal at Port of Fujairah, including approach channel and turning basin.',
+    description: 'Onshore/offshore pipeline extension from Bu Hasa field to coastal processing facility. Completed ahead of schedule.',
     startDate: '2023-02-01',
     endDate: '2024-10-15',
     progress: 100,
     assignedVessels: [],
     scope: {
-      dredgeVolume: '6.8 million m³',
-      depth: '-16m CD',
+      area: '65 km pipeline',
+      depth: '-12m',
     },
     value: 'AED 320M',
   },
@@ -328,27 +341,33 @@ export function getProjectRisk(project: ProjectSite): ProjectRisk {
     }
   }
 
-  // Determine risk level
+  // Determine risk level - stricter thresholds for meaningful alerts
+  // Only flag projects with truly critical situations (targeting ~3 projects)
   let riskLevel: ProjectRisk['riskLevel'] = 'none';
-  if (hasCriticalIssue || minHealth < 60) riskLevel = 'critical';
-  else if (totalIssues > 3 || minHealth < 70) riskLevel = 'high';
-  else if (totalIssues > 0 || minHealth < 80) riskLevel = 'medium';
-  else if (minHealth < 90) riskLevel = 'low';
+  if (hasCriticalIssue && minHealth < 53) riskLevel = 'critical';
+  else if (hasCriticalIssue && minHealth < 57) riskLevel = 'high';
+  else if (totalIssues >= 6 && minHealth < 60) riskLevel = 'medium';
+  else if (totalIssues >= 5 && minHealth < 65) riskLevel = 'low';
 
   // Generate impact summaries
   const impactSummary = vesselIssues.length > 0
     ? `${vesselIssues.length} vessel${vesselIssues.length > 1 ? 's' : ''} with ${totalIssues} equipment issue${totalIssues > 1 ? 's' : ''}`
     : 'All systems operational';
 
+  // Deterministic delay based on health
+  const delayDays = Math.ceil((100 - minHealth) / 10) + 3;
   const clientImpact = riskLevel === 'critical' 
-    ? `Potential ${Math.ceil(Math.random() * 5 + 3)}-day delay, client notification required`
+    ? `Potential ${delayDays}-day delay, client notification required`
     : riskLevel === 'high'
     ? `Schedule at risk, proactive client update recommended`
     : riskLevel === 'medium'
     ? `Minor impact possible, monitoring recommended`
     : 'On track';
 
-  const projectValue = project.value ? parseFloat(project.value.replace(/[^\d.]/g, '')) : 0;
+  // Parse project value - extract first number only (before any parentheses)
+  const valueMatch = project.value?.match(/[\d.]+/);
+  const projectValue = valueMatch ? parseFloat(valueMatch[0]) : 0;
+  
   const financialRisk = riskLevel === 'critical'
     ? `$${(projectValue * 0.05).toFixed(1)}M+ at risk (penalties/delays)`
     : riskLevel === 'high'
@@ -370,7 +389,7 @@ export function getProjectsAtRisk(): ProjectRisk[] {
   return PROJECT_SITES
     .filter(p => p.status === 'active')
     .map(getProjectRisk)
-    .filter(r => r.riskLevel !== 'none')
+    .filter(r => r.riskLevel === 'critical' || r.riskLevel === 'high')
     .sort((a, b) => {
       const order = { critical: 0, high: 1, medium: 2, low: 3, none: 4 };
       return order[a.riskLevel] - order[b.riskLevel];

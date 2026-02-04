@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { use, useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import 'leaflet/dist/leaflet.css';
 import {
@@ -731,7 +731,7 @@ export default function VesselTrackingPage({
 }: { 
   params: Promise<{ mmsi: string }> 
 }) {
-  const { mmsi } = React.use(params);
+  const { mmsi } = use(params);
   return <VesselTrackingContent mmsi={mmsi} />;
 }
 

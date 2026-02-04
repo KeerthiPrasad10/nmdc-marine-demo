@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { supabase, Weather, Vessel } from '@/lib/supabase';
 import type { FleetVessel } from './api/fleet/route';
 import { generateAlertsFromFleet, getAlertCounts, type NMDCAlert } from '@/lib/nmdc/alerts';
@@ -104,6 +106,7 @@ interface FleetStats {
 }
 
 export default function Dashboard() {
+  const router = useRouter();
   const [fleetVessels, setFleetVessels] = useState<FleetVessel[]>([]);
   const [fleetStats, setFleetStats] = useState<FleetStats | null>(null);
   const [fleetMeta, setFleetMeta] = useState<{
@@ -480,24 +483,36 @@ export default function Dashboard() {
                 {/* Projects at Risk - Primary Focus */}
                 {(() => {
                   const projectsAtRisk = getProjectsAtRisk();
+                  const criticalCount = projectsAtRisk.filter(r => r.riskLevel === 'critical').length;
+                  const highCount = projectsAtRisk.filter(r => r.riskLevel === 'high').length;
                   return projectsAtRisk.length > 0 ? (
                     <div className="p-4 border-b border-rose-500/30 bg-rose-500/5">
-                      <div className="flex items-center gap-2 mb-3">
-                        <AlertTriangle className="h-4 w-4 text-rose-400" />
-                        <h3 className="text-xs font-semibold text-rose-400 uppercase tracking-wider">
-                          {projectsAtRisk.length} Project{projectsAtRisk.length > 1 ? 's' : ''} at Risk
-                        </h3>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="h-4 w-4 text-rose-400" />
+                          <h3 className="text-xs font-semibold text-rose-400 uppercase tracking-wider">
+                            Projects at Risk
+                          </h3>
+                        </div>
+                        <div className="flex items-center gap-2 text-[10px]">
+                          {criticalCount > 0 && (
+                            <span className="px-1.5 py-0.5 rounded bg-rose-500/30 text-rose-300">{criticalCount} Critical</span>
+                          )}
+                          {highCount > 0 && (
+                            <span className="px-1.5 py-0.5 rounded bg-amber-500/30 text-amber-300">{highCount} High</span>
+                          )}
+                        </div>
                       </div>
                       <div className="space-y-2">
                         {projectsAtRisk.slice(0, 3).map((risk) => (
-                          <button
+                          <div
                             key={risk.project.id}
-                            onClick={() => setSelectedProject(risk.project)}
-                            className={`w-full text-left p-3 rounded-lg border transition-all ${
+                            className={`w-full text-left p-3 rounded-lg border transition-all cursor-pointer ${
                               risk.riskLevel === 'critical' 
                                 ? 'border-rose-500/50 bg-rose-500/10 hover:bg-rose-500/20' 
                                 : 'border-amber-500/50 bg-amber-500/10 hover:bg-amber-500/20'
                             }`}
+                            onClick={() => setSelectedProject(risk.project)}
                           >
                             <div className="flex items-start justify-between gap-2">
                               <div className="flex-1 min-w-0">
@@ -525,18 +540,31 @@ export default function Dashboard() {
                             </div>
                             <div className="mt-2 flex flex-wrap gap-1">
                               {risk.vesselIssues.map((vi) => (
-                                <span 
+                                <button 
                                   key={vi.mmsi}
-                                  className={`text-[9px] px-1.5 py-0.5 rounded ${
-                                    vi.hasCritical ? 'bg-rose-500/30 text-rose-300' : 'bg-amber-500/30 text-amber-300'
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    router.push(`/vessel/${vi.mmsi}`);
+                                  }}
+                                  className={`text-[9px] px-1.5 py-0.5 rounded transition-all hover:ring-1 hover:ring-white/30 ${
+                                    vi.hasCritical ? 'bg-rose-500/30 text-rose-300 hover:bg-rose-500/50' : 'bg-amber-500/30 text-amber-300 hover:bg-amber-500/50'
                                   }`}
+                                  title={`View ${vi.vesselName} details`}
                                 >
                                   {vi.vesselName} ({vi.worstHealth}%)
-                                </span>
+                                </button>
                               ))}
                             </div>
-                          </button>
+                          </div>
                         ))}
+                        {projectsAtRisk.length > 3 && (
+                          <Link
+                            href="/orchestration"
+                            className="block text-center text-[10px] text-cyan-400 hover:text-cyan-300 py-2"
+                          >
+                            View all {projectsAtRisk.length} projects at risk →
+                          </Link>
+                        )}
                       </div>
                     </div>
                   ) : null;

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import { use, useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase, Vessel, Equipment } from '@/lib/supabase';
@@ -48,6 +48,7 @@ import {
   Calendar,
   Route,
   Info,
+  LayoutGrid,
 } from 'lucide-react';
 import { RoutePlanningPanel } from '@/app/components/routes';
 import { AIPredictiveMaintenance } from '@/app/components/PredictiveMaintenance';
@@ -580,12 +581,21 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
                           {equipmentWithIssues.length > 0 && `${equipmentWithIssues.length} equipment issue(s)`}
                         </p>
                       </div>
-                      <button
-                        onClick={() => setActiveTab('systems')}
-                        className={`ml-auto px-3 py-1.5 rounded-lg text-sm transition-colors ${isCritical ? 'bg-rose-500/20 text-rose-400 hover:bg-rose-500/30' : 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30'}`}
-                      >
-                        View Details →
-                      </button>
+                      <div className="ml-auto flex items-center gap-2">
+                        <button
+                          onClick={() => setActiveTab('systems')}
+                          className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${isCritical ? 'bg-rose-500/20 text-rose-400 hover:bg-rose-500/30' : 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30'}`}
+                        >
+                          View Details →
+                        </button>
+                        <button
+                          onClick={() => router.push('/orchestration')}
+                          className="px-3 py-1.5 rounded-lg text-sm bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 transition-colors flex items-center gap-1"
+                        >
+                          <LayoutGrid className="w-3.5 h-3.5" />
+                          Plan Mitigation
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -1849,7 +1859,7 @@ export default function VesselDetailPage({
 }: { 
   params: Promise<{ id: string }> 
 }) {
-  const { id } = React.use(params);
+  const { id } = use(params);
   return <VesselDetailContent vesselId={id} />;
 }
 
