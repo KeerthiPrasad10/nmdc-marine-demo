@@ -1780,11 +1780,27 @@ function formatMultiResponse(data: { responses?: Array<{ type: string; data: unk
       case 'data_table':
         html += formatDataTable(response.data as DataTableData);
         break;
+      case 'rca':
+        html += formatRCA(response.data as RCAData);
+        break;
       default:
+        // Handle any unknown response types gracefully
         if (typeof response.data === 'object' && response.data !== null) {
           const rd = response.data as Record<string, unknown>;
           if ('message' in rd) {
             html += formatMarkdown(String(rd.message));
+          } else if ('content' in rd) {
+            html += formatMarkdown(String(rd.content));
+          } else if ('analysis' in rd) {
+            html += formatMarkdown(String(rd.analysis));
+          } else if ('text' in rd) {
+            html += formatMarkdown(String(rd.text));
+          } else {
+            // Last resort: show the data as formatted JSON
+            html += `<div class="p-4 rounded-xl bg-white/[0.03] border border-white/10">
+              <h4 class="text-xs uppercase tracking-wider text-white/40 mb-2">Response</h4>
+              <pre class="text-xs text-white/70 whitespace-pre-wrap">${escapeHtml(JSON.stringify(rd, null, 2))}</pre>
+            </div>`;
           }
         }
     }
@@ -3005,6 +3021,88 @@ function formatDataTable(data: DataTableData): string {
         ${data.summary.label}: ${Object.entries(data.summary.values).map(([k, v]) => `${k}: ${v}`).join(', ')}
       </div>
     `;
+  }
+
+  html += '</div>';
+  return html;
+}
+
+// Format RCA (Root Cause Analysis) response type
+interface RCAData {
+  title?: string;
+  equipment?: string;
+  issue?: string;
+  rootCause?: string;
+  analysis?: string;
+  message?: string;
+  content?: string;
+  factors?: string[];
+  causes?: string[];
+  recommendations?: string[];
+  steps?: string[];
+  severity?: string;
+  confidence?: number;
+}
+
+function formatRCA(data: RCAData): string {
+  const title = data.title || 'Root Cause Analysis';
+  const content = data.analysis || data.message || data.content || data.rootCause || '';
+  
+  let html = `
+    <div class="rca-analysis p-4 rounded-xl bg-amber-500/10 border-l-4 border-amber-500 space-y-3">
+      <div class="flex items-center gap-2">
+        <svg class="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <h3 class="text-amber-400 font-semibold">${escapeHtml(title)}</h3>
+        ${data.severity ? `<span class="ml-auto text-xs px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 uppercase">${data.severity}</span>` : ''}
+      </div>
+  `;
+
+  if (data.equipment) {
+    html += `<p class="text-xs text-white/50">Equipment: <span class="text-white/70">${escapeHtml(data.equipment)}</span></p>`;
+  }
+
+  if (data.issue) {
+    html += `<p class="text-xs text-white/50">Issue: <span class="text-white/70">${escapeHtml(data.issue)}</span></p>`;
+  }
+
+  if (content) {
+    html += `<div class="text-sm text-white/80 leading-relaxed">${formatMarkdown(content)}</div>`;
+  }
+
+  const factors = data.factors || data.causes || [];
+  if (factors.length > 0) {
+    html += `
+      <div class="mt-2">
+        <h4 class="text-xs uppercase tracking-wider text-amber-400/70 mb-1.5">Contributing Factors</h4>
+        <ul class="space-y-1">
+          ${factors.map(f => `<li class="text-sm text-white/70 flex items-start gap-2">
+            <span class="text-amber-400 mt-1">•</span>
+            <span>${escapeHtml(String(f))}</span>
+          </li>`).join('')}
+        </ul>
+      </div>
+    `;
+  }
+
+  const recommendations = data.recommendations || data.steps || [];
+  if (recommendations.length > 0) {
+    html += `
+      <div class="mt-2 pt-2 border-t border-amber-500/20">
+        <h4 class="text-xs uppercase tracking-wider text-emerald-400/70 mb-1.5">Recommendations</h4>
+        <ol class="space-y-1">
+          ${recommendations.map((r, i) => `<li class="text-sm text-white/70 flex items-start gap-2">
+            <span class="text-emerald-400 font-medium">${i + 1}.</span>
+            <span>${escapeHtml(String(r))}</span>
+          </li>`).join('')}
+        </ol>
+      </div>
+    `;
+  }
+
+  if (data.confidence) {
+    html += `<p class="text-xs text-white/40 mt-2">Confidence: ${data.confidence}%</p>`;
   }
 
   html += '</div>';

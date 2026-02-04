@@ -27,7 +27,9 @@ export type UIType =
   | 'research_result'  // Q&A answer with source citations
   | 'data_table'       // Tabular data display (sortable, exportable)
   | 'dynamic_form'     // Editable forms (invoices, reports, quotes)
-  | 'document_output'; // Formatted document preview with export
+  | 'document_output'  // Formatted document preview with export
+  | 'rca'              // Root Cause Analysis display
+  | 'decision_matrix'; // Decision matrix for comparing options
 
 export interface KnowledgeBaseImage {
   id: string;
@@ -479,6 +481,65 @@ export interface MultiResponseData {
 export interface MultiResponse extends UIResponse {
   type: 'multi_response';
   responses: UIResponse[];
+}
+
+// ============================================
+// Root Cause Analysis Component
+// ============================================
+
+export interface RCAData {
+  title?: string;
+  equipment?: string;
+  issue?: string;
+  analysis?: string;
+  message?: string;
+  content?: string;
+  rootCause?: string;
+  factors?: string[];
+  causes?: string[];
+  recommendations?: string[];
+  steps?: string[];
+  severity?: 'low' | 'medium' | 'high' | 'critical' | string;
+  confidence?: number;
+}
+
+export interface RCAResponse extends UIResponse {
+  type: 'rca';
+  data: RCAData;
+}
+
+// ============================================
+// Decision Matrix Component
+// ============================================
+
+export interface DecisionOption {
+  id: string;
+  name: string;
+  description?: string;
+  scores: Record<string, number>;
+  totalScore?: number;
+  recommended?: boolean;
+}
+
+export interface DecisionCriterion {
+  id: string;
+  name: string;
+  weight?: number;
+  description?: string;
+}
+
+export interface DecisionMatrixData {
+  title?: string;
+  description?: string;
+  criteria: DecisionCriterion[];
+  options: DecisionOption[];
+  recommendation?: string;
+  notes?: string;
+}
+
+export interface DecisionMatrixResponse extends UIResponse {
+  type: 'decision_matrix';
+  data: DecisionMatrixData;
 }
 
 // ============================================

@@ -21,6 +21,9 @@ import type {
   DataTableData,
   DynamicFormData,
   DocumentOutputData,
+  RCAData,
+  DecisionMatrixData,
+  DecisionOption,
 } from "./types";
 import { SourcesIndicator } from "./ui/SourcesIndicator";
 
@@ -41,6 +44,9 @@ const ResearchResult = lazy(() => import("./ui/ResearchResult"));
 const DataTable = lazy(() => import("./ui/DataTable"));
 const DynamicForm = lazy(() => import("./ui/DynamicForm"));
 const DocumentOutput = lazy(() => import("./ui/DocumentOutput"));
+// RCA and Decision Matrix components
+const RCACard = lazy(() => import("./ui/RCACard"));
+const DecisionMatrix = lazy(() => import("./ui/DecisionMatrix"));
 
 // ============================================
 // Helper: Convert DynamicForm data to WorkOrder format
@@ -294,6 +300,24 @@ export function DynamicRenderer({
               } else {
                 handlers.onSuggestionClick?.(messageForAI);
               }
+            }}
+          />
+        );
+
+      case 'rca':
+        return (
+          <RCACard
+            data={data as RCAData}
+            onActionClick={(action) => handlers.onActionClick?.(action)}
+          />
+        );
+
+      case 'decision_matrix':
+        return (
+          <DecisionMatrix
+            data={data as DecisionMatrixData}
+            onOptionSelect={(option: DecisionOption) => {
+              handlers.onActionClick?.('select_option', { option });
             }}
           />
         );
