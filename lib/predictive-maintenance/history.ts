@@ -1,249 +1,283 @@
 import { PMWorkOrder, PMFleetPattern, PMInspectionRecord, PMOilAnalysis, PMEquipmentType } from './types'
 
 const WORK_ORDER_ISSUES: Record<PMEquipmentType, { pm: string[]; cm: string[] }> = {
-  wire_rope: {
+  winding: {
     pm: [
-      'Scheduled wire rope lubrication',
-      'Visual inspection - no defects found',
-      'NDT inspection completed',
-      'End fitting inspection',
-      'Drum alignment check',
+      'Winding resistance measurement completed',
+      'Power factor test — within limits',
+      'Turns ratio test passed',
+      'Winding temperature sensor calibrated',
+      'Insulation resistance test completed',
     ],
     cm: [
-      'Wire breakage detected - partial replacement',
-      'Kinking observed near sheave',
-      'Corrosion treatment applied',
-      'Emergency replacement due to wear',
-      'Bird-caging repair',
+      'Winding hot spot detected — de-rating applied',
+      'Insulation degradation — scheduled rewinding',
+      'Partial discharge detected — monitoring increased',
+      'Inter-turn fault investigation',
+      'Emergency winding repair — thermal event',
     ],
   },
-  hoist_motor: {
+  bushing: {
     pm: [
-      'Motor bearing regreasing',
-      'Vibration analysis - within limits',
-      'Insulation resistance test passed',
-      'Cooling system cleaning',
-      'Alignment verification',
+      'Bushing power factor test passed',
+      'Oil level verification — normal',
+      'Infrared scan — no hot spots',
+      'Capacitance measurement completed',
+      'Visual inspection — no leakage',
     ],
     cm: [
-      'Bearing replacement - excessive vibration',
-      'Winding repair - hot spot detected',
-      'Shaft seal replacement - oil leakage',
-      'Motor overheating investigation',
-      'Emergency bearing replacement',
+      'Bushing oil leak repair',
+      'Capacitance drift detected — replacement scheduled',
+      'Bushing thermal anomaly — urgent replacement',
+      'Porcelain crack detected — emergency replacement',
+      'Bushing DGA sampling — elevated gases',
     ],
   },
-  main_engine: {
+  tap_changer: {
     pm: [
-      'Oil and filter change completed',
-      'Valve clearance adjustment',
-      'Turbocharger inspection',
-      'Injector timing check',
-      'Cooling system flush',
+      'Tap changer contact inspection completed',
+      'Drive mechanism lubrication',
+      'Operation counter logged',
+      'Transition resistance measurement',
+      'Motor drive current test passed',
     ],
     cm: [
-      'Turbocharger bearing replacement',
-      'Injector replacement - poor atomization',
-      'Coolant leak repair',
-      'Governor adjustment - speed hunting',
-      'Emergency cylinder liner replacement',
+      'Contact erosion — pitting detected',
+      'Drive mechanism failure — motor replaced',
+      'Selector switch sticking — cleaned and adjusted',
+      'Oil contamination from arcing — oil replaced',
+      'Emergency tap changer lockout — diverter failure',
     ],
   },
-  pump_system: {
+  cooling_system: {
     pm: [
-      'Mechanical seal inspection',
-      'Vibration monitoring completed',
-      'Impeller clearance check',
-      'Bearing lubrication',
-      'Alignment verification',
+      'Cooling fan operation verified',
+      'Radiator fin cleaning completed',
+      'Oil pump flow rate test passed',
+      'Thermostat calibration verified',
+      'Cooling control relay test completed',
     ],
     cm: [
-      'Mechanical seal replacement - leakage',
-      'Impeller replacement - cavitation damage',
-      'Bearing replacement - high vibration',
-      'Shaft sleeve replacement',
-      'Emergency pump overhaul',
+      'Fan motor replacement — bearing failure',
+      'Oil pump seal leak repair',
+      'Radiator blockage cleared',
+      'Cooling control board replacement',
+      'Emergency portable cooling deployed — fan bank failure',
     ],
   },
-  hydraulic_system: {
+  oil_system: {
     pm: [
-      'Hydraulic oil analysis completed',
-      'Filter replacement',
-      'Hose inspection - no defects',
-      'Pressure test completed',
-      'Valve calibration',
+      'Oil DGA sampling completed',
+      'Moisture content test — within limits',
+      'Oil filtration service completed',
+      'Silica gel breather replaced',
+      'Conservator tank inspection',
     ],
     cm: [
-      'Hose replacement - external damage',
-      'Pump repair - internal wear',
-      'Valve replacement - sticking',
-      'Oil contamination flush',
-      'Cylinder seal replacement',
+      'Oil reclamation — elevated acidity',
+      'Moisture ingress — seal repair and oil treatment',
+      'Oil leak repair at drain valve',
+      'Buchholz relay trip investigation — gas accumulation',
+      'Emergency oil replacement — dielectric breakdown',
     ],
   },
-  generator: {
+  surge_arrester: {
     pm: [
-      'Generator oil service completed',
-      'Insulation testing passed',
-      'AVR calibration',
-      'Bearing inspection',
-      'Load bank test completed',
+      'Leakage current measurement completed',
+      'Visual inspection — no discharge tracking',
+      'Ground connection resistance verified',
+      'Thermal scan completed',
+      'Counter reading logged',
     ],
     cm: [
-      'AVR replacement - voltage instability',
-      'Bearing replacement',
-      'Exciter repair',
-      'Cooling fan motor replacement',
-      'Stator winding repair',
+      'Arrester replacement — elevated leakage current',
+      'Ground connection repair',
+      'Tracking damage detected — replacement scheduled',
+      'Arrester failure post-lightning event',
+      'Emergency arrester replacement — flashover',
     ],
   },
-  crane_boom: {
+  current_transformer: {
     pm: [
-      'Structural inspection completed',
-      'Pin and bushing greased',
-      'NDT inspection - no cracks',
-      'Paint touch-up',
-      'Hydraulic cylinder inspection',
+      'Ratio test completed — within tolerance',
+      'Burden test passed',
+      'Insulation resistance measurement',
+      'Secondary winding continuity verified',
+      'Visual inspection — no oil leaks',
     ],
     cm: [
-      'Pin replacement - excessive wear',
-      'Crack repair - weld remediation',
-      'Bushing replacement',
-      'Cylinder seal replacement',
-      'Corrosion treatment',
+      'CT ratio drift — replacement scheduled',
+      'Secondary winding open circuit protection activated',
+      'Oil leak at terminal box — sealed',
+      'CT saturation investigation — relay misoperation',
+      'Emergency CT replacement — insulation failure',
     ],
   },
-  slew_bearing: {
+  breaker: {
     pm: [
-      'Slew bearing greased',
-      'Bolt torque verification',
-      'Backlash measurement - within spec',
-      'Seal condition check',
-      'Gear tooth inspection',
+      'Breaker timing test completed',
+      'Contact resistance measurement — within spec',
+      'SF6 gas pressure verified',
+      'Trip coil current test passed',
+      'Mechanism lubrication completed',
     ],
     cm: [
-      'Seal replacement - grease leakage',
-      'Bolt re-torquing - found loose',
-      'Gear wear investigation',
-      'Bearing noise investigation',
-      'Emergency seal repair',
+      'Breaker trip coil replacement',
+      'SF6 gas leak repair',
+      'Contact erosion — replacement scheduled',
+      'Mechanism spring failure — repair completed',
+      'Emergency breaker replacement — failure to trip',
+    ],
+  },
+  relay: {
+    pm: [
+      'Relay setting verification completed',
+      'Trip test — successful operation',
+      'Communication link test passed',
+      'Firmware version verified',
+      'Battery backup test completed',
+    ],
+    cm: [
+      'Relay misoperation investigation — settings adjusted',
+      'Communication module replacement',
+      'Power supply failure — replacement',
+      'Firmware upgrade — bug fix applied',
+      'Emergency relay replacement — board failure',
+    ],
+  },
+  protection_system: {
+    pm: [
+      'End-to-end protection test completed',
+      'Differential protection scheme verified',
+      'CT circuit integrity confirmed',
+      'Overcurrent relay coordination reviewed',
+      'Arc flash study updated',
+    ],
+    cm: [
+      'Protection misoperation — coordination study updated',
+      'CT wiring fault repaired',
+      'Relay replacement — intermittent fault',
+      'Protection scheme reconfiguration after network change',
+      'Emergency protection bypass removed',
     ],
   },
 }
 
 const FLEET_PATTERNS_DATA: PMFleetPattern[] = [
   {
-    equipmentType: 'wire_rope',
-    pattern: 'Accelerated fatigue wear in high-cycle offshore operations',
+    componentType: 'winding',
+    pattern: 'Accelerated insulation aging in high-load summer conditions',
     occurrences: 8,
-    averageFailurePoint: { value: 11500, unit: 'cycles' },
-    affectedAssets: ['Al Mirfa', 'Arzanah', 'SEP-450'],
-    recommendedIntervention: 'Reduce inspection interval from 500h to 350h for offshore cranes',
+    averageFailurePoint: { value: 28, unit: 'years' },
+    affectedAssets: ['BGE-TF-001', 'PECO-TF-003', 'ComEd-TF-005'],
+    recommendedIntervention: 'Reduce loading to 85% during peak summer and increase DGA sampling frequency',
   },
   {
-    equipmentType: 'wire_rope',
-    pattern: 'Corrosion-induced degradation in Arabian Gulf conditions',
+    componentType: 'winding',
+    pattern: 'Partial discharge activity in units above 30 years service',
     occurrences: 5,
-    averageFailurePoint: { value: 9200, unit: 'cycles' },
-    affectedAssets: ['Al Mirfa', 'Kawkab'],
-    recommendedIntervention: 'Apply enhanced corrosion inhibitor every 100 operating hours',
+    averageFailurePoint: { value: 32, unit: 'years' },
+    affectedAssets: ['BGE-TF-001', 'ACE-TF-008'],
+    recommendedIntervention: 'Install online PD monitoring and schedule power factor testing every 6 months',
   },
   {
-    equipmentType: 'hoist_motor',
-    pattern: 'Bearing degradation under continuous heavy-lift operations',
+    componentType: 'bushing',
+    pattern: 'Capacitance drift in older porcelain bushings',
     occurrences: 6,
-    averageFailurePoint: { value: 22000, unit: 'hours' },
-    affectedAssets: ['SEP-450', 'Arzanah', 'Zakher'],
-    recommendedIntervention: 'Increase bearing regreasing frequency to 1500h intervals',
+    averageFailurePoint: { value: 25, unit: 'years' },
+    affectedAssets: ['PECO-TF-003', 'ComEd-TF-005', 'DPL-TF-007'],
+    recommendedIntervention: 'Replace with RIP bushings during next planned outage',
   },
   {
-    equipmentType: 'hoist_motor',
-    pattern: 'Insulation degradation in high-humidity environments',
-    occurrences: 4,
-    averageFailurePoint: { value: 28000, unit: 'hours' },
-    affectedAssets: ['Al Mirfa', 'Kawkab'],
-    recommendedIntervention: 'Install dehumidifiers in motor housings',
-  },
-  {
-    equipmentType: 'main_engine',
-    pattern: 'Turbocharger bearing wear at high ambient temperatures',
-    occurrences: 7,
-    averageFailurePoint: { value: 18500, unit: 'hours' },
-    affectedAssets: ['Al Mirfa', 'Arzanah', 'Kawkab', 'Zakher'],
-    recommendedIntervention: 'Reduce turbo service interval to 8000h in summer months',
-  },
-  {
-    equipmentType: 'main_engine',
-    pattern: 'Injector coking from frequent load variations',
+    componentType: 'tap_changer',
+    pattern: 'Contact erosion from frequent voltage regulation cycles',
     occurrences: 9,
-    averageFailurePoint: { value: 12000, unit: 'hours' },
-    affectedAssets: ['Al Mirfa', 'Arzanah', 'Kawkab', 'Al Sadr', 'Zakher'],
-    recommendedIntervention: 'Use premium fuel additives and increase injector inspection frequency',
+    averageFailurePoint: { value: 15, unit: 'years' },
+    affectedAssets: ['BGE-TF-001', 'PECO-TF-003', 'ComEd-TF-005', 'PHI-TF-006', 'ACE-TF-008'],
+    recommendedIntervention: 'Implement condition-based tap changer maintenance at 50k operations',
   },
   {
-    equipmentType: 'pump_system',
-    pattern: 'Mechanical seal failure due to abrasive slurry content',
+    componentType: 'cooling_system',
+    pattern: 'Fan motor bearing failures during extended heat waves',
     occurrences: 12,
-    averageFailurePoint: { value: 4500, unit: 'hours' },
-    affectedAssets: ['Al Mirfa', 'Arzanah', 'Kawkab', 'Ghasha'],
-    recommendedIntervention: 'Upgrade to tungsten carbide seal faces for dredge operations',
+    averageFailurePoint: { value: 8, unit: 'years' },
+    affectedAssets: ['BGE-TF-001', 'PECO-TF-003', 'ComEd-TF-005', 'PHI-TF-006'],
+    recommendedIntervention: 'Stock spare fan motors and pre-stage portable cooling for summer peak',
   },
   {
-    equipmentType: 'pump_system',
-    pattern: 'Impeller erosion from high-velocity sand particles',
-    occurrences: 8,
-    averageFailurePoint: { value: 6200, unit: 'hours' },
-    affectedAssets: ['Al Mirfa', 'Arzanah', 'Ghasha'],
-    recommendedIntervention: 'Install pre-strainers and monitor flow rate deviation',
+    componentType: 'oil_system',
+    pattern: 'Moisture ingress through aging gaskets in coastal substations',
+    occurrences: 7,
+    averageFailurePoint: { value: 20, unit: 'years' },
+    affectedAssets: ['BGE-TF-001', 'ACE-TF-008', 'DPL-TF-007'],
+    recommendedIntervention: 'Replace gaskets and install online moisture sensors',
   },
   {
-    equipmentType: 'hydraulic_system',
-    pattern: 'Contamination ingress through worn cylinder seals',
-    occurrences: 6,
-    averageFailurePoint: { value: 14000, unit: 'hours' },
-    affectedAssets: ['SEP-450', 'Al Mirfa', 'Zakher'],
-    recommendedIntervention: 'Implement ISO 4406 cleanliness monitoring program',
-  },
-  {
-    equipmentType: 'slew_bearing',
-    pattern: 'Raceway wear from sustained high-load operations',
+    componentType: 'oil_system',
+    pattern: 'Elevated DBDS levels in naphthenic oil',
     occurrences: 4,
-    averageFailurePoint: { value: 32000, unit: 'hours' },
-    affectedAssets: ['SEP-450', 'Arzanah'],
-    recommendedIntervention: 'Reduce maximum continuous slew operations under full load',
+    averageFailurePoint: { value: 18, unit: 'years' },
+    affectedAssets: ['PECO-TF-003', 'ComEd-TF-005'],
+    recommendedIntervention: 'Schedule oil reclamation with passivator injection',
   },
   {
-    equipmentType: 'generator',
-    pattern: 'AVR component degradation from voltage transients',
+    componentType: 'breaker',
+    pattern: 'SF6 micro-leaks in circuit breakers above 20 years',
+    occurrences: 6,
+    averageFailurePoint: { value: 22, unit: 'years' },
+    affectedAssets: ['BGE-TF-001', 'PHI-TF-006', 'DPL-TF-007'],
+    recommendedIntervention: 'Implement SF6 leak detection monitoring and schedule seal replacements',
+  },
+  {
+    componentType: 'surge_arrester',
+    pattern: 'Elevated leakage current post-storm season',
     occurrences: 5,
-    averageFailurePoint: { value: 25000, unit: 'hours' },
-    affectedAssets: ['Al Mirfa', 'Kawkab', 'Al Sadr'],
-    recommendedIntervention: 'Install surge protection and conduct quarterly AVR checks',
+    averageFailurePoint: { value: 15, unit: 'years' },
+    affectedAssets: ['BGE-TF-001', 'ACE-TF-008', 'DPL-TF-007'],
+    recommendedIntervention: 'Conduct post-storm arrester testing and replace units showing degradation',
   },
   {
-    equipmentType: 'crane_boom',
-    pattern: 'Fatigue cracking at boom-jib connection points',
+    componentType: 'protection_system',
+    pattern: 'Relay coordination issues after network reconfiguration',
+    occurrences: 4,
+    averageFailurePoint: { value: 10, unit: 'years' },
+    affectedAssets: ['ComEd-TF-005', 'PECO-TF-003'],
+    recommendedIntervention: 'Mandate protection coordination study after any topology change',
+  },
+  {
+    componentType: 'current_transformer',
+    pattern: 'CT ratio errors in aging oil-filled units',
     occurrences: 3,
-    averageFailurePoint: { value: 65000, unit: 'hours' },
-    affectedAssets: ['SEP-450', 'Arzanah'],
-    recommendedIntervention: 'Implement annual MPI inspection at critical weld joints',
+    averageFailurePoint: { value: 30, unit: 'years' },
+    affectedAssets: ['BGE-TF-001', 'ACE-TF-008'],
+    recommendedIntervention: 'Schedule CT replacement with dry-type units during planned outages',
+  },
+  {
+    componentType: 'relay',
+    pattern: 'Firmware compatibility issues after SCADA upgrades',
+    occurrences: 5,
+    averageFailurePoint: { value: 7, unit: 'years' },
+    affectedAssets: ['ComEd-TF-005', 'PECO-TF-003', 'PHI-TF-006'],
+    recommendedIntervention: 'Establish firmware lifecycle management and pre-test all upgrades',
   },
 ]
 
-export function getWorkOrderHistory(assetId: string, equipmentId: string): PMWorkOrder[] {
-  const seed = hashCode(assetId + equipmentId)
+export function getWorkOrderHistory(assetId: string, componentId: string): PMWorkOrder[] {
+  const seed = hashCode(assetId + componentId)
   const random = seededRandom(seed)
-  
-  const equipmentType = equipmentId.includes('wire') ? 'wire_rope' :
-    equipmentId.includes('hoist') || equipmentId.includes('motor') ? 'hoist_motor' :
-    equipmentId.includes('engine') ? 'main_engine' :
-    equipmentId.includes('pump') ? 'pump_system' :
-    equipmentId.includes('hydraulic') ? 'hydraulic_system' :
-    equipmentId.includes('generator') || equipmentId.includes('gen') ? 'generator' :
-    equipmentId.includes('boom') ? 'crane_boom' :
-    equipmentId.includes('slew') ? 'slew_bearing' : 'main_engine'
 
-  const issues = WORK_ORDER_ISSUES[equipmentType as PMEquipmentType] || WORK_ORDER_ISSUES.main_engine
+  const componentType: PMEquipmentType = componentId.includes('winding') ? 'winding' :
+    componentId.includes('bushing') ? 'bushing' :
+    componentId.includes('tap') ? 'tap_changer' :
+    componentId.includes('cool') || componentId.includes('fan') ? 'cooling_system' :
+    componentId.includes('oil') ? 'oil_system' :
+    componentId.includes('surge') || componentId.includes('arrester') ? 'surge_arrester' :
+    componentId.includes('ct') || componentId.includes('current') ? 'current_transformer' :
+    componentId.includes('breaker') ? 'breaker' :
+    componentId.includes('relay') ? 'relay' :
+    componentId.includes('protect') ? 'protection_system' : 'winding'
+
+  const issues = WORK_ORDER_ISSUES[componentType] || WORK_ORDER_ISSUES.winding
 
   const workOrders: PMWorkOrder[] = []
   const orderCount = Math.floor(random() * 8) + 4
@@ -253,13 +287,13 @@ export function getWorkOrderHistory(assetId: string, equipmentId: string): PMWor
     const issueList = isPM ? issues.pm : issues.cm
     const daysAgo = Math.floor(random() * 180) + 1
     const dateCreated = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000)
-    
+
     workOrders.push({
       id: `WO-${new Date().getFullYear()}-${String(Math.floor(random() * 900) + 100)}`,
       assetId,
       assetName: assetId,
-      equipmentId,
-      equipmentName: equipmentId,
+      componentId,
+      componentName: componentId,
       type: isPM ? 'PM' : 'CM',
       issue: issueList[Math.floor(random() * issueList.length)],
       resolution: isPM ? 'Completed as scheduled' : 'Repair completed, equipment returned to service',
@@ -275,31 +309,31 @@ export function getWorkOrderHistory(assetId: string, equipmentId: string): PMWor
   return workOrders.sort((a, b) => b.dateCreated.getTime() - a.dateCreated.getTime())
 }
 
-export function getFleetPatterns(equipmentType?: PMEquipmentType): PMFleetPattern[] {
-  if (equipmentType) {
-    return FLEET_PATTERNS_DATA.filter(p => p.equipmentType === equipmentType)
+export function getFleetPatterns(componentType?: PMEquipmentType): PMFleetPattern[] {
+  if (componentType) {
+    return FLEET_PATTERNS_DATA.filter(p => p.componentType === componentType)
   }
   return FLEET_PATTERNS_DATA
 }
 
-export function getInspectionRecords(assetId: string, equipmentId: string): PMInspectionRecord[] {
-  const seed = hashCode(assetId + equipmentId + 'inspection')
+export function getInspectionRecords(assetId: string, componentId: string): PMInspectionRecord[] {
+  const seed = hashCode(assetId + componentId + 'inspection')
   const random = seededRandom(seed)
 
   const records: PMInspectionRecord[] = []
   const recordCount = Math.floor(random() * 4) + 2
 
   const conditions: Array<'good' | 'fair' | 'poor' | 'critical'> = ['good', 'fair', 'poor', 'critical']
-  const inspectors = ['Ahmed Hassan', 'Mohammed Al-Rashid', 'Khalid Omar', 'Saeed Al-Mansoori']
+  const inspectors = ['James Wilson', 'Maria Chen', 'David Okafor', 'Sarah Mitchell']
 
   for (let i = 0; i < recordCount; i++) {
     const daysAgo = Math.floor(random() * 90) + 14
     const conditionIndex = Math.min(Math.floor(random() * 3), 3)
-    
+
     records.push({
       id: `INS-${new Date().getFullYear()}-${String(Math.floor(random() * 900) + 100)}`,
       assetId,
-      equipmentId,
+      componentId,
       date: new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000),
       inspector: inspectors[Math.floor(random() * inspectors.length)],
       findings: generateFindings(random, conditions[conditionIndex]),
@@ -312,8 +346,8 @@ export function getInspectionRecords(assetId: string, equipmentId: string): PMIn
   return records.sort((a, b) => b.date.getTime() - a.date.getTime())
 }
 
-export function getOilAnalysisRecords(assetId: string, equipmentId: string): PMOilAnalysis[] {
-  const seed = hashCode(assetId + equipmentId + 'oil')
+export function getOilAnalysisRecords(assetId: string, componentId: string): PMOilAnalysis[] {
+  const seed = hashCode(assetId + componentId + 'oil')
   const random = seededRandom(seed)
 
   const records: PMOilAnalysis[] = []
@@ -322,56 +356,56 @@ export function getOilAnalysisRecords(assetId: string, equipmentId: string): PMO
   for (let i = 0; i < recordCount; i++) {
     const daysAgo = Math.floor(random() * 60) + 21
     const overallCondition = random() > 0.7 ? 'marginal' : random() > 0.9 ? 'critical' : 'good'
-    
+
     records.push({
       id: `OIL-${new Date().getFullYear()}-${String(Math.floor(random() * 900) + 100)}`,
       assetId,
-      equipmentId,
+      componentId,
       date: new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000),
-      lab: 'SGS Middle East',
+      lab: 'Weidmann Electrical Technology',
       results: [
         {
-          parameter: 'Viscosity @ 40°C',
-          value: 95 + Math.floor(random() * 20),
-          unit: 'cSt',
-          status: random() > 0.8 ? 'warning' : 'normal',
-          trend: 'stable',
-        },
-        {
-          parameter: 'Iron (Fe)',
-          value: Math.floor(random() * 50) + 10,
+          parameter: 'Hydrogen (H₂)',
+          value: Math.floor(random() * 200) + 20,
           unit: 'ppm',
           status: random() > 0.7 ? 'warning' : 'normal',
           trend: random() > 0.5 ? 'increasing' : 'stable',
         },
         {
-          parameter: 'Water Content',
-          value: Math.floor(random() * 500) + 50,
+          parameter: 'Acetylene (C₂H₂)',
+          value: Math.floor(random() * 15),
           unit: 'ppm',
           status: random() > 0.85 ? 'warning' : 'normal',
           trend: 'stable',
         },
         {
-          parameter: 'Particle Count ISO',
-          value: Math.floor(random() * 4) + 16,
-          unit: '/17/14',
-          status: random() > 0.75 ? 'warning' : 'normal',
+          parameter: 'Moisture Content',
+          value: Math.floor(random() * 30) + 5,
+          unit: 'ppm',
+          status: random() > 0.8 ? 'warning' : 'normal',
           trend: random() > 0.6 ? 'increasing' : 'stable',
         },
         {
-          parameter: 'TAN',
-          value: Math.round((random() * 2 + 0.5) * 10) / 10,
-          unit: 'mgKOH/g',
+          parameter: 'Dielectric Strength',
+          value: Math.floor(random() * 20) + 25,
+          unit: 'kV',
+          status: random() > 0.75 ? 'warning' : 'normal',
+          trend: random() > 0.5 ? 'decreasing' : 'stable',
+        },
+        {
+          parameter: 'Power Factor',
+          value: Math.round((random() * 3 + 0.2) * 100) / 100,
+          unit: '%',
           status: random() > 0.8 ? 'warning' : 'normal',
           trend: 'increasing',
         },
       ],
       overallCondition: overallCondition as 'good' | 'marginal' | 'critical',
-      recommendation: overallCondition === 'critical' 
-        ? 'Immediate oil change recommended. Investigate source of contamination.'
+      recommendation: overallCondition === 'critical'
+        ? 'Immediate oil treatment recommended. Schedule DGA follow-up within 30 days per IEEE C57.104.'
         : overallCondition === 'marginal'
-        ? 'Schedule oil change within next 500 operating hours. Monitor wear metals.'
-        : 'Oil condition acceptable. Continue normal monitoring.',
+        ? 'Schedule oil filtration within next quarter. Increase DGA sampling to monthly.'
+        : 'Oil condition acceptable. Continue annual DGA monitoring per IEEE C57.104.',
     })
   }
 
@@ -380,39 +414,39 @@ export function getOilAnalysisRecords(assetId: string, equipmentId: string): PMO
 
 function generateFindings(random: () => number, condition: string): string[] {
   const findings: string[] = []
-  
+
   if (condition === 'good') {
     findings.push('Equipment in good operating condition')
     findings.push('No visible defects or abnormalities')
     if (random() > 0.5) findings.push('Minor cosmetic wear within acceptable limits')
   } else if (condition === 'fair') {
-    findings.push('Minor wear observed on contact surfaces')
-    findings.push('Lubrication adequate but due for service')
-    if (random() > 0.5) findings.push('Small paint chips noted, no corrosion')
+    findings.push('Minor oil weeping observed at gasket')
+    findings.push('Cooling fan vibration slightly elevated')
+    if (random() > 0.5) findings.push('Paint deterioration on radiators — no structural impact')
   } else if (condition === 'poor') {
-    findings.push('Significant wear patterns detected')
-    findings.push('Lubrication degraded, service overdue')
-    findings.push('Early signs of fatigue noted')
-    if (random() > 0.5) findings.push('Surface corrosion present')
+    findings.push('Significant oil discoloration noted')
+    findings.push('Bushing porcelain showing surface tracking')
+    findings.push('Elevated top oil temperature under normal load')
+    if (random() > 0.5) findings.push('Corrosion on tank base — monitoring recommended')
   } else {
-    findings.push('Critical wear requiring immediate attention')
-    findings.push('Visible defects affecting operation')
-    findings.push('Potential safety concern identified')
-    findings.push('Recommend equipment stand-down pending repair')
+    findings.push('Critical DGA readings — immediate follow-up required')
+    findings.push('Visible oil leak at main gasket')
+    findings.push('Abnormal noise from tap changer mechanism')
+    findings.push('Recommend de-loading pending investigation')
   }
-  
+
   return findings
 }
 
 function generateRecommendedActions(random: () => number): string[] {
   const actions = [
-    'Schedule maintenance within 7 days',
-    'Order replacement parts',
-    'Increase inspection frequency',
-    'Consult OEM for guidance',
-    'Coordinate with operations for downtime',
+    'Schedule maintenance during next planned outage',
+    'Order replacement components from OEM',
+    'Increase DGA sampling frequency to monthly',
+    'Consult transformer specialist for assessment',
+    'Coordinate with dispatch for load transfer capability',
   ]
-  
+
   const count = Math.floor(random() * 2) + 1
   return actions.slice(0, count)
 }
