@@ -23,6 +23,26 @@
 // SCENARIO 1: Aging Transformer Approaching End of Life
 // ============================================================================
 
+export interface DecisionOption {
+  label: string;
+  description: string;
+  pros: string[];
+  cons: string[];
+  financialImpact: { label: string; value: string; trend: 'positive' | 'negative' | 'neutral' };
+  riskLevel: 'low' | 'medium' | 'high' | 'critical';
+  customerImpact: string;
+  timeline: string;
+}
+
+export interface DecisionSupport {
+  summary: string;
+  urgency: 'immediate' | 'within_24h' | 'within_week' | 'within_month';
+  confidenceScore: number;
+  approveOption: DecisionOption;
+  deferOption: DecisionOption;
+  keyRisks: string[];
+}
+
 export interface DemoScenario {
   id: string;
   title: string;
@@ -36,6 +56,7 @@ export interface DemoScenario {
   timeline: ScenarioEvent[];
   outcome: ScenarioOutcome;
   metrics: ScenarioMetric[];
+  decisionSupport: DecisionSupport;
 }
 
 export interface ScenarioEvent {
@@ -146,6 +167,56 @@ export const DEMO_SCENARIOS: DemoScenario[] = [
       { label: 'Customer Impact', value: 'Zero', trend: 'stable', context: 'Planned maintenance window' },
       { label: 'Cost Avoided', value: '$12.5M', trend: 'down', context: 'Emergency replacement + liability' },
     ],
+    decisionSupport: {
+      summary: 'AI recommends proactive replacement of 52-year-old transformer during planned October maintenance window. Spare unit available at Calvert Cliffs. 6-week project timeline with zero planned customer impact.',
+      urgency: 'within_month',
+      confidenceScore: 94,
+      approveOption: {
+        label: 'Approve Proactive Replacement',
+        description: 'Schedule replacement during October planned maintenance window using available spare from Calvert Cliffs pool.',
+        pros: [
+          'Eliminates catastrophic failure risk (est. 3-4 months remaining)',
+          'Zero customer impact — planned maintenance window',
+          'Spare transformer already in inventory (no 12-18 month lead time)',
+          'Avoids $8-15M emergency replacement + environmental liability',
+          'New unit raises health index from 38 to 98',
+        ],
+        cons: [
+          'Capital expenditure: $2.1M for replacement + installation',
+          '6-week project ties up field crew resources',
+          'Adjacent units carry additional load during swap period',
+        ],
+        financialImpact: { label: 'Net Savings', value: '$10.4M', trend: 'positive' },
+        riskLevel: 'low',
+        customerImpact: 'Zero — load transferred to #2 and adjacent substations',
+        timeline: '6 weeks (October maintenance window)',
+      },
+      deferOption: {
+        label: 'Defer — Continue Monitoring',
+        description: 'Increase DGA sampling to monthly. Continue operating with enhanced monitoring and reduced loading.',
+        pros: [
+          'Defers $2.1M capital expenditure',
+          'No crew mobilization required now',
+        ],
+        cons: [
+          'Remaining life estimated 8-14 months — failure window approaching',
+          'In-service failure risk: 8-12 hour outage, 85,000 customers affected',
+          'Emergency replacement cost: $8-15M + environmental cleanup',
+          'Oil spill liability and regulatory exposure',
+          'No spare available if emergency occurs (12-18 month lead time)',
+        ],
+        financialImpact: { label: 'Failure Risk Exposure', value: '$12.5M', trend: 'negative' },
+        riskLevel: 'critical',
+        customerImpact: '85,000 customers at risk of 8-12 hour unplanned outage',
+        timeline: 'Monitoring continues — failure projected within 8-14 months',
+      },
+      keyRisks: [
+        'DP at 310 — approaching irreversible threshold of 200',
+        'TDCG at 1,920 ppm — IEEE C57.104 Condition 3',
+        'Furan at 2.8 mg/L confirms advanced cellulose degradation',
+        'Rate of HI decline 3× fleet average',
+      ],
+    },
   },
 
   // ---- Scenario 2: DGA Trending Alert with Arcing Detection ----
@@ -228,6 +299,57 @@ export const DEMO_SCENARIOS: DemoScenario[] = [
       { label: 'Response Time', value: '20 min', trend: 'down', context: 'From alert to de-loading complete' },
       { label: 'Customer Impact', value: 'Zero', trend: 'stable', context: 'Seamless load transfer' },
     ],
+    decisionSupport: {
+      summary: 'Active arcing detected inside transformer tank. AI recommends immediate de-loading to 60% nameplate and emergency oil sampling. Arcing under load can escalate to tank rupture within hours.',
+      urgency: 'immediate',
+      confidenceScore: 97,
+      approveOption: {
+        label: 'Approve Emergency De-loading',
+        description: 'Immediately reduce loading to 60% of nameplate via SCADA. Transfer 180 MVA to Transformer #4 and McCook Substation. Dispatch crew for emergency oil sample.',
+        pros: [
+          'Eliminates arcing escalation risk immediately',
+          'Load transfer achievable within 15 minutes via SCADA',
+          'Adjacent units have capacity headroom for transferred load',
+          'Oil sample confirms diagnosis — enables targeted repair ($85K)',
+          'Prevents catastrophic tank failure ($15M+ replacement)',
+        ],
+        cons: [
+          'Adjacent units operate at higher loading temporarily',
+          'Emergency crew dispatch during off-hours (overtime cost ~$12K)',
+          'Transformer at reduced capacity until repair completed',
+        ],
+        financialImpact: { label: 'Net Savings', value: '$14.9M', trend: 'positive' },
+        riskLevel: 'low',
+        customerImpact: 'Zero — seamless SCADA load transfer to adjacent assets',
+        timeline: 'De-loading: 15 min · Oil sample: 4 hours · Repair: 3 days',
+      },
+      deferOption: {
+        label: 'Defer — Monitor Only',
+        description: 'Continue operating at current loading. Increase DGA sampling frequency and monitor acetylene trend.',
+        pros: [
+          'No immediate operational disruption',
+          'Avoids overtime crew costs',
+        ],
+        cons: [
+          'Acetylene rising at 8.7 ppm/day — active arcing condition',
+          'Tank rupture risk under continued loading (1-2 weeks)',
+          'Tank failure: $15M replacement + 12-18 month lead time',
+          'Fire/explosion risk to field personnel and adjacent equipment',
+          '120,000 customers at risk of prolonged outage (48+ hours)',
+          'Environmental contamination from oil release',
+        ],
+        financialImpact: { label: 'Failure Risk Exposure', value: '$15M+', trend: 'negative' },
+        riskLevel: 'critical',
+        customerImpact: '120,000 customers at risk of 48-hour outage',
+        timeline: 'Projected escalation to tank failure: 1-2 weeks at current load',
+      },
+      keyRisks: [
+        'C₂H₂ at 28 ppm — 14× baseline, rising 8.7 ppm/day',
+        'Duval Triangle: D1 discharge — can escalate to D2 under load',
+        'Tank rupture risk if arcing continues under full load',
+        'Fire/explosion hazard — proximity to adjacent equipment',
+      ],
+    },
   },
 
   // ---- Scenario 3: Avoided Outage During Heat Wave ----
@@ -310,6 +432,59 @@ export const DEMO_SCENARIOS: DemoScenario[] = [
       { label: 'Peak Loading', value: '93%', trend: 'down', context: 'vs 102% without intervention' },
       { label: 'Response Lead Time', value: '9 hours', trend: 'up', context: 'Pre-emptive vs reactive' },
     ],
+    decisionSupport: {
+      summary: 'AI forecasts 3 transformers will exceed 100% nameplate at 3 PM due to heat wave. 3-part mitigation plan: mobile substation, load transfer, and demand response. 9-hour lead time available for pre-emptive action.',
+      urgency: 'within_24h',
+      confidenceScore: 92,
+      approveOption: {
+        label: 'Approve Mitigation Plan',
+        description: 'Execute 3-part pre-emptive plan: (1) Deploy mobile sub by 11 AM, (2) Transfer 45 MVA by 1 PM, (3) Activate 12 MW demand response.',
+        pros: [
+          '9-hour lead time — ample for pre-positioning resources',
+          'Mobile substation available and pre-staged at depot',
+          'Load transfer reduces Plymouth Meeting from 102% to 87%',
+          'Demand response contracts pre-negotiated — 12 MW industrial',
+          'Protects 65,000 customers with zero service interruption',
+          'Supports Exelon 100% blue-sky uptime commitment',
+        ],
+        cons: [
+          'Mobile substation deployment cost: ~$45K/day',
+          'Demand response activation cost: ~$18K (12 MW × $1,500/MW)',
+          'Crew overtime for mobile sub setup and monitoring: ~$8K',
+          'Industrial customers experience voluntary curtailment',
+        ],
+        financialImpact: { label: 'Net Savings', value: '$4.1M', trend: 'positive' },
+        riskLevel: 'low',
+        customerImpact: 'Zero outages — 65,000 customers fully protected',
+        timeline: 'Mobile sub: 11 AM · Load transfer: 1 PM · Peak passes: ~6 PM',
+      },
+      deferOption: {
+        label: 'Defer — Rely on Existing Capacity',
+        description: 'No pre-emptive action. Monitor loading in real-time and react if emergency overload occurs.',
+        pros: [
+          'No upfront mobilization costs',
+          'Forecast could be wrong — heat wave may not materialize',
+        ],
+        cons: [
+          '97% forecast confidence — conditions very likely to exceed limits',
+          'Emergency overload on 3 transformers accelerates aging',
+          'N-1 contingency fails — loss of one unit cascades to 65,000 customers',
+          'Reactive response time insufficient at peak (2 hours vs 9 hours pre-emptive)',
+          'Customer outage liability: $4.2M (SAIDI/SAIFI penalties + claims)',
+          'Regulatory exposure from avoidable outage during predicted event',
+        ],
+        financialImpact: { label: 'Outage Risk Exposure', value: '$4.2M', trend: 'negative' },
+        riskLevel: 'high',
+        customerImpact: '65,000 customers at risk of 4-8 hour cascading outage',
+        timeline: 'Peak at 3 PM — no time for pre-positioning if deferred',
+      },
+      keyRisks: [
+        'Forecast: 104°F / heat index 112°F — 98th percentile conditions',
+        'N-1 contingency failure: loss of 1 unit cascades across territory',
+        'Emergency overload accelerates transformer aging by 20-40×',
+        'Reactive response too slow at peak — 2 hours vs 9 hours lead time',
+      ],
+    },
   },
 ];
 

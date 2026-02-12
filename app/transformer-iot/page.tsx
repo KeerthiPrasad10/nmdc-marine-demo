@@ -43,7 +43,176 @@ import {
   updateSensorValue,
 } from '@/lib/transformer-iot/mock-data';
 import { AIPredictiveMaintenance } from '@/app/components/PredictiveMaintenance';
-import { getScenarioForAsset, type DemoScenario, type ScenarioEvent } from '@/lib/demo-scenarios';
+import { getScenarioForAsset, type DemoScenario, type ScenarioEvent, type DecisionOption, type DecisionSupport } from '@/lib/demo-scenarios';
+
+// ──────────────────── Decision Brief Panel ────────────────────────────
+function DecisionBrief({
+  decisionSupport,
+  onApprove,
+  onDefer,
+}: {
+  decisionSupport: DecisionSupport;
+  onApprove: () => void;
+  onDefer: () => void;
+}) {
+  const [selectedTab, setSelectedTab] = useState<'approve' | 'defer'>('approve');
+  const option = selectedTab === 'approve' ? decisionSupport.approveOption : decisionSupport.deferOption;
+
+  const urgencyLabels: Record<string, { text: string; color: string }> = {
+    immediate: { text: 'Immediate', color: 'text-rose-400/70 bg-rose-500/10 border-rose-500/15' },
+    within_24h: { text: 'Within 24 hours', color: 'text-amber-400/70 bg-amber-500/10 border-amber-500/15' },
+    within_week: { text: 'Within 1 week', color: 'text-yellow-400/60 bg-yellow-500/10 border-yellow-500/15' },
+    within_month: { text: 'Within 1 month', color: 'text-cyan-400/60 bg-cyan-500/10 border-cyan-500/15' },
+  };
+
+  const riskColors: Record<string, string> = {
+    low: 'text-emerald-400/60 bg-emerald-500/10',
+    medium: 'text-amber-400/60 bg-amber-500/10',
+    high: 'text-orange-400/60 bg-orange-500/10',
+    critical: 'text-rose-400/60 bg-rose-500/10',
+  };
+
+  const urg = urgencyLabels[decisionSupport.urgency] || urgencyLabels.within_week;
+
+  return (
+    <div className="mt-3 rounded-lg bg-white/[0.03] border border-amber-500/15 overflow-hidden" onClick={e => e.stopPropagation()}>
+      {/* Header */}
+      <div className="px-3 pt-3 pb-2 border-b border-white/[0.06]">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <Shield className="w-4 h-4 text-amber-400/50" />
+            <span className="text-xs font-semibold text-amber-400/60">Operator Decision Required</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={`text-[10px] px-2 py-0.5 rounded-full border ${urg.color}`}>{urg.text}</span>
+            <span className="text-[10px] text-white/30 flex items-center gap-1">
+              <Brain className="w-3 h-3" /> {decisionSupport.confidenceScore}% confidence
+            </span>
+          </div>
+        </div>
+        <p className="text-xs text-white/50 leading-relaxed">{decisionSupport.summary}</p>
+      </div>
+
+      {/* Key Risks Banner */}
+      <div className="px-3 py-2 bg-rose-500/[0.03] border-b border-white/[0.06]">
+        <div className="text-[10px] font-semibold text-rose-400/50 uppercase tracking-wider mb-1">Key Risks</div>
+        <div className="space-y-1">
+          {decisionSupport.keyRisks.map((risk, i) => (
+            <div key={i} className="flex items-start gap-1.5 text-[11px] text-white/45">
+              <AlertTriangle className="w-3 h-3 text-rose-400/40 flex-shrink-0 mt-0.5" />
+              {risk}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Tab Selector */}
+      <div className="flex border-b border-white/[0.06]">
+        <button
+          onClick={() => setSelectedTab('approve')}
+          className={`flex-1 px-3 py-2 text-xs font-medium transition-all ${
+            selectedTab === 'approve'
+              ? 'text-emerald-400/70 border-b-2 border-emerald-400/50 bg-emerald-500/[0.04]'
+              : 'text-white/35 hover:text-white/50'
+          }`}
+        >
+          <span className="flex items-center justify-center gap-1.5">
+            <CheckCircle className="w-3.5 h-3.5" /> {decisionSupport.approveOption.label}
+          </span>
+        </button>
+        <button
+          onClick={() => setSelectedTab('defer')}
+          className={`flex-1 px-3 py-2 text-xs font-medium transition-all ${
+            selectedTab === 'defer'
+              ? 'text-amber-400/70 border-b-2 border-amber-400/50 bg-amber-500/[0.04]'
+              : 'text-white/35 hover:text-white/50'
+          }`}
+        >
+          <span className="flex items-center justify-center gap-1.5">
+            <Clock className="w-3.5 h-3.5" /> {decisionSupport.deferOption.label}
+          </span>
+        </button>
+      </div>
+
+      {/* Selected Option Details */}
+      <div className="px-3 py-3 space-y-3">
+        <p className="text-xs text-white/50">{option.description}</p>
+
+        {/* Impact Strip */}
+        <div className="grid grid-cols-3 gap-2">
+          <div className={`p-2 rounded-lg text-center ${
+            option.financialImpact.trend === 'positive' ? 'bg-emerald-500/[0.06] border border-emerald-500/10' :
+            'bg-rose-500/[0.06] border border-rose-500/10'
+          }`}>
+            <div className="text-[10px] text-white/35">{option.financialImpact.label}</div>
+            <div className={`text-sm font-bold ${
+              option.financialImpact.trend === 'positive' ? 'text-emerald-400/70' : 'text-rose-400/70'
+            }`}>{option.financialImpact.value}</div>
+          </div>
+          <div className={`p-2 rounded-lg text-center ${riskColors[option.riskLevel]}`}>
+            <div className="text-[10px] text-white/35">Risk Level</div>
+            <div className="text-sm font-bold capitalize">{option.riskLevel}</div>
+          </div>
+          <div className="p-2 rounded-lg text-center bg-white/[0.03] border border-white/[0.06]">
+            <div className="text-[10px] text-white/35">Timeline</div>
+            <div className="text-[11px] font-medium text-white/60 leading-tight">{option.timeline}</div>
+          </div>
+        </div>
+
+        {/* Customer Impact */}
+        <div className="p-2 rounded-lg bg-blue-500/[0.04] border border-blue-500/10 flex items-start gap-2">
+          <Eye className="w-3.5 h-3.5 text-blue-400/50 flex-shrink-0 mt-0.5" />
+          <div>
+            <div className="text-[10px] text-blue-400/50 font-medium">Customer Impact</div>
+            <div className="text-xs text-white/50">{option.customerImpact}</div>
+          </div>
+        </div>
+
+        {/* Pros & Cons */}
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <div className="text-[10px] font-semibold text-emerald-400/50 uppercase tracking-wider mb-1.5">Value</div>
+            <div className="space-y-1">
+              {option.pros.map((pro, i) => (
+                <div key={i} className="flex items-start gap-1.5 text-[11px] text-white/45">
+                  <CheckCircle className="w-3 h-3 text-emerald-400/40 flex-shrink-0 mt-0.5" />
+                  {pro}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="text-[10px] font-semibold text-rose-400/50 uppercase tracking-wider mb-1.5">Trade-offs</div>
+            <div className="space-y-1">
+              {option.cons.map((con, i) => (
+                <div key={i} className="flex items-start gap-1.5 text-[11px] text-white/45">
+                  <TrendingDown className="w-3 h-3 text-rose-400/40 flex-shrink-0 mt-0.5" />
+                  {con}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="px-3 pb-3 flex items-center gap-2">
+        <button
+          onClick={onApprove}
+          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg bg-emerald-500/15 border border-emerald-500/20 text-emerald-400/70 text-xs font-semibold hover:bg-emerald-500/25 transition-all"
+        >
+          <CheckCircle className="w-3.5 h-3.5" /> Approve &amp; Execute
+        </button>
+        <button
+          onClick={onDefer}
+          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-white/40 text-xs font-semibold hover:bg-white/[0.08] transition-all"
+        >
+          <Clock className="w-3.5 h-3.5" /> Defer for Review
+        </button>
+      </div>
+    </div>
+  );
+}
 
 // ──────────────────── Scenario Investigation Panel ────────────────────
 function ScenarioInvestigation({ scenario }: { scenario: DemoScenario }) {
@@ -247,29 +416,13 @@ function ScenarioInvestigation({ scenario }: { scenario: DemoScenario }) {
                             ))}
                           </div>
                         )}
-                        {/* Approval Gate — pauses at recommendation for human decision */}
+                        {/* Decision Brief — pauses at recommendation for human decision */}
                         {event.type === 'recommendation' && isActive && awaitingApproval && (
-                          <div className="mt-3 p-3 rounded-lg bg-amber-500/[0.06] border border-amber-500/15 space-y-3">
-                            <div className="flex items-center gap-2">
-                              <Shield className="w-4 h-4 text-amber-400/50" />
-                              <span className="text-xs font-semibold text-amber-400/60">Operator Approval Required</span>
-                            </div>
-                            <p className="text-xs text-white/45">AI has completed analysis and generated a recommendation. Authorize execution to proceed with the action plan.</p>
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={(e) => { e.stopPropagation(); handleApprove(); }}
-                                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-500/15 border border-emerald-500/20 text-emerald-400/70 text-xs font-medium hover:bg-emerald-500/25 transition-all"
-                              >
-                                <CheckCircle className="w-3.5 h-3.5" /> Approve &amp; Execute
-                              </button>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); handleDefer(); }}
-                                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-white/40 text-xs font-medium hover:bg-white/[0.08] transition-all"
-                              >
-                                <Clock className="w-3.5 h-3.5" /> Defer
-                              </button>
-                            </div>
-                          </div>
+                          <DecisionBrief
+                            decisionSupport={scenario.decisionSupport}
+                            onApprove={handleApprove}
+                            onDefer={handleDefer}
+                          />
                         )}
                         {event.type === 'recommendation' && isActive && approved && !isPlaying && !showOutcome && (
                           <div className="mt-2 flex items-center gap-1.5 text-[10px] text-emerald-400/50">
