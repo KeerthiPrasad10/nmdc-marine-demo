@@ -43,7 +43,147 @@ import {
   updateSensorValue,
 } from '@/lib/transformer-iot/mock-data';
 import { AIPredictiveMaintenance } from '@/app/components/PredictiveMaintenance';
-import { getScenarioForAsset } from '@/lib/demo-scenarios';
+import { getScenarioForAsset, type DemoScenario, type ScenarioEvent } from '@/lib/demo-scenarios';
+
+// ──────────────────── Scenario Investigation Panel ────────────────────
+function ScenarioInvestigation({ scenario }: { scenario: DemoScenario }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [activeStep, setActiveStep] = useState(0);
+
+  const catConfig: Record<string, { accent: string; bg: string; border: string; label: string }> = {
+    aging_asset: { accent: 'text-orange-400/60', bg: 'bg-orange-500/[0.04]', border: 'border-orange-500/10', label: 'Aging Asset' },
+    dga_alert: { accent: 'text-red-400/60', bg: 'bg-red-500/[0.04]', border: 'border-red-500/10', label: 'DGA Alert' },
+    avoided_outage: { accent: 'text-emerald-400/60', bg: 'bg-emerald-500/[0.04]', border: 'border-emerald-500/10', label: 'Outage Prevention' },
+  };
+
+  const stepIcons: Record<ScenarioEvent['type'], { icon: React.ReactNode; color: string }> = {
+    detection: { icon: <AlertTriangle className="w-3.5 h-3.5" />, color: 'text-amber-400/60 bg-amber-500/10 border-amber-500/15' },
+    analysis: { icon: <Brain className="w-3.5 h-3.5" />, color: 'text-violet-400/60 bg-violet-500/10 border-violet-500/15' },
+    recommendation: { icon: <TrendingUp className="w-3.5 h-3.5" />, color: 'text-cyan-400/60 bg-cyan-500/10 border-cyan-500/15' },
+    action: { icon: <Zap className="w-3.5 h-3.5" />, color: 'text-blue-400/60 bg-blue-500/10 border-blue-500/15' },
+    resolution: { icon: <CheckCircle className="w-3.5 h-3.5" />, color: 'text-emerald-400/60 bg-emerald-500/10 border-emerald-500/15' },
+  };
+
+  const cfg = catConfig[scenario.category] || catConfig.aging_asset;
+
+  return (
+    <div className={`rounded-2xl border transition-all ${isExpanded ? cfg.border + ' ' + cfg.bg : 'bg-white/[0.02] border-white/[0.06]'}`}>
+      {/* Collapsed Header — always visible */}
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full p-4 flex items-start gap-3 text-left"
+      >
+        <div className={`mt-0.5 w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${cfg.bg} border ${cfg.border}`}>
+          <Shield className={`w-4 h-4 ${cfg.accent}`} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className={`text-[10px] font-semibold uppercase tracking-wider ${cfg.accent}`}>{cfg.label}</span>
+            <span className="text-[10px] text-emerald-400/50 font-medium">· {scenario.outcome.costAvoided} avoided</span>
+          </div>
+          <p className="text-sm font-medium text-white/75 truncate">{scenario.title}</p>
+          {!isExpanded && (
+            <p className="text-xs text-white/35 mt-0.5 truncate">{scenario.subtitle}</p>
+          )}
+        </div>
+        <ChevronRight className={`w-4 h-4 text-white/25 transition-transform flex-shrink-0 mt-1 ${isExpanded ? 'rotate-90' : ''}`} />
+      </button>
+
+      {/* Expanded Content */}
+      {isExpanded && (
+        <div className="px-4 pb-4 space-y-4">
+          {/* Description */}
+          <p className="text-xs text-white/50 leading-relaxed">{scenario.description}</p>
+
+          {/* Timeline Steps */}
+          <div className="space-y-0">
+            {scenario.timeline.map((event, i) => {
+              const step = stepIcons[event.type] || stepIcons.detection;
+              const isActive = i === activeStep;
+              const isPast = i < activeStep;
+
+              return (
+                <div key={event.id} className="flex gap-3">
+                  {/* Connector Line + Icon */}
+                  <div className="flex flex-col items-center">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setActiveStep(i); }}
+                      className={`w-7 h-7 rounded-full border flex items-center justify-center flex-shrink-0 transition-all ${
+                        isActive ? step.color + ' ring-1 ring-white/10' :
+                        isPast ? 'text-emerald-400/40 bg-emerald-500/[0.06] border-emerald-500/10' :
+                        'text-white/25 bg-white/[0.03] border-white/[0.06]'
+                      }`}
+                    >
+                      {isPast && !isActive ? <CheckCircle className="w-3.5 h-3.5" /> : step.icon}
+                    </button>
+                    {i < scenario.timeline.length - 1 && (
+                      <div className={`w-px flex-1 min-h-[16px] ${isPast ? 'bg-emerald-500/15' : 'bg-white/[0.06]'}`} />
+                    )}
+                  </div>
+
+                  {/* Content */}
+                  <div className={`pb-4 flex-1 ${i === scenario.timeline.length - 1 ? 'pb-0' : ''}`}>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className={`text-xs font-medium ${isActive ? 'text-white/80' : 'text-white/50'}`}>{event.title}</span>
+                    </div>
+                    {isActive && (
+                      <div className="mt-1.5 space-y-2">
+                        <p className="text-xs text-white/45 leading-relaxed">{event.description}</p>
+                        {event.data && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {Object.entries(event.data).slice(0, 4).map(([key, val]) => (
+                              <span key={key} className="text-[10px] px-2 py-0.5 rounded bg-white/[0.04] border border-white/[0.06] text-white/40">
+                                {key.replace(/([A-Z])/g, ' $1').trim()}: <span className="text-white/60">{String(val)}</span>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Outcome Card */}
+          <div className="p-3 rounded-lg bg-emerald-500/[0.04] border border-emerald-500/10">
+            <div className="flex items-center gap-2 mb-1.5">
+              <CheckCircle className="w-4 h-4 text-emerald-400/50" />
+              <span className="text-xs font-semibold text-emerald-400/60">{scenario.outcome.title}</span>
+            </div>
+            <p className="text-xs text-white/40 leading-relaxed mb-2">{scenario.outcome.description}</p>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="text-center">
+                <p className="text-sm font-bold text-emerald-400/60">{scenario.outcome.costAvoided}</p>
+                <p className="text-[10px] text-white/30">Cost Avoided</p>
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-bold text-white/60">{scenario.outcome.customersProtected.toLocaleString()}</p>
+                <p className="text-[10px] text-white/30">Customers</p>
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-bold text-white/60">{scenario.outcome.outageHoursAvoided}h</p>
+                <p className="text-[10px] text-white/30">Outage Avoided</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Key Metrics */}
+          <div className="grid grid-cols-2 gap-2">
+            {scenario.metrics.map(m => (
+              <div key={m.label} className="p-2 rounded-lg bg-white/[0.03] border border-white/[0.05]">
+                <span className="text-[10px] text-white/30">{m.label}</span>
+                <p className="text-xs font-semibold text-white/70">{m.value}</p>
+                <span className="text-[9px] text-white/25">{m.context}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ──────────────────────────── Sensor Card ────────────────────────────
 function SensorCard({ sensor }: { sensor: TransformerSensor }) {
@@ -549,37 +689,6 @@ function TransformerIoTDashboard() {
         </div>
       </header>
 
-      {/* Hero Scenario Banner */}
-      {(() => {
-        const scenario = getScenarioForAsset(assetTag);
-        if (!scenario) return null;
-        const catConfig = {
-          aging_asset: { bg: 'bg-orange-500/[0.03]', border: 'border-orange-500/10', text: 'text-orange-400/60', label: 'Aging Asset' },
-          dga_alert: { bg: 'bg-red-500/[0.03]', border: 'border-red-500/10', text: 'text-red-400/60', label: 'DGA Alert' },
-          avoided_outage: { bg: 'bg-emerald-500/[0.03]', border: 'border-emerald-500/10', text: 'text-emerald-400/60', label: 'Outage Prevention' },
-        };
-        const cfg = catConfig[scenario.category];
-        return (
-          <div className={`border-b ${cfg.border} ${cfg.bg}`}>
-            <div className="max-w-[2000px] mx-auto px-6 py-3 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider ${cfg.text} bg-white/[0.04]`}>
-                  <Shield className="w-3 h-3" /> {cfg.label}
-                </span>
-                <span className="text-sm font-medium text-white/70">{scenario.title}</span>
-                <span className="text-xs text-white/30">— {scenario.subtitle}</span>
-              </div>
-              <div className="flex items-center gap-4">
-                <span className="text-xs text-emerald-400/50 font-medium">{scenario.outcome.costAvoided} avoided</span>
-                <Link href={`/scenarios?id=${scenario.id}`} className="text-xs font-medium text-amber-400/50 hover:text-amber-400/70 flex items-center gap-1 transition-colors">
-                  Full Story <ChevronRight className="w-3 h-3" />
-                </Link>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
-
       {/* Main Content */}
       <main className="max-w-[2000px] mx-auto px-6 py-6">
         <div className="grid grid-cols-12 gap-6">
@@ -704,8 +813,15 @@ function TransformerIoTDashboard() {
             </div>
           </div>
 
-          {/* ── Right Column: Alarms + PM ── */}
+          {/* ── Right Column: Scenario + Alarms + PM ── */}
           <div className="col-span-3 space-y-6">
+            {/* Scenario Investigation — contextual to this asset */}
+            {(() => {
+              const scenario = getScenarioForAsset(assetTag);
+              if (!scenario) return null;
+              return <ScenarioInvestigation scenario={scenario} />;
+            })()}
+
             {/* Alarm Events */}
             <div className="rounded-2xl bg-white/[0.02] border border-white/[0.06] p-4">
               <div className="flex items-center justify-between mb-4">
