@@ -1,4 +1,4 @@
-export type PMSourceType = 
+export type PMSourceType =
   | 'live_telemetry'
   | 'oem_specs'
   | 'work_history'
@@ -7,20 +7,26 @@ export type PMSourceType =
   | 'inspection_records'
   | 'oil_analysis'
   | 'industry_standards'
+  | 'dga_analysis'
 
-export type PMEquipmentType =
-  | 'wire_rope'
-  | 'hoist_motor'
-  | 'main_engine'
-  | 'pump_system'
-  | 'hydraulic_system'
-  | 'generator'
-  | 'crane_boom'
-  | 'slew_bearing'
+export type PMComponentType =
+  | 'winding'
+  | 'bushing'
+  | 'tap_changer'
+  | 'cooling_system'
+  | 'oil_system'
+  | 'surge_arrester'
+  | 'current_transformer'
+  | 'breaker'
+  | 'relay'
+  | 'protection_system'
 
 export type PMPriority = 'critical' | 'high' | 'medium' | 'low'
 
-export type PMAssetType = 'crane' | 'vessel'
+export type PMAssetType = 'power_transformer' | 'distribution_transformer' | 'substation' | 'circuit_breaker'
+
+// Alias — used by the PredictiveMaintenance component for equipment-level types
+export type PMEquipmentType = PMComponentType
 
 export interface PMDataSource {
   id: string
@@ -60,9 +66,9 @@ export interface PMDegradationPoint {
 
 export interface PMPrediction {
   id: string
-  equipmentId: string
-  equipmentName: string
-  equipmentType: PMEquipmentType
+  componentId: string
+  componentName: string
+  componentType: PMComponentType
   assetType: PMAssetType
   assetId: string
   assetName: string
@@ -94,6 +100,7 @@ export interface PMPrediction {
     unit: 'hours' | 'days'
   }
   partsRequired?: string[]
+  customersAtRisk?: number
   optimalMaintenanceWindow?: {
     start: Date
     end: Date
@@ -119,7 +126,7 @@ export interface PMAnalysis {
 
 export interface PMEquipmentProfile {
   id: string
-  equipmentType: PMEquipmentType
+  componentType: PMComponentType
   manufacturer: string
   model: string
   specs: {
@@ -127,13 +134,15 @@ export interface PMEquipmentProfile {
     ratedCapacityUnit?: string
     maxOperatingHours?: number
     maintenanceIntervalHours?: number
-    expectedLifeCycles?: number
+    expectedLifeYears?: number
     maxTemperature?: number
+    maxMoisture?: number
     maxVibration?: number
+    maxPressure?: number
     mtbf?: number
   }
   wearCurve?: {
-    cycles: number
+    years: number
     healthPercent: number
   }[]
   failureModes: {
@@ -144,7 +153,7 @@ export interface PMEquipmentProfile {
   }[]
   maintenanceTasks: {
     task: string
-    intervalHours: number
+    intervalMonths: number
     estimatedDuration: number
     requiredParts?: string[]
   }[]
@@ -154,9 +163,9 @@ export interface PMWorkOrder {
   id: string
   assetId: string
   assetName: string
-  equipmentId: string
-  equipmentName: string
-  type: 'PM' | 'CM' | 'inspection'
+  componentId: string
+  componentName: string
+  type: 'PM' | 'CM' | 'inspection' | 'oil_test'
   issue: string
   resolution?: string
   dateCreated: Date
@@ -165,15 +174,16 @@ export interface PMWorkOrder {
   partsCost: number
   downtime: number
   wasUnplanned: boolean
+  customersAffected?: number
 }
 
 export interface PMFleetPattern {
-  equipmentType: PMEquipmentType
+  componentType: PMComponentType
   pattern: string
   occurrences: number
   averageFailurePoint: {
     value: number
-    unit: 'hours' | 'cycles'
+    unit: 'years' | 'months'
   }
   affectedAssets: string[]
   recommendedIntervention: string
@@ -182,7 +192,7 @@ export interface PMFleetPattern {
 export interface PMInspectionRecord {
   id: string
   assetId: string
-  equipmentId: string
+  componentId: string
   date: Date
   inspector: string
   findings: string[]
@@ -194,7 +204,7 @@ export interface PMInspectionRecord {
 export interface PMOilAnalysis {
   id: string
   assetId: string
-  equipmentId: string
+  componentId: string
   date: Date
   lab: string
   results: {
@@ -212,21 +222,20 @@ export interface PMAnalysisRequest {
   assetType: PMAssetType
   assetId: string
   assetName: string
-  equipmentList: {
+  componentList: {
     id: string
     name: string
-    type: PMEquipmentType
+    type: PMComponentType
     currentHealth?: number
-    operatingHours?: number
-    cycleCount?: number
+    ageYears?: number
     temperature?: number
-    vibration?: number
+    moisture?: number
+    loadPercent?: number
   }[]
   environmentData?: {
     temperature?: number
     humidity?: number
-    seaState?: number
+    loadPercent?: number
     windSpeed?: number
   }
 }
-

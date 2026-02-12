@@ -1,52 +1,49 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Radio, Ship, ChevronLeft, RefreshCw, ExternalLink, Navigation } from 'lucide-react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { Radio, Zap, ChevronLeft, Building2, ExternalLink, Activity, Heart, Users, Gauge, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
-import type { FleetVessel } from '@/app/api/fleet/route';
+import { EXELON_ASSETS, type ExelonAsset } from '@/lib/exelon/fleet';
+import { getAssetIssueSummary } from '@/lib/asset-issues';
 import 'leaflet/dist/leaflet.css';
 
-// UAE/Abu Dhabi region
-const UAE_CENTER = { lat: 24.5, lng: 54.5 };
+// Center on US Mid-Atlantic — spans from Chicago to DC/NJ coast
+const US_CENTER = { lat: 40.0, lng: -78.5 };
+const DEFAULT_ZOOM = 6;
 
 const TYPE_COLORS: Record<string, string> = {
-  dredger: '#f97316',
-  hopper_dredger: '#ef4444',
-  csd: '#a855f7',
-  tug: '#10b981',
-  supply: '#3b82f6',
-  barge: '#f59e0b',
-  survey: '#06b6d4',
-  crane_barge: '#eab308',
+  power_transformer: '#f97316',
+  distribution_transformer: '#3b82f6',
+  substation: '#8b5cf6',
+  circuit_breaker: '#10b981',
+  capacitor_bank: '#06b6d4',
   unknown: '#9ca3af',
+};
+
+const OPCO_COLORS: Record<string, string> = {
+  ComEd: '#f97316',
+  PECO: '#3b82f6',
+  BGE: '#10b981',
+  Pepco: '#a855f7',
+  DPL: '#06b6d4',
+  ACE: '#eab308',
 };
 
 function getTypeColor(type: string): string {
   return TYPE_COLORS[type] || TYPE_COLORS.unknown;
 }
 
-function formatTimeAgo(dateInput?: Date | string | null): string {
-  if (!dateInput) return 'Unknown';
-  let date: Date;
-  if (typeof dateInput === 'string') {
-    date = new Date(dateInput);
-  } else if (dateInput instanceof Date) {
-    date = dateInput;
-  } else {
-    return 'Unknown';
-  }
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  const diffHours = Math.floor(diffMins / 60);
-  if (diffHours < 24) return `${diffHours}h ago`;
-  const diffDays = Math.floor(diffHours / 24);
-  return `${diffDays}d ago`;
+function getOpCoColor(opCo: string): string {
+  return OPCO_COLORS[opCo] || '#9ca3af';
 }
 
-export default function NMDCFleetMap() {
+function getHealthColor(health: number): string {
+  if (health >= 70) return '#10b981';
+  if (health >= 50) return '#f59e0b';
+  return '#ef4444';
+}
+
+export default function LiveGridMap() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapRef = useRef<any>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -56,47 +53,25 @@ export default function NMDCFleetMap() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [mapReady, setMapReady] = useState(false);
 
-  const [vessels, setVessels] = useState<FleetVessel[]>([]);
-  const [selectedVessel, setSelectedVessel] = useState<FleetVessel | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
-  const [autoRefresh, setAutoRefresh] = useState(false);
+  const assets = EXELON_ASSETS;
+  const [selectedAsset, setSelectedAsset] = useState<ExelonAsset | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [colorBy, setColorBy] = useState<'opco' | 'health' | 'type'>('opco');
 
-  // Fetch NMDC fleet
-  const fetchFleet = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
+  // Sorted assets — critical/low health first
+  const sortedAssets = useMemo(() => {
+    return [...assets].sort((a, b) => a.healthIndex - b.healthIndex);
+  }, [assets]);
 
-    try {
-      const response = await fetch('/api/fleet?action=fleet');
-      const data = await response.json();
+  // Stats
+  const opCoCounts = useMemo(() => {
+    return assets.reduce((acc, a) => {
+      acc[a.opCo] = (acc[a.opCo] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+  }, [assets]);
 
-      if (data.success) {
-        setVessels(data.vessels);
-        setLastRefresh(new Date());
-      } else {
-        setError(data.message || 'Failed to fetch fleet');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Network error');
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Initial fetch
-  useEffect(() => {
-    fetchFleet();
-  }, [fetchFleet]);
-
-  // Auto refresh
-  useEffect(() => {
-    if (!autoRefresh) return;
-    const interval = setInterval(fetchFleet, 30000);
-    return () => clearInterval(interval);
-  }, [autoRefresh, fetchFleet]);
+  const operationalCount = assets.filter(a => a.status === 'operational').length;
 
   // Initialize Leaflet map
   useEffect(() => {
@@ -111,18 +86,20 @@ export default function NMDCFleetMap() {
       }
 
       const map = leafletRef.current.map(containerRef.current, {
-        center: [UAE_CENTER.lat, UAE_CENTER.lng],
-        zoom: 9,
+        center: [US_CENTER.lat, US_CENTER.lng],
+        zoom: DEFAULT_ZOOM,
         zoomControl: false,
         attributionControl: true,
       });
 
       leafletRef.current.control.zoom({ position: 'bottomright' }).addTo(map);
 
-      leafletRef.current.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        maxZoom: 19,
-        attribution: '&copy; CartoDB',
-      }).addTo(map);
+      leafletRef.current
+        .tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+          maxZoom: 19,
+          attribution: '&copy; CartoDB',
+        })
+        .addTo(map);
 
       mapRef.current = map;
       setMapReady(true);
@@ -139,7 +116,7 @@ export default function NMDCFleetMap() {
     };
   }, []);
 
-  // Update markers when vessels change
+  // Update markers
   useEffect(() => {
     const map = mapRef.current;
     const L = leafletRef.current;
@@ -149,67 +126,62 @@ export default function NMDCFleetMap() {
     markersRef.current.forEach(marker => marker.remove());
     markersRef.current.clear();
 
-    const bounds: [number, number][] = [];
+    assets.forEach(asset => {
+      const fillColor =
+        colorBy === 'opco'
+          ? getOpCoColor(asset.opCo)
+          : colorBy === 'health'
+          ? getHealthColor(asset.healthIndex)
+          : getTypeColor(asset.type);
 
-    vessels.forEach(vessel => {
-      if (!vessel.isOnline || !vessel.position?.lat) return;
+      const isSelected = selectedAsset?.assetTag === asset.assetTag;
+      const isSubstation = asset.type === 'substation';
+      const hasIssues = getAssetIssueSummary(asset.assetTag).hasHighPriority;
 
-      const color = getTypeColor(vessel.nmdc?.type || vessel.type);
-      const isSelected = selectedVessel?.mmsi === vessel.mmsi;
-
-      // Use circleMarker for reliable rendering
-      const marker = L.circleMarker([vessel.position.lat, vessel.position.lng], {
-        radius: isSelected ? 14 : 10,
-        fillColor: color,
-        color: isSelected ? '#fff' : '#000',
-        weight: isSelected ? 3 : 2,
+      const marker = L.circleMarker([asset.position.lat, asset.position.lng], {
+        radius: isSelected ? 16 : isSubstation ? 12 : 9,
+        fillColor,
+        color: isSelected ? '#fff' : hasIssues ? '#ef4444' : '#000',
+        weight: isSelected ? 3 : hasIssues ? 2 : 1.5,
         opacity: 1,
-        fillOpacity: 0.9,
+        fillOpacity: 0.85,
       })
         .addTo(map)
-        .on('click', () => setSelectedVessel(vessel));
+        .on('click', () => setSelectedAsset(asset));
 
-      marker.bindTooltip(`
-        <div style="font-weight: 600;">${vessel.name}</div>
-        <div style="font-size: 11px; opacity: 0.7;">${vessel.nmdc?.type || vessel.type}</div>
-      `, {
-        permanent: false,
-        direction: 'top',
-        offset: [0, -12],
-        className: 'vessel-tooltip',
-      });
+      marker.bindTooltip(
+        `
+        <div style="font-weight: 600;">${asset.name.split(' ').slice(0, 3).join(' ')}</div>
+        <div style="font-size: 11px; opacity: 0.7;">${asset.opCo} • ${asset.voltageClassKV}kV • Health: ${asset.healthIndex}%</div>
+      `,
+        {
+          permanent: false,
+          direction: 'top',
+          offset: [0, -12],
+          className: 'asset-tooltip',
+        },
+      );
 
-      markersRef.current.set(vessel.mmsi, marker);
-      bounds.push([vessel.position.lat, vessel.position.lng]);
+      markersRef.current.set(asset.assetTag, marker);
     });
+  }, [assets, selectedAsset, mapReady, colorBy]);
 
-    // Fit to bounds if we have vessels
-    if (bounds.length > 1) {
-      map.fitBounds(bounds, { padding: [50, 50] });
-    }
-  }, [vessels, selectedVessel, mapReady]);
-
-  // Pan to selected vessel
+  // Pan to selected asset
   useEffect(() => {
-    if (selectedVessel && mapRef.current && selectedVessel.position?.lat) {
-      mapRef.current.flyTo([selectedVessel.position.lat, selectedVessel.position.lng], 12, {
+    if (selectedAsset && mapRef.current) {
+      mapRef.current.flyTo([selectedAsset.position.lat, selectedAsset.position.lng], 11, {
         duration: 0.5,
       });
     }
-  }, [selectedVessel]);
-
-  const onlineVessels = vessels.filter(v => v.isOnline);
-  const typeCounts = vessels.reduce((acc, v) => {
-    const type = v.nmdc?.type || v.type || 'unknown';
-    acc[type] = (acc[type] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  }, [selectedAsset]);
 
   return (
     <div className="h-screen flex bg-black text-white overflow-hidden">
       {/* Sidebar */}
       <aside
-        className={`${sidebarOpen ? 'w-80' : 'w-0'} transition-all duration-300 overflow-hidden border-r border-white/10 flex flex-col bg-[#0a0a0a]`}
+        className={`${
+          sidebarOpen ? 'w-80' : 'w-0'
+        } transition-all duration-300 overflow-hidden border-r border-white/10 flex flex-col bg-[#0a0a0a]`}
       >
         <div className="p-4 border-b border-white/10">
           {/* Header */}
@@ -220,7 +192,7 @@ export default function NMDCFleetMap() {
               </Link>
               <div className="flex items-center gap-2">
                 <Radio className="h-5 w-5 text-green-400 animate-pulse" />
-                <span className="font-semibold">NMDC Fleet</span>
+                <span className="font-semibold">Live Grid</span>
               </div>
             </div>
           </div>
@@ -228,105 +200,123 @@ export default function NMDCFleetMap() {
           {/* Stats */}
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div className="bg-white/5 rounded-lg p-3">
-              <div className="text-2xl font-bold text-green-400">{onlineVessels.length}</div>
-              <div className="text-xs text-white/50">Online</div>
+              <div className="text-2xl font-bold text-green-400">{operationalCount}</div>
+              <div className="text-xs text-white/50">Operational</div>
             </div>
             <div className="bg-white/5 rounded-lg p-3">
-              <div className="text-2xl font-bold">{vessels.length}</div>
-              <div className="text-xs text-white/50">Total Fleet</div>
+              <div className="text-2xl font-bold">{assets.length}</div>
+              <div className="text-xs text-white/50">Total Assets</div>
             </div>
           </div>
 
-          {/* Controls */}
-          <div className="flex gap-2">
-            <button
-              onClick={fetchFleet}
-              disabled={isLoading}
-              className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors disabled:opacity-50"
-            >
-              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-              Refresh
-            </button>
-            <button
-              onClick={() => setAutoRefresh(!autoRefresh)}
-              className={`px-3 py-2 rounded-lg transition-colors ${
-                autoRefresh ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-white/60'
-              }`}
-            >
-              Auto
-            </button>
-          </div>
-
-          {lastRefresh && (
-            <p className="text-xs text-white/40 mt-2">
-              Last updated: {formatTimeAgo(lastRefresh)}
-            </p>
-          )}
-        </div>
-
-        {/* Type Legend */}
-        <div className="px-4 py-3 border-b border-white/10">
-          <div className="flex flex-wrap gap-2">
-            {Object.entries(typeCounts).slice(0, 6).map(([type, count]) => (
+          {/* Color By Toggle */}
+          <div className="flex gap-1 bg-white/5 rounded-lg p-0.5">
+            {(['opco', 'health', 'type'] as const).map(mode => (
               <button
-                key={type}
-                className="flex items-center gap-1.5 px-2 py-1 bg-white/5 rounded text-xs hover:bg-white/10 transition-colors"
+                key={mode}
+                onClick={() => setColorBy(mode)}
+                className={`flex-1 px-2 py-1.5 rounded text-xs font-medium transition-all ${
+                  colorBy === mode ? 'bg-white/15 text-white' : 'text-white/40 hover:text-white/60'
+                }`}
               >
-                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: getTypeColor(type) }} />
-                <span className="capitalize">{type.replace(/_/g, ' ')}: {count}</span>
+                {mode === 'opco' ? 'OpCo' : mode === 'health' ? 'Health' : 'Type'}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Vessel List */}
-        <div className="flex-1 overflow-y-auto">
-          {error && (
-            <div className="m-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">
-              {error}
-            </div>
-          )}
+        {/* Legend */}
+        <div className="px-4 py-3 border-b border-white/10">
+          <div className="flex flex-wrap gap-2">
+            {colorBy === 'opco' &&
+              Object.entries(opCoCounts).map(([opCo, count]) => (
+                <button
+                  key={opCo}
+                  className="flex items-center gap-1.5 px-2 py-1 bg-white/5 rounded text-xs hover:bg-white/10 transition-colors"
+                >
+                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: getOpCoColor(opCo) }} />
+                  <span>
+                    {opCo}: {count}
+                  </span>
+                </button>
+              ))}
+            {colorBy === 'health' && (
+              <>
+                <span className="flex items-center gap-1.5 px-2 py-1 bg-white/5 rounded text-xs">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  Good (≥70%)
+                </span>
+                <span className="flex items-center gap-1.5 px-2 py-1 bg-white/5 rounded text-xs">
+                  <span className="w-2 h-2 rounded-full bg-amber-500" />
+                  Fair (50-69%)
+                </span>
+                <span className="flex items-center gap-1.5 px-2 py-1 bg-white/5 rounded text-xs">
+                  <span className="w-2 h-2 rounded-full bg-rose-500" />
+                  Poor (&lt;50%)
+                </span>
+              </>
+            )}
+            {colorBy === 'type' &&
+              Object.entries(TYPE_COLORS)
+                .filter(([k]) => k !== 'unknown')
+                .map(([type, color]) => (
+                  <span key={type} className="flex items-center gap-1.5 px-2 py-1 bg-white/5 rounded text-xs">
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+                    {type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                  </span>
+                ))}
+          </div>
+        </div>
 
+        {/* Asset List */}
+        <div className="flex-1 overflow-y-auto">
           <div className="p-2">
-            {vessels.map(vessel => (
-              <div
-                key={vessel.mmsi}
-                className={`mb-2 p-3 rounded-lg cursor-pointer transition-all ${
-                  selectedVessel?.mmsi === vessel.mmsi
-                    ? 'bg-white/10 border border-white/20'
-                    : 'bg-white/5 hover:bg-white/8 border border-transparent'
-                }`}
-                onClick={() => setSelectedVessel(vessel)}
-              >
-                <div className="flex items-start gap-3">
-                  <div
-                    className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: `${getTypeColor(vessel.nmdc?.type || vessel.type)}20` }}
-                  >
-                    <Ship className="h-4 w-4" style={{ color: getTypeColor(vessel.nmdc?.type || vessel.type) }} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-medium text-sm truncate">{vessel.name}</h3>
-                      {vessel.isOnline && (
-                        <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
-                      )}
+            {sortedAssets.map(asset => {
+              const isSelected = selectedAsset?.assetTag === asset.assetTag;
+              const issues = getAssetIssueSummary(asset.assetTag);
+              const healthColor =
+                asset.healthIndex >= 70
+                  ? 'text-emerald-400'
+                  : asset.healthIndex >= 50
+                  ? 'text-amber-400'
+                  : 'text-rose-400';
+
+              return (
+                <div
+                  key={asset.assetTag}
+                  className={`mb-2 p-3 rounded-lg cursor-pointer transition-all ${
+                    isSelected
+                      ? 'bg-white/10 border border-white/20'
+                      : issues.hasCritical
+                      ? 'bg-rose-500/5 border border-rose-500/20 hover:bg-rose-500/10'
+                      : 'bg-white/5 hover:bg-white/8 border border-transparent'
+                  }`}
+                  onClick={() => setSelectedAsset(asset)}
+                >
+                  <div className="flex items-start gap-3">
+                    <div
+                      className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                      style={{ backgroundColor: `${getOpCoColor(asset.opCo)}20` }}
+                    >
+                      <Zap className="h-4 w-4" style={{ color: getOpCoColor(asset.opCo) }} />
                     </div>
-                    <div className="text-xs text-white/40 flex items-center gap-2">
-                      <span className="capitalize">{(vessel.nmdc?.type || vessel.type).replace(/_/g, ' ')}</span>
-                      {vessel.speed != null && <span>• {vessel.speed.toFixed(1)} kn</span>}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-medium text-sm truncate">{asset.name}</h3>
+                        {issues.hasCritical && <AlertTriangle className="h-3 w-3 text-rose-400 flex-shrink-0" />}
+                      </div>
+                      <div className="text-xs text-white/40 flex items-center gap-2">
+                        <span>{asset.opCo}</span>
+                        <span>•</span>
+                        <span className={healthColor}>{asset.healthIndex}%</span>
+                        <span>•</span>
+                        <span>{asset.voltageClassKV}kV</span>
+                      </div>
                     </div>
                   </div>
-                  <Link
-                    href={`/live/${vessel.mmsi}`}
-                    className="p-1.5 text-white/30 hover:text-white/60 transition-colors"
-                    onClick={e => e.stopPropagation()}
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                  </Link>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </aside>
@@ -337,70 +327,95 @@ export default function NMDCFleetMap() {
         className="absolute left-0 top-1/2 -translate-y-1/2 z-20 p-2 bg-black/80 border border-white/10 rounded-r-lg hover:bg-black transition-colors"
         style={{ left: sidebarOpen ? '320px' : '0' }}
       >
-        <ChevronLeft className={`h-4 w-4 text-white/60 transition-transform ${!sidebarOpen ? 'rotate-180' : ''}`} />
+        <ChevronLeft
+          className={`h-4 w-4 text-white/60 transition-transform ${!sidebarOpen ? 'rotate-180' : ''}`}
+        />
       </button>
 
       {/* Map Container */}
       <div className="flex-1 relative">
         <div ref={containerRef} className="absolute inset-0" />
 
-        {isLoading && vessels.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10">
-            <div className="text-center">
-              <RefreshCw className="h-8 w-8 text-white/60 animate-spin mx-auto mb-3" />
-              <p className="text-white/60">Loading NMDC Fleet...</p>
-            </div>
-          </div>
-        )}
-
-        {/* Selected Vessel Panel */}
-        {selectedVessel && (
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 w-[400px] max-w-[calc(100vw-2rem)]">
+        {/* Selected Asset Panel */}
+        {selectedAsset && (
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 w-[440px] max-w-[calc(100vw-2rem)]">
             <div className="bg-black/90 backdrop-blur-lg rounded-xl border border-white/10 p-4 shadow-2xl">
               <div className="flex items-start gap-4">
                 <div
                   className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: `${getTypeColor(selectedVessel.nmdc?.type || selectedVessel.type)}20` }}
+                  style={{ backgroundColor: `${getOpCoColor(selectedAsset.opCo)}20` }}
                 >
-                  <Ship className="h-6 w-6" style={{ color: getTypeColor(selectedVessel.nmdc?.type || selectedVessel.type) }} />
+                  <Zap className="h-6 w-6" style={{ color: getOpCoColor(selectedAsset.opCo) }} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-semibold text-lg truncate">{selectedVessel.name}</h3>
-                    {selectedVessel.isOnline && (
-                      <span className="px-2 py-0.5 text-xs rounded-full bg-green-500/20 text-green-400">Online</span>
-                    )}
+                    <h3 className="font-semibold text-lg truncate">{selectedAsset.name}</h3>
+                    <span
+                      className={`px-2 py-0.5 text-xs rounded-full ${
+                        selectedAsset.status === 'operational'
+                          ? 'bg-green-500/20 text-green-400'
+                          : selectedAsset.status === 'alert'
+                          ? 'bg-rose-500/20 text-rose-400'
+                          : 'bg-amber-500/20 text-amber-400'
+                      }`}
+                    >
+                      {selectedAsset.status}
+                    </span>
                   </div>
-                  <p className="text-sm text-white/50 capitalize mb-2">
-                    {(selectedVessel.nmdc?.type || selectedVessel.type).replace(/_/g, ' ')}
+                  <p className="text-sm text-white/50 mb-2">
+                    {selectedAsset.opCo} • {selectedAsset.substationName} • {selectedAsset.manufacturer}
                   </p>
-                  <div className="grid grid-cols-3 gap-4 text-sm">
+                  <div className="grid grid-cols-4 gap-3 text-sm">
                     <div>
-                      <span className="text-white/40 text-xs">Speed</span>
-                      <p className="font-medium">{selectedVessel.speed?.toFixed(1) || '0'} kn</p>
-                    </div>
-                    <div>
-                      <span className="text-white/40 text-xs">Heading</span>
-                      <p className="font-medium flex items-center gap-1">
-                        <Navigation className="h-3 w-3" style={{ transform: `rotate(${selectedVessel.heading || 0}deg)` }} />
-                        {selectedVessel.heading?.toFixed(0) || '0'}°
+                      <span className="text-white/40 text-xs flex items-center gap-1">
+                        <Heart className="h-3 w-3" /> Health
+                      </span>
+                      <p
+                        className={`font-medium ${
+                          selectedAsset.healthIndex >= 70
+                            ? 'text-emerald-400'
+                            : selectedAsset.healthIndex >= 50
+                            ? 'text-amber-400'
+                            : 'text-rose-400'
+                        }`}
+                      >
+                        {selectedAsset.healthIndex}%
                       </p>
                     </div>
                     <div>
-                      <span className="text-white/40 text-xs">Health</span>
-                      <p className="font-medium">{selectedVessel.healthScore || 0}%</p>
+                      <span className="text-white/40 text-xs flex items-center gap-1">
+                        <Gauge className="h-3 w-3" /> Load
+                      </span>
+                      <p className="font-medium">{selectedAsset.loadFactor}%</p>
                     </div>
+                    <div>
+                      <span className="text-white/40 text-xs flex items-center gap-1">
+                        <Activity className="h-3 w-3" /> Voltage
+                      </span>
+                      <p className="font-medium">{selectedAsset.voltageClassKV}kV</p>
+                    </div>
+                    <div>
+                      <span className="text-white/40 text-xs flex items-center gap-1">
+                        <Users className="h-3 w-3" /> Customers
+                      </span>
+                      <p className="font-medium">{(selectedAsset.customersServed / 1000).toFixed(0)}k</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 mt-2 text-xs text-white/40">
+                    <span>{selectedAsset.ratedMVA} MVA</span>
+                    <span>•</span>
+                    <span>Installed {selectedAsset.yearInstalled}</span>
+                    <span>•</span>
+                    <span>{selectedAsset.coolingType}</span>
+                    <span>•</span>
+                    <span className={selectedAsset.criticality === 'critical' ? 'text-rose-400' : ''}>
+                      {selectedAsset.criticality.toUpperCase()}
+                    </span>
                   </div>
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Link
-                    href={`/live/${selectedVessel.mmsi}`}
-                    className="px-3 py-1.5 bg-white/10 rounded-lg text-sm hover:bg-white/20 transition-colors"
-                  >
-                    Details
-                  </Link>
                   <button
-                    onClick={() => setSelectedVessel(null)}
+                    onClick={() => setSelectedAsset(null)}
                     className="px-3 py-1.5 text-white/40 text-sm hover:text-white/60 transition-colors"
                   >
                     Close
@@ -413,43 +428,39 @@ export default function NMDCFleetMap() {
       </div>
 
       <style jsx global>{`
-        .vessel-marker {
-          background: transparent !important;
-          border: none !important;
-        }
-        .vessel-tooltip {
-          background: rgba(0,0,0,0.9) !important;
-          border: 1px solid rgba(255,255,255,0.2) !important;
+        .asset-tooltip {
+          background: rgba(0, 0, 0, 0.9) !important;
+          border: 1px solid rgba(255, 255, 255, 0.2) !important;
           color: white !important;
           padding: 6px 10px !important;
           border-radius: 6px !important;
           font-size: 12px !important;
         }
-        .vessel-tooltip::before {
-          border-top-color: rgba(0,0,0,0.9) !important;
+        .asset-tooltip::before {
+          border-top-color: rgba(0, 0, 0, 0.9) !important;
         }
         .leaflet-container {
           background: #1a1a1a !important;
           font-family: inherit !important;
         }
         .leaflet-control-zoom {
-          border: 1px solid rgba(255,255,255,0.1) !important;
-          background: rgba(0,0,0,0.8) !important;
+          border: 1px solid rgba(255, 255, 255, 0.1) !important;
+          background: rgba(0, 0, 0, 0.8) !important;
         }
         .leaflet-control-zoom a {
           background: transparent !important;
           color: white !important;
-          border-color: rgba(255,255,255,0.1) !important;
+          border-color: rgba(255, 255, 255, 0.1) !important;
         }
         .leaflet-control-zoom a:hover {
-          background: rgba(255,255,255,0.1) !important;
+          background: rgba(255, 255, 255, 0.1) !important;
         }
         .leaflet-control-attribution {
-          background: rgba(0,0,0,0.5) !important;
-          color: rgba(255,255,255,0.4) !important;
+          background: rgba(0, 0, 0, 0.5) !important;
+          color: rgba(255, 255, 255, 0.4) !important;
         }
         .leaflet-control-attribution a {
-          color: rgba(255,255,255,0.6) !important;
+          color: rgba(255, 255, 255, 0.6) !important;
         }
       `}</style>
     </div>

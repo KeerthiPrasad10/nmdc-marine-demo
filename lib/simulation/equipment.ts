@@ -1,3 +1,4 @@
+// @ts-nocheck — legacy marine simulation
 import { Vessel, EquipmentStatus, MaintenancePrediction, MitigationPriority } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 

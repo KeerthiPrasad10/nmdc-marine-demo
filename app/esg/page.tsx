@@ -3,23 +3,23 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase, Vessel, isSupabaseConfigured } from '@/lib/supabase';
 import {
-  VesselEmissions,
-  FleetEmissionsSummary,
+  AssetEmissions,
+  GridEmissionsSummary,
   ComplianceTarget,
   ESGScore,
   DecarbonizationPathway,
 } from '@/lib/esg/types';
 import {
-  generateVesselEmissions,
-  generateFleetSummary,
+  generateAssetEmissions,
+  generateGridSummary,
   generateComplianceTargets,
   generateESGScore,
   generateDecarbonizationPathway,
   generateEmissionsTrend,
+  getESGImpactFromMaintenance,
 } from '@/lib/esg/mock-data';
-import { NMDC_FLEET } from '@/lib/nmdc/fleet';
+import { EXELON_ASSETS } from '@/lib/exelon/fleet';
 import {
   ArrowLeft,
   Leaf,
@@ -40,19 +40,21 @@ import {
   Droplets,
   Wind,
   Fuel,
-  Ship,
+  Zap,
   Calendar,
   DollarSign,
   Sparkles,
   Loader2,
-  Zap,
   ArrowUpRight,
   ArrowDownRight,
   Brain,
   Play,
+  Activity,
+  Gauge,
+  ThermometerSun,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { ImpactAnalysisPanel, WhatIfSimulator } from '@/app/components/ImpactAnalysisPanel';
+import { ImpactAnalysisPanel } from '@/app/components/ImpactAnalysisPanel';
 import { 
   analyzeImpact, 
   generateMockFleetState,
@@ -72,133 +74,75 @@ import {
   PieChart as RechartsPie,
   Pie,
   Cell,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  Radar,
 } from 'recharts';
 
-const COLORS = ['#a855f7', '#06b6d4', '#10b981', '#f59e0b', '#ef4444'];
+const COLORS = ['#a855f7', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#3b82f6'];
 
 export default function ESGPage() {
   const router = useRouter();
-  const [vessels, setVessels] = useState<Vessel[]>([]);
-  const [vesselEmissions, setVesselEmissions] = useState<VesselEmissions[]>([]);
-  const [fleetSummary, setFleetSummary] = useState<FleetEmissionsSummary | null>(null);
+  const [assetEmissions, setAssetEmissions] = useState<AssetEmissions[]>([]);
+  const [gridSummary, setGridSummary] = useState<GridEmissionsSummary | null>(null);
   const [complianceTargets, setComplianceTargets] = useState<ComplianceTarget[]>([]);
   const [esgScore, setEsgScore] = useState<ESGScore | null>(null);
   const [pathway, setPathway] = useState<DecarbonizationPathway | null>(null);
-  const [emissionsTrend, setEmissionsTrend] = useState<Array<{ month: string; co2: number; target: number }>>([]);
+  const [emissionsTrend, setEmissionsTrend] = useState<Array<{ month: string; co2: number; target: number; maintenanceImpact?: number }>>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'vessels' | 'compliance' | 'pathway' | 'predictive'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'assets' | 'compliance' | 'pathway' | 'predictive'>('overview');
   
   const [impactResult, setImpactResult] = useState<ImpactAnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectedScenario, setSelectedScenario] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchData() {
-      try {
-        // Always use NMDC fleet data for this demo
-        const data = NMDC_FLEET.map((v) => ({
-          id: v.mmsi,
-          name: v.name,
-          type: v.type,
-          mmsi: v.mmsi,
-          imo: v.imo || null,
-          status: 'operational',
-          current_lat: 24.5 + Math.random() * 0.5,
-          current_lng: 54.0 + Math.random() * 0.5,
-          heading: Math.floor(Math.random() * 360),
-          speed: 5 + Math.random() * 10,
-          destination: v.project || 'Abu Dhabi',
-          eta: new Date(Date.now() + Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
-          last_update: new Date().toISOString(),
-          crew_count: v.crewCount || 20,
-          engine_status: 'operational',
-          fuel_level: 70 + Math.random() * 25,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })) as unknown as Vessel[];
-
-        setVessels(data);
-
-        const emissions = generateVesselEmissions(
-          data.map(v => ({ id: v.id, name: v.name, type: v.type }))
-        );
-        setVesselEmissions(emissions);
-        setFleetSummary(generateFleetSummary(emissions));
-        setComplianceTargets(generateComplianceTargets());
-        setEsgScore(generateESGScore());
-        setPathway(generateDecarbonizationPathway());
-        setEmissionsTrend(generateEmissionsTrend(12));
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        
-        // Even on error, fall back to NMDC fleet data
-        const fallbackData = NMDC_FLEET.map((v) => ({
-          id: v.mmsi,
-          name: v.name,
-          type: v.type,
-          mmsi: v.mmsi,
-          imo: v.imo || null,
-          status: 'operational',
-          current_lat: 24.5 + Math.random() * 0.5,
-          current_lng: 54.0 + Math.random() * 0.5,
-          heading: Math.floor(Math.random() * 360),
-          speed: 5 + Math.random() * 10,
-          destination: v.project || 'Abu Dhabi',
-          eta: new Date(Date.now() + Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
-          last_update: new Date().toISOString(),
-          crew_count: v.crewCount || 20,
-          engine_status: 'operational',
-          fuel_level: 70 + Math.random() * 25,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })) as unknown as Vessel[];
-        
-        setVessels(fallbackData);
-        
-        const emissions = generateVesselEmissions(
-          fallbackData.map(v => ({ id: v.id, name: v.name, type: v.type }))
-        );
-        setVesselEmissions(emissions);
-        setFleetSummary(generateFleetSummary(emissions));
-        setComplianceTargets(generateComplianceTargets());
-        setEsgScore(generateESGScore());
-        setPathway(generateDecarbonizationPathway());
-        setEmissionsTrend(generateEmissionsTrend(12));
-      } finally {
-        setIsLoading(false);
-      }
+    try {
+      const emissions = generateAssetEmissions();
+      setAssetEmissions(emissions);
+      setGridSummary(generateGridSummary(emissions));
+      setComplianceTargets(generateComplianceTargets());
+      setEsgScore(generateESGScore());
+      setPathway(generateDecarbonizationPathway());
+      setEmissionsTrend(generateEmissionsTrend(12));
+    } catch (error) {
+      console.error('Error generating ESG data:', error);
+    } finally {
+      setIsLoading(false);
     }
-
-    fetchData();
   }, []);
 
-  // Fuel type distribution
-  const fuelDistribution = useMemo(() => {
-    const counts: Record<string, number> = {};
-    vesselEmissions.forEach(v => {
-      counts[v.fuelType] = (counts[v.fuelType] || 0) + 1;
-    });
-    return Object.entries(counts).map(([name, value]) => ({ name, value }));
-  }, [vesselEmissions]);
-
-  // Emissions by vessel type
+  // Emissions by asset type (power_transformer, distribution_transformer, substation)
   const emissionsByType = useMemo(() => {
-    const totals: Record<string, number> = {};
-    vesselEmissions.forEach(v => {
-      const type = v.vesselType.replace('_', ' ');
-      totals[type] = (totals[type] || 0) + v.emissions.co2;
+    const totals: Record<string, { co2: number; losses: number; count: number }> = {};
+    assetEmissions.forEach(a => {
+      const type = a.assetType.replace(/_/g, ' ');
+      if (!totals[type]) totals[type] = { co2: 0, losses: 0, count: 0 };
+      totals[type].co2 += a.emissions.co2;
+      totals[type].losses += a.emissions.gridLosses;
+      totals[type].count++;
     });
     return Object.entries(totals)
-      .map(([name, co2]) => ({ name, co2 }))
+      .map(([name, data]) => ({ name, ...data }))
       .sort((a, b) => b.co2 - a.co2);
-  }, [vesselEmissions]);
+  }, [assetEmissions]);
+
+  // Emissions by OpCo
+  const emissionsByOpCo = useMemo(() => {
+    const totals: Record<string, { co2: number; sf6: number; assets: number; customers: number }> = {};
+    assetEmissions.forEach(a => {
+      if (!totals[a.opCo]) totals[a.opCo] = { co2: 0, sf6: 0, assets: 0, customers: 0 };
+      totals[a.opCo].co2 += a.emissions.co2;
+      totals[a.opCo].sf6 += a.emissions.sf6;
+      totals[a.opCo].assets++;
+      totals[a.opCo].customers += a.customersServed || 0;
+    });
+    return Object.entries(totals)
+      .map(([name, data]) => ({ name, ...data }))
+      .sort((a, b) => b.co2 - a.co2);
+  }, [assetEmissions]);
 
   const [isExporting, setIsExporting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+
+  const maintenanceImpact = useMemo(() => getESGImpactFromMaintenance(), []);
 
   const runImpactAnalysis = useCallback((scenarioType: string, parameters: Record<string, unknown>) => {
     setIsAnalyzing(true);
@@ -207,7 +151,7 @@ export default function ESGPage() {
     setTimeout(() => {
       const fleetState = generateMockFleetState();
       
-      const vesselIds = NMDC_FLEET.slice(0, 3).map(v => v.mmsi);
+      const assetIds = EXELON_ASSETS.slice(0, 3).map(a => a.assetTag);
       const projectIds = ['p1', 'p2'];
       
       const change: ProposedChange = {
@@ -216,7 +160,7 @@ export default function ESGPage() {
         title: getScenarioTitle(scenarioType),
         description: getScenarioDescription(scenarioType, parameters),
         effectiveDate: new Date(),
-        affectedVessels: vesselIds,
+        affectedVessels: assetIds,
         affectedProjects: projectIds,
         parameters,
       };
@@ -229,106 +173,103 @@ export default function ESGPage() {
 
   const getScenarioTitle = (type: string): string => {
     const titles: Record<string, string> = {
-      fuel_switch: 'Fleet Fuel Transition',
-      vessel_assignment: 'Vessel Reallocation',
-      maintenance_schedule: 'Maintenance Schedule Change',
-      new_project: 'New Project Acquisition',
-      equipment_failure: 'Equipment Failure Response',
-      route_change: 'Route Optimization',
+      sf6_replacement: 'SF₆ Breaker Replacement Program',
+      transformer_upgrade: 'Transformer Fleet Modernization',
+      maintenance_schedule: 'Predictive Maintenance Optimization',
+      grid_modernization: 'Smart Grid Infrastructure Upgrade',
+      equipment_failure: 'Critical Equipment Failure Response',
+      load_optimization: 'Load Balancing & Loss Reduction',
     };
     return titles[type] || 'Operational Change';
   };
 
   const getScenarioDescription = (type: string, params: Record<string, unknown>): string => {
     switch (type) {
-      case 'fuel_switch':
-        return `Transition fleet to ${params.newFuelType || 'LNG'} fuel to reduce emissions`;
-      case 'vessel_assignment':
-        return 'Reassign vessels to optimize fleet utilization and project coverage';
+      case 'sf6_replacement':
+        return 'Replace SF₆ circuit breakers with vacuum or solid-state alternatives to eliminate greenhouse gas leakage';
+      case 'transformer_upgrade':
+        return 'Modernize aging transformer fleet with high-efficiency units to reduce grid losses';
       case 'maintenance_schedule':
-        return 'Adjust preventive maintenance schedules to minimize downtime';
-      case 'new_project':
-        return 'Evaluate impact of taking on a new high-priority client project';
+        return 'Shift from time-based to condition-based maintenance using DGA analytics and AI predictions';
+      case 'grid_modernization':
+        return 'Deploy advanced sensors, smart switches, and automation across distribution network';
       case 'equipment_failure':
-        return 'Assess cascading impacts of critical equipment failure';
+        return 'Assess cascading impacts of critical transformer failure on grid reliability and emissions';
       default:
-        return 'Evaluate operational change impact across the value chain';
+        return 'Evaluate operational change impact across the grid value chain';
     }
   };
 
-  // Export vessel emissions data as CSV
+  // Export asset emissions data as CSV
   const exportDataAsCSV = useCallback(() => {
-    if (vesselEmissions.length === 0) return;
+    if (assetEmissions.length === 0) return;
     
     setIsExporting(true);
     
     try {
-      // Create CSV header
       const headers = [
-        'Vessel Name',
-        'Vessel Type',
-        'CO2 Emissions (tonnes)',
-        'NOx Emissions (kg)',
-        'SOx Emissions (kg)',
-        'PM Emissions (kg)',
-        'Fuel Consumed (L)',
-        'Fuel Type',
-        'Efficiency (g CO2/tonne-mile)',
-        'Fleet Avg Efficiency',
-        'CII Rating',
-        'ETS Eligible'
+        'Asset Name',
+        'Asset Tag',
+        'Asset Type',
+        'OpCo',
+        'CO2 from Losses (tonnes)',
+        'SF6 Leakage (kg)',
+        'Grid Losses (MWh)',
+        'Line Loss %',
+        'Efficiency %',
+        'Health Index',
+        'Energy Delivered (MWh)',
+        'Peak Load (MW)',
+        'Customers Served',
+        'Maintenance Impact'
       ];
       
-      // Create CSV rows
-      const rows = vesselEmissions.map(ve => [
-        ve.vesselName,
-        ve.vesselType.replace('_', ' '),
-        ve.emissions.co2.toFixed(2),
-        ve.emissions.nox.toFixed(2),
-        ve.emissions.sox.toFixed(2),
-        ve.emissions.pm.toFixed(2),
-        ve.fuelConsumed.toFixed(0),
-        ve.fuelType,
-        ve.efficiency.toFixed(2),
-        ve.benchmark.fleetAverage.toFixed(2),
-        ve.ciiRating,
-        ve.etsEligible ? 'Yes' : 'No'
+      const rows = assetEmissions.map(ae => [
+        ae.assetName,
+        ae.assetTag,
+        ae.assetType.replace(/_/g, ' '),
+        ae.opCo,
+        ae.emissions.co2.toFixed(2),
+        ae.emissions.sf6.toFixed(2),
+        ae.emissions.gridLosses.toFixed(2),
+        ae.emissions.linelossPct.toFixed(3),
+        ae.efficiency.toFixed(2),
+        ae.healthIndex.toFixed(0),
+        ae.energyDelivered.toFixed(0),
+        ae.peakLoadMW.toFixed(1),
+        (ae.customersServed || 0).toString(),
+        ae.maintenanceImpact,
       ]);
       
-      // Add fleet summary rows (padded to match header column count)
       const columnCount = headers.length;
       const padRow = (cells: string[]) => {
         const padded = [...cells];
-        while (padded.length < columnCount) {
-          padded.push('');
-        }
+        while (padded.length < columnCount) padded.push('');
         return padded;
       };
       
-      if (fleetSummary) {
+      if (gridSummary) {
         rows.push(padRow([]));
-        rows.push(padRow(['--- Fleet Summary ---']));
-        rows.push(padRow(['Total CO2 (tonnes)', fleetSummary.totalCO2.toFixed(2)]));
-        rows.push(padRow(['Total NOx (kg)', fleetSummary.totalNOx.toFixed(2)]));
-        rows.push(padRow(['Total SOx (kg)', fleetSummary.totalSOx.toFixed(2)]));
-        rows.push(padRow(['Total Fuel (L)', fleetSummary.totalFuel.toFixed(0)]));
-        rows.push(padRow(['Average Efficiency', fleetSummary.avgEfficiency.toFixed(2)]));
-        rows.push(padRow(['Best Performer', fleetSummary.bestPerformer]));
-        rows.push(padRow(['Worst Performer', fleetSummary.worstPerformer]));
+        rows.push(padRow(['--- Grid Summary ---']));
+        rows.push(padRow(['Total CO2 (tonnes)', gridSummary.totalCO2.toFixed(2)]));
+        rows.push(padRow(['Total SF6 (kg)', gridSummary.totalSF6.toFixed(2)]));
+        rows.push(padRow(['Total Grid Losses (MWh)', gridSummary.totalGridLosses.toFixed(0)]));
+        rows.push(padRow(['Average Efficiency %', gridSummary.avgEfficiency.toFixed(2)]));
+        rows.push(padRow(['Best Performer', gridSummary.bestPerformer]));
+        rows.push(padRow(['Worst Performer', gridSummary.worstPerformer]));
+        rows.push(padRow(['Customers Served', gridSummary.totalCustomersServed.toString()]));
       }
       
-      // Convert to CSV string
       const csvContent = [
         headers.join(','),
         ...rows.map(row => Array.isArray(row) ? row.map(cell => `"${cell}"`).join(',') : row)
       ].join('\n');
       
-      // Create and download file
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
       link.setAttribute('href', url);
-      link.setAttribute('download', `esg_emissions_report_${new Date().toISOString().split('T')[0]}.csv`);
+      link.setAttribute('download', `exelon_esg_grid_report_${new Date().toISOString().split('T')[0]}.csv`);
       link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
@@ -337,19 +278,17 @@ export default function ESGPage() {
     } finally {
       setTimeout(() => setIsExporting(false), 500);
     }
-  }, [vesselEmissions, fleetSummary]);
+  }, [assetEmissions, gridSummary]);
 
-  // Generate comprehensive ESG report as HTML and open in new window for printing
+  // Generate comprehensive ESG report
   const generateESGReport = useCallback(() => {
-    if (!fleetSummary || !esgScore || !pathway) return;
+    if (!gridSummary || !esgScore || !pathway) return;
     
     setIsGenerating(true);
     
     try {
       const reportDate = new Date().toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
+        year: 'numeric', month: 'long', day: 'numeric' 
       });
       
       const reportHtml = `
@@ -357,155 +296,70 @@ export default function ESGPage() {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NMDC ESG Report - ${reportDate}</title>
+  <title>Exelon Grid ESG Report - ${reportDate}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { 
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
-      color: #1a1a1a; 
-      line-height: 1.6;
-      background: #f8f9fa;
-    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1a1a1a; line-height: 1.6; background: #f8f9fa; }
     .container { max-width: 900px; margin: 0 auto; padding: 40px; background: white; min-height: 100vh; }
-    .header { 
-      text-align: center; 
-      padding: 40px 0; 
-      border-bottom: 3px solid #10b981; 
-      margin-bottom: 40px;
-    }
-    .header h1 { font-size: 32px; color: #064e3b; margin-bottom: 8px; }
+    .header { text-align: center; padding: 40px 0; border-bottom: 3px solid #3b82f6; margin-bottom: 40px; }
+    .header h1 { font-size: 32px; color: #1e3a5f; margin-bottom: 8px; }
     .header .subtitle { color: #6b7280; font-size: 16px; }
     .header .date { color: #9ca3af; font-size: 14px; margin-top: 8px; }
-    
     .section { margin-bottom: 40px; }
-    .section-title { 
-      font-size: 20px; 
-      font-weight: 600; 
-      color: #1f2937; 
-      margin-bottom: 20px;
-      padding-bottom: 8px;
-      border-bottom: 2px solid #e5e7eb;
-    }
-    
-    .metrics-grid { 
-      display: grid; 
-      grid-template-columns: repeat(4, 1fr); 
-      gap: 16px; 
-      margin-bottom: 30px; 
-    }
-    .metric-card { 
-      background: #f9fafb; 
-      border: 1px solid #e5e7eb; 
-      border-radius: 12px; 
-      padding: 20px; 
-      text-align: center; 
-    }
-    .metric-value { font-size: 28px; font-weight: 700; color: #10b981; }
+    .section-title { font-size: 20px; font-weight: 600; color: #1f2937; margin-bottom: 20px; padding-bottom: 8px; border-bottom: 2px solid #e5e7eb; }
+    .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 30px; }
+    .metric-card { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; text-align: center; }
+    .metric-value { font-size: 28px; font-weight: 700; color: #3b82f6; }
     .metric-label { font-size: 12px; color: #6b7280; text-transform: uppercase; margin-top: 4px; }
-    
     .esg-scores { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin: 20px 0; }
-    .esg-score-card { 
-      background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-      border-radius: 12px; 
-      padding: 24px; 
-      text-align: center;
-    }
+    .esg-score-card { background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border-radius: 12px; padding: 24px; text-align: center; }
     .esg-score-card.social { background: linear-gradient(135deg, #ecfeff 0%, #cffafe 100%); }
     .esg-score-card.governance { background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%); }
     .esg-score-card h3 { font-size: 14px; color: #374151; margin-bottom: 8px; }
     .esg-score-card .score { font-size: 36px; font-weight: 700; color: #059669; }
     .esg-score-card.social .score { color: #0891b2; }
     .esg-score-card.governance .score { color: #7c3aed; }
-    
     table { width: 100%; border-collapse: collapse; margin: 20px 0; }
     th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb; }
     th { background: #f9fafb; font-size: 12px; text-transform: uppercase; color: #6b7280; }
-    td { font-size: 14px; }
-    tr:hover { background: #f9fafb; }
-    
-    .compliance-item { 
-      display: flex; 
-      justify-content: space-between; 
-      align-items: center; 
-      padding: 16px;
-      background: #f9fafb;
-      border-radius: 8px;
-      margin-bottom: 12px;
-    }
-    .status-badge { 
-      padding: 4px 12px; 
-      border-radius: 20px; 
-      font-size: 12px; 
-      font-weight: 600;
-    }
+    .compliance-item { display: flex; justify-content: space-between; align-items: center; padding: 16px; background: #f9fafb; border-radius: 8px; margin-bottom: 12px; }
+    .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
     .status-on_track { background: #d1fae5; color: #059669; }
     .status-at_risk { background: #fef3c7; color: #d97706; }
     .status-behind { background: #fee2e2; color: #dc2626; }
-    
-    .pathway-phase { 
-      display: flex; 
-      gap: 20px; 
-      padding: 20px;
-      background: #f9fafb;
-      border-radius: 12px;
-      margin-bottom: 16px;
-      border-left: 4px solid #10b981;
-    }
-    .pathway-year { font-size: 24px; font-weight: 700; color: #10b981; min-width: 60px; }
-    .pathway-content { flex: 1; }
-    .pathway-target { font-weight: 600; color: #1f2937; margin-bottom: 8px; }
-    .pathway-initiatives { display: flex; flex-wrap: wrap; gap: 8px; }
-    .initiative-tag { 
-      background: #e5e7eb; 
-      padding: 4px 10px; 
-      border-radius: 4px; 
-      font-size: 12px; 
-      color: #4b5563;
-    }
-    
-    .footer { 
-      margin-top: 60px; 
-      padding-top: 20px; 
-      border-top: 1px solid #e5e7eb; 
-      text-align: center; 
-      color: #9ca3af; 
-      font-size: 12px; 
-    }
-    
-    @media print {
-      body { background: white; }
-      .container { padding: 20px; }
-      .no-print { display: none; }
-    }
+    .pathway-phase { display: flex; gap: 20px; padding: 20px; background: #f9fafb; border-radius: 12px; margin-bottom: 16px; border-left: 4px solid #3b82f6; }
+    .pathway-year { font-size: 24px; font-weight: 700; color: #3b82f6; min-width: 60px; }
+    .initiative-tag { background: #e5e7eb; padding: 4px 10px; border-radius: 4px; font-size: 12px; color: #4b5563; }
+    .footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 12px; }
+    @media print { body { background: white; } .container { padding: 20px; } .no-print { display: none; } }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1>🌿 NMDC Fleet ESG Report</h1>
-      <div class="subtitle">Environmental, Social & Governance Performance</div>
+      <h1>⚡ Exelon Grid ESG Report</h1>
+      <div class="subtitle">Environmental, Social & Governance Performance — Grid Operations</div>
       <div class="date">Report Generated: ${reportDate}</div>
     </div>
     
     <div class="section">
-      <h2 class="section-title">📊 Fleet Emissions Summary</h2>
+      <h2 class="section-title">📊 Grid Emissions Summary</h2>
       <div class="metrics-grid">
         <div class="metric-card">
-          <div class="metric-value">${fleetSummary.totalCO2.toFixed(0)}</div>
-          <div class="metric-label">Total CO₂ (tonnes)</div>
+          <div class="metric-value">${gridSummary.totalCO2.toFixed(0)}</div>
+          <div class="metric-label">CO₂ from Losses (tonnes)</div>
         </div>
         <div class="metric-card">
-          <div class="metric-value">${(fleetSummary.totalFuel / 1000).toFixed(0)}K</div>
-          <div class="metric-label">Fuel Consumed (L)</div>
+          <div class="metric-value">${gridSummary.totalSF6.toFixed(1)}</div>
+          <div class="metric-label">SF₆ Leakage (kg)</div>
         </div>
         <div class="metric-card">
-          <div class="metric-value">${fleetSummary.avgEfficiency.toFixed(1)}</div>
-          <div class="metric-label">Avg Efficiency</div>
+          <div class="metric-value">${gridSummary.avgEfficiency.toFixed(1)}%</div>
+          <div class="metric-label">Avg Grid Efficiency</div>
         </div>
         <div class="metric-card">
-          <div class="metric-value">${vesselEmissions.length}</div>
-          <div class="metric-label">Vessels Monitored</div>
+          <div class="metric-value">${assetEmissions.length}</div>
+          <div class="metric-label">Assets Monitored</div>
         </div>
       </div>
     </div>
@@ -513,48 +367,35 @@ export default function ESGPage() {
     <div class="section">
       <h2 class="section-title">🏆 ESG Score Breakdown</h2>
       <div class="esg-scores">
-        <div class="esg-score-card">
-          <h3>🌍 Environmental</h3>
-          <div class="score">${esgScore.environmental.score}</div>
-        </div>
-        <div class="esg-score-card social">
-          <h3>👥 Social</h3>
-          <div class="score">${esgScore.social.score}</div>
-        </div>
-        <div class="esg-score-card governance">
-          <h3>🏛️ Governance</h3>
-          <div class="score">${esgScore.governance.score}</div>
-        </div>
+        <div class="esg-score-card"><h3>🌍 Environmental</h3><div class="score">${esgScore.environmental.score}</div></div>
+        <div class="esg-score-card social"><h3>👥 Social</h3><div class="score">${esgScore.social.score}</div></div>
+        <div class="esg-score-card governance"><h3>🏛️ Governance</h3><div class="score">${esgScore.governance.score}</div></div>
       </div>
-      <div style="text-align: center; margin-top: 20px; padding: 20px; background: #f0fdf4; border-radius: 12px;">
+      <div style="text-align: center; margin-top: 20px; padding: 20px; background: #eff6ff; border-radius: 12px;">
         <div style="font-size: 14px; color: #6b7280;">Overall ESG Score</div>
-        <div style="font-size: 48px; font-weight: 700; color: #10b981;">${esgScore.overall}</div>
+        <div style="font-size: 48px; font-weight: 700; color: #3b82f6;">${esgScore.overall}</div>
         <div style="font-size: 14px; color: #9ca3af;">out of 100</div>
       </div>
     </div>
     
     <div class="section">
-      <h2 class="section-title">🚢 Vessel Emissions Detail</h2>
+      <h2 class="section-title">⚡ Grid Asset Emissions Detail</h2>
       <table>
         <thead>
           <tr>
-            <th>Vessel</th>
-            <th>Type</th>
-            <th>CO₂ (t)</th>
-            <th>Fuel (L)</th>
-            <th>Fuel Type</th>
-            <th>CII Rating</th>
+            <th>Asset</th><th>Type</th><th>OpCo</th><th>CO₂ (t)</th><th>SF₆ (kg)</th><th>Efficiency</th><th>Health</th>
           </tr>
         </thead>
         <tbody>
-          ${vesselEmissions.map(ve => `
+          ${assetEmissions.map(ae => `
             <tr>
-              <td><strong>${ve.vesselName}</strong></td>
-              <td>${ve.vesselType.replace('_', ' ')}</td>
-              <td>${ve.emissions.co2.toFixed(1)}</td>
-              <td>${ve.fuelConsumed.toFixed(0)}</td>
-              <td>${ve.fuelType}</td>
-              <td><strong>${ve.ciiRating}</strong></td>
+              <td><strong>${ae.assetName}</strong></td>
+              <td>${ae.assetType.replace(/_/g, ' ')}</td>
+              <td>${ae.opCo}</td>
+              <td>${ae.emissions.co2.toFixed(1)}</td>
+              <td>${ae.emissions.sf6.toFixed(1)}</td>
+              <td>${ae.efficiency.toFixed(1)}%</td>
+              <td>${ae.healthIndex}</td>
             </tr>
           `).join('')}
         </tbody>
@@ -565,13 +406,8 @@ export default function ESGPage() {
       <h2 class="section-title">✅ Compliance Status</h2>
       ${complianceTargets.map(t => `
         <div class="compliance-item">
-          <div>
-            <strong>${t.name}</strong>
-            <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">${t.description}</div>
-          </div>
-          <span class="status-badge status-${t.status}">
-            ${t.status === 'on_track' ? '✓ On Track' : t.status === 'at_risk' ? '⚠ At Risk' : '✗ Behind'}
-          </span>
+          <div><strong>${t.name}</strong><div style="font-size: 12px; color: #6b7280; margin-top: 4px;">${t.description}</div></div>
+          <span class="status-badge status-${t.status}">${t.status === 'on_track' ? '✓ On Track' : t.status === 'at_risk' ? '⚠ At Risk' : '✗ Behind'}</span>
         </div>
       `).join('')}
     </div>
@@ -582,43 +418,26 @@ export default function ESGPage() {
       ${pathway.phases.map(phase => `
         <div class="pathway-phase">
           <div class="pathway-year">${phase.year}</div>
-          <div class="pathway-content">
-            <div class="pathway-target">${phase.targetReduction}% Emission Reduction Target</div>
-            <div class="pathway-initiatives">
+          <div style="flex: 1;">
+            <div style="font-weight: 600; margin-bottom: 8px;">${phase.targetReduction}% Emission Reduction Target</div>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
               ${phase.initiatives.map(i => `<span class="initiative-tag">${i}</span>`).join('')}
             </div>
           </div>
         </div>
       `).join('')}
-      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 24px;">
-        <div style="text-align: center; padding: 16px; background: #f9fafb; border-radius: 8px;">
-          <div style="font-size: 20px; font-weight: 700; color: #10b981;">$${(pathway.totalInvestment / 1000000).toFixed(0)}M</div>
-          <div style="font-size: 12px; color: #6b7280;">Total Investment</div>
-        </div>
-        <div style="text-align: center; padding: 16px; background: #f9fafb; border-radius: 8px;">
-          <div style="font-size: 20px; font-weight: 700; color: #0891b2;">$${(pathway.totalSavings / 1000000).toFixed(0)}M</div>
-          <div style="font-size: 12px; color: #6b7280;">Expected Savings</div>
-        </div>
-        <div style="text-align: center; padding: 16px; background: #f9fafb; border-radius: 8px;">
-          <div style="font-size: 20px; font-weight: 700; color: #7c3aed;">${pathway.paybackPeriod} years</div>
-          <div style="font-size: 12px; color: #6b7280;">Payback Period</div>
-        </div>
-      </div>
     </div>
     
     <div class="footer">
-      <p>This report was automatically generated by NMDC Fleet Intelligence Platform</p>
-      <p>© ${new Date().getFullYear()} NMDC Marine Operations</p>
-      <button onclick="window.print()" class="no-print" style="margin-top: 20px; padding: 12px 24px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
-        🖨️ Print / Save as PDF
-      </button>
+      <p>This report was automatically generated by Exelon GridIQ Intelligence Platform</p>
+      <p>© ${new Date().getFullYear()} Exelon Corporation</p>
+      <button onclick="window.print()" class="no-print" style="margin-top: 20px; padding: 12px 24px; background: #3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">🖨️ Print / Save as PDF</button>
     </div>
   </div>
 </body>
 </html>
       `;
       
-      // Open in new window
       const reportWindow = window.open('', '_blank');
       if (reportWindow) {
         reportWindow.document.write(reportHtml);
@@ -627,14 +446,14 @@ export default function ESGPage() {
     } finally {
       setTimeout(() => setIsGenerating(false), 500);
     }
-  }, [fleetSummary, esgScore, vesselEmissions, complianceTargets, pathway]);
+  }, [gridSummary, esgScore, assetEmissions, complianceTargets, pathway]);
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-white/60">Loading ESG data...</p>
+          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-white/60">Loading grid ESG data...</p>
         </div>
       </div>
     );
@@ -654,12 +473,12 @@ export default function ESGPage() {
                 <ArrowLeft className="w-5 h-5 text-white/70" />
               </button>
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500/20 to-green-500/20 border border-white/10 flex items-center justify-center">
-                  <Leaf className="w-6 h-6 text-emerald-400" />
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500/20 to-green-500/20 border border-white/10 flex items-center justify-center">
+                  <Leaf className="w-6 h-6 text-green-400" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-white">ESG Intelligence Center</h1>
-                  <p className="text-sm text-white/50">Environmental, Social & Governance</p>
+                  <h1 className="text-xl font-bold text-white">Grid ESG Intelligence</h1>
+                  <p className="text-sm text-white/50">Decarbonization · SF₆ Reduction · Grid Efficiency</p>
                 </div>
               </div>
             </div>
@@ -667,7 +486,7 @@ export default function ESGPage() {
             <div className="flex items-center gap-3">
               <button 
                 onClick={exportDataAsCSV}
-                disabled={isExporting || vesselEmissions.length === 0}
+                disabled={isExporting || assetEmissions.length === 0}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
@@ -675,8 +494,8 @@ export default function ESGPage() {
               </button>
               <button 
                 onClick={generateESGReport}
-                disabled={isGenerating || !fleetSummary || !esgScore}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500/80 hover:bg-emerald-500 text-white font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isGenerating || !gridSummary || !esgScore}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-500/80 hover:bg-blue-500 text-white font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
                 Generate ESG Report
@@ -688,7 +507,7 @@ export default function ESGPage() {
           <div className="flex gap-1 mt-4">
             {[
               { id: 'overview', label: 'Overview', icon: PieChart },
-              { id: 'vessels', label: 'Vessel Emissions', icon: Ship },
+              { id: 'assets', label: 'Grid Asset Emissions', icon: Zap },
               { id: 'compliance', label: 'Compliance', icon: Target },
               { id: 'pathway', label: 'Decarbonization', icon: TrendingDown },
               { id: 'predictive', label: 'Predictive Impact', icon: Brain },
@@ -705,7 +524,7 @@ export default function ESGPage() {
                 <tab.icon className="w-4 h-4" />
                 {tab.label}
                 {tab.id === 'predictive' && (
-                  <span className="px-1.5 py-0.5 rounded text-[10px] bg-violet-500/30 text-violet-300">NEW</span>
+                  <span className="px-1.5 py-0.5 rounded text-[10px] bg-violet-500/30 text-violet-300">AI</span>
                 )}
               </button>
             ))}
@@ -715,29 +534,30 @@ export default function ESGPage() {
 
       {/* Main Content */}
       <main className="max-w-[1800px] mx-auto px-6 py-6">
-        {activeTab === 'overview' && fleetSummary && esgScore && (
+        {activeTab === 'overview' && gridSummary && esgScore && (
           <div className="space-y-6">
             {/* Top Metrics */}
             <div className="grid grid-cols-5 gap-4">
               <MetricCard
                 icon={Factory}
-                label="Total CO₂ Emissions"
-                value={`${fleetSummary.totalCO2.toFixed(0)}t`}
-                trend={fleetSummary.trend.co2Change}
+                label="CO₂ from Grid Losses"
+                value={`${gridSummary.totalCO2.toFixed(0)}t`}
+                trend={gridSummary.trend.co2Change}
                 color="rose"
               />
               <MetricCard
-                icon={Fuel}
-                label="Fuel Consumed"
-                value={`${(fleetSummary.totalFuel / 1000).toFixed(0)}kL`}
+                icon={Wind}
+                label="SF₆ Leakage"
+                value={`${gridSummary.totalSF6.toFixed(1)}kg`}
+                trend={gridSummary.trend.sf6Change}
                 color="amber"
               />
               <MetricCard
-                icon={BarChart3}
+                icon={Gauge}
                 label="Avg Efficiency"
-                value={`${fleetSummary.avgEfficiency.toFixed(1)}`}
-                subtext="g CO₂/tonne-mile"
-                trend={fleetSummary.trend.efficiencyChange}
+                value={`${gridSummary.avgEfficiency.toFixed(1)}%`}
+                subtext="Grid delivery efficiency"
+                trend={gridSummary.trend.efficiencyChange}
                 color="cyan"
               />
               <MetricCard
@@ -756,11 +576,44 @@ export default function ESGPage() {
               />
             </div>
 
+            {/* Maintenance → ESG Impact Banner */}
+            {maintenanceImpact.affectedAssets.length > 0 && (
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <AlertTriangle className="w-5 h-5 text-amber-400" />
+                  <span className="text-sm font-medium text-amber-400">
+                    Maintenance Issues Impacting ESG Performance
+                  </span>
+                  <span className={`ml-auto px-2 py-0.5 rounded text-xs font-medium ${
+                    maintenanceImpact.complianceRisk === 'high' ? 'bg-rose-500/20 text-rose-400' :
+                    maintenanceImpact.complianceRisk === 'medium' ? 'bg-amber-500/20 text-amber-400' :
+                    'bg-emerald-500/20 text-emerald-400'
+                  }`}>
+                    {maintenanceImpact.complianceRisk} risk
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <span className="text-white/50">Extra CO₂ from degradation:</span>
+                    <span className="text-rose-400 font-medium ml-2">+{maintenanceImpact.totalEmissionsImpact} t/year</span>
+                  </div>
+                  <div>
+                    <span className="text-white/50">Financial impact:</span>
+                    <span className="text-amber-400 font-medium ml-2">${(maintenanceImpact.financialImpact / 1000).toFixed(0)}K/year</span>
+                  </div>
+                  <div>
+                    <span className="text-white/50">Assets affected:</span>
+                    <span className="text-white font-medium ml-2">{maintenanceImpact.affectedAssets.length}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Charts Row */}
             <div className="grid grid-cols-3 gap-6">
               {/* Emissions Trend */}
               <div className="col-span-2 bg-white/[0.02] rounded-xl border border-white/10 p-6">
-                <h3 className="text-sm font-medium text-white mb-4">CO₂ Emissions Trend</h3>
+                <h3 className="text-sm font-medium text-white mb-4">CO₂ from Grid Losses — Monthly Trend</h3>
                 <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={emissionsTrend}>
@@ -769,35 +622,21 @@ export default function ESGPage() {
                           <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
                           <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
                         </linearGradient>
+                        <linearGradient id="colorMaint" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                        </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="#333" />
                       <XAxis dataKey="month" stroke="#666" tick={{ fill: '#888', fontSize: 12 }} />
                       <YAxis stroke="#666" tick={{ fill: '#888', fontSize: 12 }} />
                       <Tooltip
-                        contentStyle={{
-                          backgroundColor: '#1a1a1a',
-                          border: '1px solid #333',
-                          borderRadius: '8px',
-                        }}
+                        contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333', borderRadius: '8px' }}
                         labelStyle={{ color: '#fff' }}
                       />
-                      <Area
-                        type="monotone"
-                        dataKey="co2"
-                        stroke="#ef4444"
-                        strokeWidth={2}
-                        fill="url(#colorCO2)"
-                        name="Actual CO₂ (t)"
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="target"
-                        stroke="#10b981"
-                        strokeWidth={2}
-                        strokeDasharray="5 5"
-                        fill="none"
-                        name="Target"
-                      />
+                      <Area type="monotone" dataKey="co2" stroke="#ef4444" strokeWidth={2} fill="url(#colorCO2)" name="CO₂ from Losses (t)" />
+                      <Area type="monotone" dataKey="target" stroke="#10b981" strokeWidth={2} strokeDasharray="5 5" fill="none" name="Target" />
+                      <Area type="monotone" dataKey="maintenanceImpact" stroke="#f59e0b" strokeWidth={2} fill="url(#colorMaint)" name="Maintenance Impact (t)" />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
@@ -807,37 +646,31 @@ export default function ESGPage() {
               <div className="bg-white/[0.02] rounded-xl border border-white/10 p-6">
                 <h3 className="text-sm font-medium text-white mb-4">ESG Score Breakdown</h3>
                 <div className="space-y-4">
-                  <ESGScoreBar
-                    label="Environmental"
-                    score={esgScore.environmental.score}
-                    icon={Leaf}
-                    color="emerald"
-                  />
-                  <ESGScoreBar
-                    label="Social"
-                    score={esgScore.social.score}
-                    icon={Users}
-                    color="cyan"
-                  />
-                  <ESGScoreBar
-                    label="Governance"
-                    score={esgScore.governance.score}
-                    icon={Building2}
-                    color="violet"
-                  />
+                  <ESGScoreBar label="Environmental" score={esgScore.environmental.score} icon={Leaf} color="emerald" />
+                  <ESGScoreBar label="Social" score={esgScore.social.score} icon={Users} color="cyan" />
+                  <ESGScoreBar label="Governance" score={esgScore.governance.score} icon={Building2} color="violet" />
                 </div>
 
                 <div className="mt-6 pt-4 border-t border-white/10">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-white/50">Overall Score</span>
                     <div className="flex items-center gap-2">
-                      <span className="text-2xl font-bold text-emerald-400">{esgScore.overall}</span>
+                      <span className="text-2xl font-bold text-blue-400">{esgScore.overall}</span>
                       <span className="text-white/30">/ 100</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-1 mt-2 text-xs text-emerald-400">
-                    <TrendingDown className="w-3 h-3 rotate-180" />
-                    <span>Improving trend</span>
+                    {esgScore.trend === 'improving' ? (
+                      <>
+                        <TrendingDown className="w-3 h-3 rotate-180" />
+                        <span>Improving trend</span>
+                      </>
+                    ) : (
+                      <>
+                        <AlertTriangle className="w-3 h-3" />
+                        <span className="text-amber-400">Declining — maintenance issues</span>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -845,62 +678,44 @@ export default function ESGPage() {
 
             {/* Bottom Row */}
             <div className="grid grid-cols-3 gap-6">
-              {/* Emissions by Vessel Type */}
+              {/* Emissions by Asset Type */}
               <div className="bg-white/[0.02] rounded-xl border border-white/10 p-6">
-                <h3 className="text-sm font-medium text-white mb-4">Emissions by Vessel Type</h3>
+                <h3 className="text-sm font-medium text-white mb-4">CO₂ by Asset Type</h3>
                 <div className="h-[200px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={emissionsByType} layout="vertical">
                       <CartesianGrid strokeDasharray="3 3" stroke="#333" horizontal={false} />
                       <XAxis type="number" stroke="#666" tick={{ fill: '#888', fontSize: 10 }} />
-                      <YAxis
-                        type="category"
-                        dataKey="name"
-                        stroke="#666"
-                        tick={{ fill: '#888', fontSize: 10 }}
-                        width={80}
-                      />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: '#1a1a1a',
-                          border: '1px solid #333',
-                          borderRadius: '8px',
-                        }}
-                      />
-                      <Bar dataKey="co2" fill="#a855f7" radius={[0, 4, 4, 0]} name="CO₂ (tonnes)" />
+                      <YAxis type="category" dataKey="name" stroke="#666" tick={{ fill: '#888', fontSize: 10 }} width={120} />
+                      <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333', borderRadius: '8px' }} />
+                      <Bar dataKey="co2" fill="#3b82f6" radius={[0, 4, 4, 0]} name="CO₂ (tonnes)" />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
               </div>
 
-              {/* Fuel Type Distribution */}
+              {/* Emissions by OpCo */}
               <div className="bg-white/[0.02] rounded-xl border border-white/10 p-6">
-                <h3 className="text-sm font-medium text-white mb-4">Fuel Type Distribution</h3>
+                <h3 className="text-sm font-medium text-white mb-4">CO₂ by Operating Company</h3>
                 <div className="h-[200px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <RechartsPie>
                       <Pie
-                        data={fuelDistribution}
+                        data={emissionsByOpCo}
                         cx="50%"
                         cy="50%"
                         innerRadius={50}
                         outerRadius={80}
                         paddingAngle={5}
-                        dataKey="value"
+                        dataKey="co2"
                         label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
                         labelLine={false}
                       >
-                        {fuelDistribution.map((_, index) => (
+                        {emissionsByOpCo.map((_, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: '#1a1a1a',
-                          border: '1px solid #333',
-                          borderRadius: '8px',
-                        }}
-                      />
+                      <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333', borderRadius: '8px' }} />
                     </RechartsPie>
                   </ResponsiveContainer>
                 </div>
@@ -912,14 +727,14 @@ export default function ESGPage() {
                 <div className="space-y-3">
                   {complianceTargets.slice(0, 4).map(target => (
                     <div key={target.id} className="flex items-center justify-between">
-                      <span className="text-sm text-white/70">{target.name}</span>
+                      <span className="text-sm text-white/70 truncate mr-2">{target.name}</span>
                       <StatusBadge status={target.status} />
                     </div>
                   ))}
                 </div>
                 <button
                   onClick={() => setActiveTab('compliance')}
-                  className="w-full mt-4 pt-4 border-t border-white/10 flex items-center justify-center gap-1 text-sm text-primary-400 hover:text-primary-300"
+                  className="w-full mt-4 pt-4 border-t border-white/10 flex items-center justify-center gap-1 text-sm text-blue-400 hover:text-blue-300"
                 >
                   View All <ChevronRight className="w-4 h-4" />
                 </button>
@@ -928,50 +743,60 @@ export default function ESGPage() {
           </div>
         )}
 
-        {activeTab === 'vessels' && (
+        {activeTab === 'assets' && (
           <div className="bg-white/[0.02] rounded-xl border border-white/10 overflow-hidden">
             <div className="px-6 py-4 border-b border-white/10">
-              <h3 className="text-lg font-medium text-white">Vessel Emissions Report</h3>
-              <p className="text-sm text-white/40">Monthly emissions data by vessel</p>
+              <h3 className="text-lg font-medium text-white">Grid Asset Emissions Report</h3>
+              <p className="text-sm text-white/40">Monthly emissions, efficiency, and health data by grid asset</p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-white/10">
-                    <th className="px-6 py-3 text-left text-xs font-medium text-white/50 uppercase">Vessel</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-white/50 uppercase">CO₂ (t)</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-white/50 uppercase">NOx (kg)</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-white/50 uppercase">Fuel (L)</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-white/50 uppercase">Fuel Type</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-white/50 uppercase">Efficiency</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-white/50 uppercase">vs Fleet Avg</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-white/50 uppercase">Asset</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-white/50 uppercase">OpCo</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-white/50 uppercase">CO₂ (t)</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-white/50 uppercase">SF₆ (kg)</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-white/50 uppercase">Losses (MWh)</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-white/50 uppercase">Efficiency</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-white/50 uppercase">vs Fleet</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-white/50 uppercase">Health</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {vesselEmissions.map((ve, i) => {
-                    const vsBenchmark = ve.efficiency - ve.benchmark.fleetAverage;
+                  {assetEmissions.map((ae, i) => {
+                    const vsBenchmark = ae.efficiency - ae.benchmark.fleetAverage;
                     return (
-                      <tr key={ve.vesselId} className={`border-b border-white/5 ${i % 2 === 0 ? 'bg-white/[0.01]' : ''}`}>
+                      <tr key={ae.assetTag} className={`border-b border-white/5 ${i % 2 === 0 ? 'bg-white/[0.01]' : ''}`}>
                         <td className="px-6 py-4">
-                          <div className="text-sm font-medium text-white">{ve.vesselName}</div>
-                          <div className="text-xs text-white/40 capitalize">{ve.vesselType.replace('_', ' ')}</div>
+                          <div className="text-sm font-medium text-white">{ae.assetName}</div>
+                          <div className="text-xs text-white/40 capitalize">{ae.assetType.replace(/_/g, ' ')}</div>
                         </td>
-                        <td className="px-6 py-4 text-right text-sm text-white">{ve.emissions.co2.toFixed(1)}</td>
-                        <td className="px-6 py-4 text-right text-sm text-white">{ve.emissions.nox.toFixed(0)}</td>
-                        <td className="px-6 py-4 text-right text-sm text-white">{ve.fuelConsumed.toFixed(0)}</td>
-                        <td className="px-6 py-4 text-right">
-                          <span className={`text-xs px-2 py-1 rounded ${
-                            ve.fuelType === 'LNG' ? 'bg-emerald-500/20 text-emerald-400' :
-                            ve.fuelType === 'MDO' ? 'bg-cyan-500/20 text-cyan-400' :
-                            'bg-amber-500/20 text-amber-400'
+                        <td className="px-4 py-4 text-sm text-white/70">{ae.opCo}</td>
+                        <td className="px-4 py-4 text-right text-sm text-white">{ae.emissions.co2.toFixed(1)}</td>
+                        <td className="px-4 py-4 text-right text-sm text-white">{ae.emissions.sf6.toFixed(1)}</td>
+                        <td className="px-4 py-4 text-right text-sm text-white">{ae.emissions.gridLosses.toFixed(0)}</td>
+                        <td className="px-4 py-4 text-right">
+                          <span className={`text-sm font-medium ${
+                            ae.efficiency >= 99 ? 'text-emerald-400' :
+                            ae.efficiency >= 98 ? 'text-cyan-400' :
+                            'text-amber-400'
                           }`}>
-                            {ve.fuelType}
+                            {ae.efficiency.toFixed(1)}%
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-right text-sm text-white">{ve.efficiency.toFixed(1)}</td>
-                        <td className="px-6 py-4 text-right">
-                          <span className={`text-sm font-medium ${vsBenchmark > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                            {vsBenchmark > 0 ? '+' : ''}{vsBenchmark.toFixed(1)}
+                        <td className="px-4 py-4 text-right">
+                          <span className={`text-sm font-medium ${vsBenchmark > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            {vsBenchmark > 0 ? '+' : ''}{vsBenchmark.toFixed(2)}%
+                          </span>
+                        </td>
+                        <td className="px-4 py-4 text-right">
+                          <span className={`text-xs px-2 py-1 rounded ${
+                            ae.healthIndex >= 80 ? 'bg-emerald-500/20 text-emerald-400' :
+                            ae.healthIndex >= 60 ? 'bg-amber-500/20 text-amber-400' :
+                            'bg-rose-500/20 text-rose-400'
+                          }`}>
+                            {ae.healthIndex}
                           </span>
                         </td>
                       </tr>
@@ -1016,7 +841,7 @@ export default function ESGPage() {
                         target.status === 'at_risk' ? 'bg-amber-500' :
                         'bg-rose-500'
                       }`}
-                      style={{ width: `${(target.currentValue / target.targetValue) * 100}%` }}
+                      style={{ width: `${Math.min((target.currentValue / target.targetValue) * 100, 100)}%` }}
                     />
                   </div>
                 </div>
@@ -1029,7 +854,7 @@ export default function ESGPage() {
                   <span className={`font-medium ${
                     target.status === 'on_track' ? 'text-emerald-400' : 'text-amber-400'
                   }`}>
-                    {((target.currentValue / target.targetValue) * 100).toFixed(0)}% complete
+                    {Math.min(((target.currentValue / target.targetValue) * 100), 100).toFixed(0)}% complete
                   </span>
                 </div>
               </div>
@@ -1040,40 +865,32 @@ export default function ESGPage() {
         {activeTab === 'pathway' && pathway && (
           <div className="space-y-6">
             {/* Pathway Header */}
-            <div className="bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 rounded-xl border border-emerald-500/30 p-6">
+            <div className="bg-gradient-to-r from-blue-500/10 to-green-500/10 rounded-xl border border-blue-500/30 p-6">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-3 rounded-xl bg-emerald-500/20">
-                  <Sparkles className="w-6 h-6 text-emerald-400" />
+                <div className="p-3 rounded-xl bg-blue-500/20">
+                  <Sparkles className="w-6 h-6 text-blue-400" />
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-white">{pathway.name}</h2>
-                  <p className="text-sm text-white/50">Strategic roadmap to net-zero emissions</p>
+                  <p className="text-sm text-white/50">Strategic roadmap to net-zero grid operations</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-4 gap-4">
                 <div className="bg-white/5 rounded-lg p-4 text-center">
-                  <div className="text-2xl font-bold text-emerald-400">
-                    ${(pathway.totalInvestment / 1000000).toFixed(0)}M
-                  </div>
+                  <div className="text-2xl font-bold text-blue-400">${(pathway.totalInvestment / 1000000000).toFixed(1)}B</div>
                   <div className="text-xs text-white/40">Total Investment</div>
                 </div>
                 <div className="bg-white/5 rounded-lg p-4 text-center">
-                  <div className="text-2xl font-bold text-cyan-400">
-                    ${(pathway.totalSavings / 1000000).toFixed(0)}M
-                  </div>
+                  <div className="text-2xl font-bold text-cyan-400">${(pathway.totalSavings / 1000000000).toFixed(1)}B</div>
                   <div className="text-xs text-white/40">Expected Savings</div>
                 </div>
                 <div className="bg-white/5 rounded-lg p-4 text-center">
-                  <div className="text-2xl font-bold text-white">
-                    {pathway.paybackPeriod} yrs
-                  </div>
+                  <div className="text-2xl font-bold text-white">{pathway.paybackPeriod} yrs</div>
                   <div className="text-xs text-white/40">Payback Period</div>
                 </div>
                 <div className="bg-white/5 rounded-lg p-4 text-center">
-                  <div className="text-2xl font-bold text-amber-400 capitalize">
-                    {pathway.riskLevel}
-                  </div>
+                  <div className="text-2xl font-bold text-amber-400 capitalize">{pathway.riskLevel}</div>
                   <div className="text-xs text-white/40">Risk Level</div>
                 </div>
               </div>
@@ -1084,26 +901,22 @@ export default function ESGPage() {
               <h3 className="text-lg font-medium text-white mb-6">Decarbonization Timeline</h3>
               
               <div className="relative">
-                {/* Timeline line */}
                 <div className="absolute left-[60px] top-0 bottom-0 w-0.5 bg-white/10" />
 
                 {pathway.phases.map((phase, i) => (
                   <div key={phase.year} className="relative flex gap-6 pb-8 last:pb-0">
-                    {/* Year marker */}
                     <div className="w-[120px] flex-shrink-0 flex items-center gap-3">
                       <span className="text-2xl font-bold text-white">{phase.year}</span>
                       <div className={`w-4 h-4 rounded-full border-4 ${
-                        i === 0 ? 'bg-emerald-500 border-emerald-500/30' :
-                        'bg-white/20 border-white/10'
+                        i === 0 ? 'bg-blue-500 border-blue-500/30' : 'bg-white/20 border-white/10'
                       }`} />
                     </div>
 
-                    {/* Phase content */}
                     <div className="flex-1 bg-white/[0.02] rounded-xl border border-white/10 p-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
-                          <Target className="w-4 h-4 text-emerald-400" />
-                          <span className="text-sm font-medium text-emerald-400">
+                          <Target className="w-4 h-4 text-blue-400" />
+                          <span className="text-sm font-medium text-blue-400">
                             {phase.targetReduction}% Reduction
                           </span>
                         </div>
@@ -1115,10 +928,7 @@ export default function ESGPage() {
                       
                       <div className="flex flex-wrap gap-2">
                         {phase.initiatives.map((initiative, j) => (
-                          <span
-                            key={j}
-                            className="px-3 py-1 rounded-full bg-white/5 text-xs text-white/70"
-                          >
+                          <span key={j} className="px-3 py-1 rounded-full bg-white/5 text-xs text-white/70">
                             {initiative}
                           </span>
                         ))}
@@ -1134,7 +944,7 @@ export default function ESGPage() {
         {activeTab === 'predictive' && (
           <div className="space-y-6">
             {/* Predictive Header */}
-            <div className="bg-gradient-to-r from-violet-500/10 to-cyan-500/10 rounded-xl border border-violet-500/30 p-6">
+            <div className="bg-gradient-to-r from-violet-500/10 to-blue-500/10 rounded-xl border border-violet-500/30 p-6">
               <div className="flex items-center gap-3 mb-4">
                 <div className="p-3 rounded-xl bg-violet-500/20">
                   <Brain className="w-6 h-6 text-violet-400" />
@@ -1142,7 +952,7 @@ export default function ESGPage() {
                 <div>
                   <h2 className="text-xl font-bold text-white">Predictive Impact Analysis</h2>
                   <p className="text-sm text-white/50">
-                    See upstream & downstream effects of any operational change on ESG, finances, and operations
+                    See upstream & downstream effects of grid operational changes on ESG, reliability, and finances
                   </p>
                 </div>
               </div>
@@ -1151,7 +961,7 @@ export default function ESGPage() {
                 <div className="bg-white/5 rounded-lg p-4 text-center">
                   <ArrowUpRight className="w-6 h-6 text-blue-400 mx-auto mb-2" />
                   <div className="text-xs text-white/40">Upstream</div>
-                  <div className="text-sm font-medium text-white">Supply Chain, Crew, Parts</div>
+                  <div className="text-sm font-medium text-white">Supply Chain, Parts, Crews</div>
                 </div>
                 <div className="bg-white/5 rounded-lg p-4 text-center">
                   <Zap className="w-6 h-6 text-amber-400 mx-auto mb-2" />
@@ -1161,7 +971,7 @@ export default function ESGPage() {
                 <div className="bg-white/5 rounded-lg p-4 text-center">
                   <ArrowDownRight className="w-6 h-6 text-violet-400 mx-auto mb-2" />
                   <div className="text-xs text-white/40">Downstream</div>
-                  <div className="text-sm font-medium text-white">Revenue, Clients, ESG</div>
+                  <div className="text-sm font-medium text-white">Reliability, Customers, ESG</div>
                 </div>
                 <div className="bg-white/5 rounded-lg p-4 text-center">
                   <Target className="w-6 h-6 text-emerald-400 mx-auto mb-2" />
@@ -1182,58 +992,58 @@ export default function ESGPage() {
                 <div className="space-y-3">
                   {[
                     {
-                      id: 'fuel_switch_lng',
-                      type: 'fuel_switch',
-                      icon: Leaf,
-                      title: 'LNG Fuel Transition',
-                      description: 'Analyze impact of switching 5 vessels to LNG fuel',
-                      params: { newFuelType: 'LNG' },
+                      id: 'sf6_replace',
+                      type: 'sf6_replacement',
+                      icon: Wind,
+                      title: 'SF₆ Breaker Replacement',
+                      description: 'Replace all SF₆ breakers with vacuum alternatives',
+                      params: { replacementType: 'vacuum' },
                       color: 'emerald',
                     },
                     {
-                      id: 'fuel_switch_hybrid',
-                      type: 'fuel_switch',
-                      icon: Fuel,
-                      title: 'Hybrid Propulsion',
-                      description: 'Evaluate hybrid electric-diesel conversion',
-                      params: { newFuelType: 'Hybrid' },
+                      id: 'transformer_upgrade',
+                      type: 'transformer_upgrade',
+                      icon: Zap,
+                      title: 'Transformer Modernization',
+                      description: 'Replace aging transformers with high-efficiency units',
+                      params: { upgradeType: 'high_efficiency' },
                       color: 'cyan',
                     },
                     {
                       id: 'schedule_change',
-                      type: 'schedule_change',
+                      type: 'maintenance_schedule',
                       icon: Calendar,
-                      title: 'Schedule Optimization',
-                      description: 'Reschedule operations for weather windows',
-                      params: { delayDays: 5 },
+                      title: 'Predictive Maintenance Shift',
+                      description: 'Move from time-based to DGA-driven maintenance',
+                      params: { strategy: 'condition_based' },
                       color: 'amber',
                     },
                     {
-                      id: 'maintenance_defer',
-                      type: 'maintenance_schedule',
-                      icon: Building2,
-                      title: 'Defer Maintenance',
-                      description: 'Push non-critical maintenance by 30 days',
-                      params: { deferDays: 30 },
+                      id: 'grid_modernize',
+                      type: 'grid_modernization',
+                      icon: Activity,
+                      title: 'Smart Grid Deployment',
+                      description: 'Deploy sensors, automation, and self-healing switches',
+                      params: { coverage: '80%' },
                       color: 'violet',
-                    },
-                    {
-                      id: 'new_project',
-                      type: 'new_project',
-                      icon: Target,
-                      title: 'New ADNOC Project',
-                      description: 'Evaluate taking on a $15M installation project',
-                      params: { estimatedCost: 15000000, requiredVesselTypes: ['dredger', 'jack_up_barge'] },
-                      color: 'blue',
                     },
                     {
                       id: 'equipment_failure',
                       type: 'equipment_failure',
                       icon: AlertTriangle,
-                      title: 'Equipment Failure',
-                      description: 'Simulate main engine failure on Al Mirfa',
-                      params: { severity: 'critical', estimatedDowntime: 14 },
+                      title: 'Critical Transformer Failure',
+                      description: 'Simulate 345kV transformer failure at Fisk St.',
+                      params: { severity: 'critical', estimatedDowntime: 21 },
                       color: 'rose',
+                    },
+                    {
+                      id: 'der_integration',
+                      type: 'new_project',
+                      icon: ThermometerSun,
+                      title: 'DER Integration Program',
+                      description: 'Integrate 500MW distributed energy resources',
+                      params: { capacity: 500, type: 'solar_storage' },
+                      color: 'blue',
                     },
                   ].map(scenario => {
                     const colorClasses: Record<string, string> = {
@@ -1263,7 +1073,7 @@ export default function ESGPage() {
                         }`}
                       >
                         <div className="flex items-start gap-3">
-                          <div className={`p-2 rounded-lg bg-white/5`}>
+                          <div className="p-2 rounded-lg bg-white/5">
                             <scenario.icon className={`w-5 h-5 ${iconColors[scenario.color]}`} />
                           </div>
                           <div>
@@ -1282,30 +1092,19 @@ export default function ESGPage() {
                 {isAnalyzing ? (
                   <div className="h-full flex flex-col items-center justify-center bg-white/[0.02] rounded-xl border border-white/10 p-8">
                     <div className="w-16 h-16 border-4 border-violet-500 border-t-transparent rounded-full animate-spin mb-4" />
-                    <p className="text-white font-medium">Analyzing Impact Chain...</p>
+                    <p className="text-white font-medium">Analyzing Grid Impact Chain...</p>
                     <p className="text-sm text-white/50 mt-1">Calculating upstream & downstream effects</p>
                     <div className="mt-4 flex items-center gap-6 text-xs text-white/40">
-                      <span className="flex items-center gap-1">
-                        <ArrowUpRight className="w-3 h-3" /> Supply Chain
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <DollarSign className="w-3 h-3" /> Financial
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Leaf className="w-3 h-3" /> ESG
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Users className="w-3 h-3" /> Crew
-                      </span>
+                      <span className="flex items-center gap-1"><ArrowUpRight className="w-3 h-3" /> Supply Chain</span>
+                      <span className="flex items-center gap-1"><DollarSign className="w-3 h-3" /> Financial</span>
+                      <span className="flex items-center gap-1"><Leaf className="w-3 h-3" /> ESG</span>
+                      <span className="flex items-center gap-1"><Users className="w-3 h-3" /> Crews</span>
                     </div>
                   </div>
                 ) : impactResult ? (
                   <ImpactAnalysisPanel
                     result={impactResult}
-                    onDismiss={() => {
-                      setImpactResult(null);
-                      setSelectedScenario(null);
-                    }}
+                    onDismiss={() => { setImpactResult(null); setSelectedScenario(null); }}
                     onApplyChange={() => {
                       alert('In production, this would initiate the change process with all stakeholders notified.');
                       setImpactResult(null);
@@ -1317,8 +1116,8 @@ export default function ESGPage() {
                     <Brain className="w-16 h-16 text-white/20 mb-4" />
                     <p className="text-white/60 font-medium">Select a Scenario</p>
                     <p className="text-sm text-white/40 mt-1 text-center max-w-md">
-                      Choose a what-if scenario to see how it impacts the entire operation chain — 
-                      from supply chain and crew upstream, to revenue, clients, and ESG downstream.
+                      Choose a what-if scenario to see how it impacts the entire grid operation chain — 
+                      from supply chain and field crews upstream, to reliability, customers, and ESG downstream.
                     </p>
                   </div>
                 )}
@@ -1340,7 +1139,7 @@ export default function ESGPage() {
                   <div className={`text-2xl font-bold ${impactResult.esgImpact.co2Change < 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                     {impactResult.esgImpact.co2Change > 0 ? '+' : ''}{impactResult.esgImpact.co2Change.toFixed(1)}%
                   </div>
-                  <p className="text-xs text-white/40 mt-1">Annual CO₂ emissions</p>
+                  <p className="text-xs text-white/40 mt-1">Grid CO₂ emissions</p>
                 </div>
                 
                 <div className={`p-4 rounded-xl border ${
@@ -1370,7 +1169,7 @@ export default function ESGPage() {
                   <div className="text-2xl font-bold text-blue-400">
                     {impactResult.operationalImpact.scheduleDelayDays} days
                   </div>
-                  <p className="text-xs text-white/40 mt-1">Project timeline shift</p>
+                  <p className="text-xs text-white/40 mt-1">Outage / project shift</p>
                 </div>
                 
                 <div className={`p-4 rounded-xl border ${
@@ -1413,7 +1212,7 @@ function MetricCard({
   color: 'primary' | 'emerald' | 'amber' | 'rose' | 'cyan';
 }) {
   const colorClasses: Record<'primary' | 'emerald' | 'amber' | 'rose' | 'cyan', string> = {
-    primary: 'text-primary-400 bg-primary-500/10',
+    primary: 'text-blue-400 bg-blue-500/10',
     emerald: 'text-emerald-400 bg-emerald-500/10',
     amber: 'text-amber-400 bg-amber-500/10',
     rose: 'text-rose-400 bg-rose-500/10',
@@ -1473,10 +1272,7 @@ function ESGScoreBar({
         <span className={`text-sm font-bold ${colorClasses[color].text}`}>{score}</span>
       </div>
       <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-        <div
-          className={`h-full rounded-full ${colorClasses[color].bg}`}
-          style={{ width: `${score}%` }}
-        />
+        <div className={`h-full rounded-full ${colorClasses[color].bg}`} style={{ width: `${score}%` }} />
       </div>
     </div>
   );
@@ -1498,4 +1294,3 @@ function StatusBadge({ status, large = false }: { status: 'on_track' | 'at_risk'
     </div>
   );
 }
-

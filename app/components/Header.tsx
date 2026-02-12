@@ -5,16 +5,15 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 import {
-  Ship,
+  Zap,
   Bell,
   RefreshCw,
   Menu,
-  Radio,
   Cpu,
   X,
   LayoutGrid,
   Leaf,
-  Navigation,
+  Shield,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -40,13 +39,12 @@ export function Header({
   const isActive = (path: string) => pathname === path;
   const isHome = pathname === '/';
 
-  // Navigation items - different pages to navigate to
+  // Navigation items — Exelon GridIQ modules
   const navItems = [
-    { href: '/live', label: 'Live', icon: Radio },
-    { href: '/routes', label: 'Routes', icon: Navigation },
-    { href: '/crane-iot', label: 'Crane IoT', icon: Cpu, highlight: true },
-    { href: '/orchestration', label: 'Orchestration', icon: LayoutGrid },
+    { href: '/transformer-iot', label: 'Transformer IoT', icon: Cpu },
+    { href: '/orchestration', label: 'Dispatch', icon: LayoutGrid },
     { href: '/esg', label: 'ESG', icon: Leaf },
+    { href: '/scenarios', label: 'Scenarios', icon: Shield },
   ];
 
   return (
@@ -62,21 +60,20 @@ export function Header({
             className="h-5 w-auto"
           />
           <span className="text-sm text-white/40 hidden sm:block">//</span>
-          <span className="text-sm font-bold text-white hidden sm:block tracking-wide">Fleet Ops</span>
+          <Zap className="h-3.5 w-3.5 text-white/50 hidden sm:block" />
+          <span className="text-sm font-bold text-white/80 hidden sm:block tracking-wide">GridIQ</span>
         </Link>
         
         {/* Navigation Links */}
         <nav className="hidden md:flex items-center gap-1">
-          {navItems.map(({ href, label, icon: Icon, highlight }) => (
+          {navItems.map(({ href, label, icon: Icon }) => (
             <Link
               key={href}
               href={href}
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition-all ${
                 isActive(href)
-                  ? 'bg-white/15 text-white'
-                  : highlight
-                  ? 'text-amber-400 hover:bg-amber-500/10'
-                  : 'text-white/50 hover:text-white hover:bg-white/5'
+                  ? 'bg-white/[0.08] text-white/90'
+                  : 'text-white/40 hover:text-white/70 hover:bg-white/[0.04]'
               }`}
             >
               <Icon className="w-3.5 h-3.5" />
@@ -88,7 +85,7 @@ export function Header({
         {/* Right - Status & Actions */}
         <div className="flex items-center gap-2">
           <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-white/40 mr-1">
-            <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-400' : 'bg-white/30'}`} />
+            <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-white/40' : 'bg-white/15'}`} />
             <span className="font-mono">
               {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
             </span>
@@ -105,7 +102,7 @@ export function Header({
           <button className="relative p-1.5 rounded text-white/40 hover:text-white hover:bg-white/5 transition-all">
             <Bell className="h-3.5 w-3.5" />
             {alertCount > 0 && (
-              <span className="absolute top-0.5 right-0.5 h-1.5 w-1.5 rounded-full bg-rose-500" />
+              <span className="absolute top-0.5 right-0.5 h-1.5 w-1.5 rounded-full bg-white/50" />
             )}
           </button>
 
@@ -137,19 +134,18 @@ export function Header({
                 className="h-4 w-auto"
               />
               <span className="text-white/40">//</span>
-              <span>Fleet Ops</span>
+              <Zap className="h-3 w-3 text-white/50" />
+              <span>GridIQ</span>
             </Link>
-            {navItems.map(({ href, label, icon: Icon, highlight }) => (
+            {navItems.map(({ href, label, icon: Icon }) => (
               <Link
                 key={href}
                 href={href}
                 onClick={() => setMobileMenuOpen(false)}
                 className={`flex items-center gap-2 px-3 py-2 rounded text-sm transition-all ${
                   isActive(href)
-                    ? 'bg-white/15 text-white'
-                    : highlight
-                    ? 'text-amber-400'
-                    : 'text-white/60'
+                    ? 'bg-white/[0.08] text-white/90'
+                    : 'text-white/45'
                 }`}
               >
                 <Icon className="w-4 h-4" />

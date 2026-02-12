@@ -3,7 +3,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { NMDC_FLEET } from '@/lib/nmdc/fleet';
+import { NMDC_FLEET as LEGACY_FLEET } from '@/lib/nmdc/fleet';
 import { RouteOptimizationPanel } from '@/app/components/RouteOptimization';
 import { RouteOptimizationResult } from '@/lib/route-optimization/types';
 import {
@@ -21,7 +21,7 @@ import {
 // Comprehensive Middle East ports - verified coordinates
 const DESTINATIONS = [
   // === UAE Ports ===
-  { id: 'musaffah', name: '🇦🇪 Musaffah (NMDC Base)', lat: 24.33506, lng: 54.43968 },
+  { id: 'musaffah', name: '🇦🇪 Musaffah (Marine Base)', lat: 24.33506, lng: 54.43968 },
   { id: 'abu-dhabi', name: '🇦🇪 Abu Dhabi Port', lat: 24.4821, lng: 54.50214 },
   { id: 'khalifa', name: '🇦🇪 Khalifa Port', lat: 24.78751, lng: 54.67621 },
   { id: 'jebel-ali', name: '🇦🇪 Jebel Ali (Dubai)', lat: 25.00328, lng: 55.05206 },
@@ -227,7 +227,7 @@ function Dropdown<T extends { id?: string; mmsi?: string; name: string }>({
 
 export default function RoutesPage() {
   const router = useRouter();
-  const [selectedVessel, setSelectedVessel] = useState<typeof NMDC_FLEET[0] | null>(null);
+  const [selectedVessel, setSelectedVessel] = useState<typeof LEGACY_FLEET[0] | null>(null);
   const [selectedDestination, setSelectedDestination] = useState<typeof DESTINATIONS[0] | null>(null);
   const [optimizationResult, setOptimizationResult] = useState<RouteOptimizationResult | null>(null);
   const [isOptimizing, setIsOptimizing] = useState(false);
@@ -240,8 +240,8 @@ export default function RoutesPage() {
     setError(null);
 
     try {
-      // Use Musaffah (NMDC Base) as the default origin
-      // This is where most NMDC vessels are stationed
+      // Use Musaffah (Marine Base) as the default origin
+      // This is where most legacy vessels are stationed
       const musaffahLat = 24.335;
       const musaffahLng = 54.44;
       
@@ -329,7 +329,7 @@ export default function RoutesPage() {
           <div className="flex items-center gap-4 flex-wrap">
             {/* Vessel Dropdown */}
             <Dropdown
-              options={NMDC_FLEET}
+              options={LEGACY_FLEET}
               value={selectedVessel}
               onChange={setSelectedVessel}
               placeholder="Select vessel..."
@@ -434,7 +434,7 @@ export default function RoutesPage() {
             <div className="flex items-center gap-6 mt-8 text-xs text-white/30">
               <div className="flex items-center gap-2">
                 <Ship className="w-4 h-4" />
-                <span>{NMDC_FLEET.length} NMDC vessels</span>
+                <span>{LEGACY_FLEET.length} legacy vessels</span>
               </div>
               <div className="w-1 h-1 rounded-full bg-white/20" />
               <div className="flex items-center gap-2">

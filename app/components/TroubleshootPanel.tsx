@@ -4,10 +4,10 @@
 import { useState, useRef, useEffect, FormEvent, useCallback } from 'react';
 import { Vessel, Weather } from '@/lib/supabase';
 import type { QueryResponse, Source, KnowledgeBase } from '@/lib/sdk/resolve-sdk';
-import { NMDC_FLEET, getNMDCVesselByMMSI, getNMDCVesselTypeName, getNMDCCompanyName, type NMDCVessel } from '@/lib/nmdc/fleet';
+import { NMDC_FLEET as LEGACY_FLEET, getNMDCVesselByMMSI as getLegacyVesselByMMSI, getNMDCVesselTypeName as getLegacyVesselTypeName, getNMDCCompanyName as getLegacyCompanyName, type NMDCVessel as LegacyVessel } from '@/lib/nmdc/fleet';
 import { DynamicRenderer, type UIResponse, type MultiResponse, type DynamicRendererHandlers } from './troubleshoot';
 
-// Flexible alert type that works with both Supabase Alert and NMDCAlert
+// Flexible alert type that works with both Supabase Alert and legacy alerts
 interface FlexibleAlert {
   id: string;
   severity: string;
@@ -215,14 +215,14 @@ interface TroubleshootPanelProps {
   };
 }
 
-// Quick troubleshooting prompts based on vessel type
+// Quick troubleshooting prompts for grid assets and transformers
 const TROUBLESHOOT_PROMPTS = [
-  { icon: Thermometer, text: "High temperature", prompt: "Equipment is showing high temperature readings. What could be the cause and how do I fix it?" },
-  { icon: Zap, text: "Power issues", prompt: "Electrical power fluctuations or failures. How do I diagnose and resolve?" },
-  { icon: Settings, text: "Mechanical vibration", prompt: "Excessive vibration detected in rotating equipment. What are the possible causes?" },
-  { icon: AlertTriangle, text: "Pressure drop", prompt: "Unexpected pressure drop in the hydraulic system. What should I check?" },
-  { icon: Cpu, text: "Sensor fault", prompt: "Sensor readings are erratic or not updating. How do I troubleshoot?" },
-  { icon: FileText, text: "Maintenance procedure", prompt: "What is the standard maintenance procedure for this equipment?" },
+  { icon: Thermometer, text: "DGA exceedance", prompt: "Dissolved gas analysis shows elevated hydrogen and acetylene. What are the possible fault types and recommended actions per IEEE C57.104?" },
+  { icon: Zap, text: "Overload / hot-spot", prompt: "Transformer winding hot-spot temperature is exceeding the alarm threshold. How do I assess the risk and manage the load?" },
+  { icon: Settings, text: "Tap changer issue", prompt: "The on-load tap changer is showing increased transition time and inconsistent voltage regulation. What should I check?" },
+  { icon: AlertTriangle, text: "Bushing failure risk", prompt: "Bushing power factor test results are trending upward. What could be the cause and what are the next steps?" },
+  { icon: Cpu, text: "Cooling failure", prompt: "Cooling fans are not activating during high-load periods. How do I diagnose the cooling system?" },
+  { icon: FileText, text: "Oil leak / low level", prompt: "Oil level in the conservator is dropping and there is a visible stain under the transformer. What is the procedure?" },
 ];
 
 export function TroubleshootPanel({ 
@@ -379,7 +379,7 @@ export function TroubleshootPanel({
   const buildAppContext = useCallback((): AppContext => {
     const context: AppContext = {};
 
-    // Vessel context - combine runtime data with NMDC fleet config
+    // Vessel context - combine runtime data with fleet config
     if (selectedVessel) {
       const v = selectedVessel as Record<string, unknown>;
       
@@ -387,17 +387,17 @@ export function TroubleshootPanel({
       const mmsi = typeof v.mmsi === 'string' ? v.mmsi : 
                    typeof v.id === 'string' && v.id.match(/^\d{9}$/) ? v.id : undefined;
       
-      // Look up full NMDC vessel config for rich data
-      const nmdcVessel: NMDCVessel | undefined = mmsi ? getNMDCVesselByMMSI(mmsi) : undefined;
+      // Look up full vessel config for rich data
+      const legacyVessel: LegacyVessel | undefined = mmsi ? getLegacyVesselByMMSI(mmsi) : undefined;
       
-      // Support both position_lat/lng (from NMDC) and current_lat/lng (legacy)
+      // Support both position_lat/lng and current_lat/lng (legacy)
       const lat = typeof v.position_lat === 'number' ? v.position_lat : 
                   typeof v.current_lat === 'number' ? v.current_lat : undefined;
       const lng = typeof v.position_lng === 'number' ? v.position_lng : 
                   typeof v.current_lng === 'number' ? v.current_lng : undefined;
       
       // Calculate vessel age
-      const yearBuilt = nmdcVessel?.specs?.yearBuilt;
+      const yearBuilt = legacyVessel?.specs?.yearBuilt;
       const currentYear = new Date().getFullYear();
       const age = yearBuilt ? currentYear - yearBuilt : undefined;
       
@@ -405,10 +405,10 @@ export function TroubleshootPanel({
         // Identity
         name: selectedVessel.name,
         mmsi: mmsi,
-        imo: nmdcVessel?.imo || (typeof v.imo === 'string' ? v.imo : undefined),
-        type: nmdcVessel ? getNMDCVesselTypeName(nmdcVessel.type) : selectedVessel.type,
-        subType: nmdcVessel?.subType,
-        company: nmdcVessel ? getNMDCCompanyName(nmdcVessel.company) : undefined,
+        imo: legacyVessel?.imo || (typeof v.imo === 'string' ? v.imo : undefined),
+        type: legacyVessel ? getLegacyVesselTypeName(legacyVessel.type) : selectedVessel.type,
+        subType: legacyVessel?.subType,
+        company: legacyVessel ? getLegacyCompanyName(legacyVessel.company) : undefined,
         
         // Current state
         status: typeof v.status === 'string' ? v.status : undefined,
@@ -420,26 +420,26 @@ export function TroubleshootPanel({
         heading: typeof v.heading === 'number' ? v.heading : undefined,
         
         // Assignment
-        project: nmdcVessel?.project || (typeof v.project === 'string' ? v.project : undefined),
-        captain: nmdcVessel?.captain,
-        crewCount: nmdcVessel?.crewCount || (typeof v.crew_count === 'number' ? v.crew_count : undefined),
+        project: legacyVessel?.project || (typeof v.project === 'string' ? v.project : undefined),
+        captain: legacyVessel?.captain,
+        crewCount: legacyVessel?.crewCount || (typeof v.crew_count === 'number' ? v.crew_count : undefined),
         
         // Specifications
-        specs: nmdcVessel?.specs ? {
-          length: nmdcVessel.specs.length,
-          breadth: nmdcVessel.specs.breadth,
-          depth: nmdcVessel.specs.depth,
-          dredgingDepth: nmdcVessel.specs.dredgingDepth,
-          pumpPower: nmdcVessel.specs.pumpPower,
-          craneCapacity: nmdcVessel.specs.craneCapacity,
-          accommodation: nmdcVessel.specs.accommodation,
-          deckArea: nmdcVessel.specs.deckArea,
-          yearBuilt: nmdcVessel.specs.yearBuilt,
+        specs: legacyVessel?.specs ? {
+          length: legacyVessel.specs.length,
+          breadth: legacyVessel.specs.breadth,
+          depth: legacyVessel.specs.depth,
+          dredgingDepth: legacyVessel.specs.dredgingDepth,
+          pumpPower: legacyVessel.specs.pumpPower,
+          craneCapacity: legacyVessel.specs.craneCapacity,
+          accommodation: legacyVessel.specs.accommodation,
+          deckArea: legacyVessel.specs.deckArea,
+          yearBuilt: legacyVessel.specs.yearBuilt,
           age: age,
         } : undefined,
         
         // Documentation
-        datasheetUrl: nmdcVessel?.datasheetUrl,
+        datasheetUrl: legacyVessel?.datasheetUrl,
       };
     }
 
@@ -504,7 +504,7 @@ export function TroubleshootPanel({
     const hasContext = Object.keys(appContext).length > 0;
     
     // Debug: Log context being sent
-    console.log('[TroubleshootPanel] Context - vesselName:', appContext.vessel?.name || 'NO VESSEL');
+    console.log('[TroubleshootPanel] Context - assetName:', appContext.vessel?.name || 'NO ASSET');
     console.log('[TroubleshootPanel] Context - hasImage:', !!capturedImageFile);
     console.log('[TroubleshootPanel] Context - knowledgeBase:', selectedKnowledgeBase);
     console.log('[TroubleshootPanel] Context - conversationLength:', messages.length);
@@ -625,17 +625,17 @@ export function TroubleshootPanel({
       if (currentSessionId && sessionsSupported) {
         try {
           // Build context-enriched message for sessions
-          // This ensures the AI has vessel/equipment context even in follow-ups
+          // This ensures the AI has asset/equipment context even in follow-ups
           let enrichedMessage = userQuery;
           if (hasContext && appContext.vessel) {
-            const contextPrefix = `[Context: Vessel "${appContext.vessel.name}" (${appContext.vessel.type})${appContext.vessel.project ? `, Project: ${appContext.vessel.project}` : ''}${appContext.vessel.healthScore ? `, Health: ${appContext.vessel.healthScore}%` : ''}${appContext.equipment ? `, Equipment focus: ${appContext.equipment}` : ''}]\n\n`;
+            const contextPrefix = `[Context: Asset "${appContext.vessel.name}" (${appContext.vessel.type})${appContext.vessel.project ? `, Program: ${appContext.vessel.project}` : ''}${appContext.vessel.healthScore ? `, Health: ${appContext.vessel.healthScore}%` : ''}${appContext.equipment ? `, Equipment focus: ${appContext.equipment}` : ''}]\n\n`;
             enrichedMessage = contextPrefix + userQuery;
           }
           
           console.log('[TroubleshootPanel] Using session for query:', { 
             sessionId: currentSessionId, 
             hasImage: !!imageUrl,
-            vesselName: appContext.vessel?.name || 'none',
+            assetName: appContext.vessel?.name || 'none',
             hasContext,
           });
           response = await fetch('/api/troubleshoot', {
@@ -674,12 +674,12 @@ export function TroubleshootPanel({
         // Build context-enriched message for stateless queries
         let enrichedMessage = userQuery;
         if (hasContext && appContext.vessel) {
-          const contextPrefix = `[Context: Vessel "${appContext.vessel.name}" (${appContext.vessel.type})${appContext.vessel.project ? `, Project: ${appContext.vessel.project}` : ''}${appContext.vessel.healthScore ? `, Health: ${appContext.vessel.healthScore}%` : ''}${appContext.equipment ? `, Equipment focus: ${appContext.equipment}` : ''}]\n\n`;
+          const contextPrefix = `[Context: Asset "${appContext.vessel.name}" (${appContext.vessel.type})${appContext.vessel.project ? `, Program: ${appContext.vessel.project}` : ''}${appContext.vessel.healthScore ? `, Health: ${appContext.vessel.healthScore}%` : ''}${appContext.equipment ? `, Equipment focus: ${appContext.equipment}` : ''}]\n\n`;
           enrichedMessage = contextPrefix + userQuery;
         }
         
         console.log('[TroubleshootPanel] Using stateless query:', {
-          vesselName: appContext.vessel?.name || 'none',
+          assetName: appContext.vessel?.name || 'none',
           hasContext,
         });
         response = await fetch('/api/troubleshoot', {

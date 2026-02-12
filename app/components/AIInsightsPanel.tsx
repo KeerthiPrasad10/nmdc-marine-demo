@@ -193,7 +193,7 @@ export function AIInsightsPanel() {
           <div className="flex items-center gap-2">
             <Compass className="h-4 w-4 text-white/40" />
             <div>
-              <h2 className="text-sm font-medium text-white/80">Fleet Insights</h2>
+              <h2 className="text-sm font-medium text-white/80">Grid Insights</h2>
               <p className="text-[10px] text-white/40">
                 {insights.length} active • {criticalCount} critical
               </p>
@@ -235,7 +235,7 @@ export function AIInsightsPanel() {
             <CheckCircle className="h-8 w-8 text-white/20 mb-3" />
             <h3 className="text-sm font-medium text-white/60 mb-1">All Clear</h3>
             <p className="text-xs text-white/30 max-w-[180px]">
-              No issues detected. Monitoring fleet.
+              No issues detected. Monitoring grid.
             </p>
             {lastUpdate && (
               <p className="text-[10px] text-white/20 mt-3">

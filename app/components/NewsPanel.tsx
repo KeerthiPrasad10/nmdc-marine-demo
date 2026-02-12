@@ -292,7 +292,7 @@ export function NewsPanel({ maxArticles = 20, compact = false }: NewsPanelProps)
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Newspaper className={`h-4 w-4 ${criticalCount > 0 ? 'text-red-400' : 'text-violet-400'}`} />
-            <span className="text-sm font-medium text-white">Fleet Intel</span>
+            <span className="text-sm font-medium text-white">Grid Intel</span>
             {criticalCount > 0 && (
               <span className="px-1.5 py-0.5 bg-red-500/20 text-red-400 text-[10px] rounded animate-pulse">
                 {criticalCount} critical
@@ -382,7 +382,7 @@ export function NewsPanel({ maxArticles = 20, compact = false }: NewsPanelProps)
           <div className="flex items-center justify-center h-32">
             <div className="text-center">
               <RefreshCw className="h-5 w-5 text-white/30 animate-spin mx-auto mb-2" />
-              <p className="text-xs text-white/30">Fetching fleet intelligence...</p>
+              <p className="text-xs text-white/30">Fetching grid intelligence...</p>
             </div>
           </div>
         ) : error ? (
@@ -399,7 +399,7 @@ export function NewsPanel({ maxArticles = 20, compact = false }: NewsPanelProps)
         ) : articles.length === 0 ? (
           <div className="p-4 text-center">
             <Ship className="h-8 w-8 text-white/20 mx-auto mb-2" />
-            <p className="text-white/40 text-sm">No fleet-relevant news found</p>
+            <p className="text-white/40 text-sm">No grid-relevant news found</p>
           </div>
         ) : (
           <div className="divide-y divide-white/5">
@@ -463,13 +463,13 @@ export function NewsPanel({ maxArticles = 20, compact = false }: NewsPanelProps)
                             </p>
                           </div>
                           
-                          {/* Affected Vessels (if any) */}
+                          {/* Affected Assets (if any) */}
                           {article.affectedVessels && article.affectedVessels.length > 0 && (
                             <div className="p-2 rounded bg-blue-500/10 border border-blue-500/20">
                               <div className="flex items-center gap-1.5 mb-1.5">
                                 <Ship className="h-3 w-3 text-blue-400" />
                                 <p className="text-[10px] font-medium text-blue-400">
-                                  Potentially Affected Vessels ({article.affectedVessels.length})
+                                  Potentially Affected Assets ({article.affectedVessels.length})
                                 </p>
                               </div>
                               <div className="flex flex-wrap gap-1">

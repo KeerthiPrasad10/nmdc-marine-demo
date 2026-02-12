@@ -1,7 +1,7 @@
 'use client';
 
 import { Vessel } from '@/lib/supabase';
-import type { NMDCAlert } from '@/lib/nmdc/alerts';
+import type { NMDCAlert as LegacyAlert } from '@/lib/nmdc/alerts';
 import { 
   AlertTriangle, 
   AlertCircle, 
@@ -17,7 +17,7 @@ import {
 
 interface VesselAlertsPanelProps {
   vessel: Vessel;
-  alerts: NMDCAlert[];
+  alerts: LegacyAlert[];
   onAcknowledge: (id: string) => void;
   onResolve: (id: string) => void;
 }

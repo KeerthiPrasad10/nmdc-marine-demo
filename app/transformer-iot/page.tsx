@@ -1,0 +1,777 @@
+// @ts-nocheck — Transformer IoT real-time monitoring dashboard
+'use client';
+
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import {
+  ArrowLeft,
+  Activity,
+  Gauge,
+  Clock,
+  TrendingUp,
+  AlertTriangle,
+  CheckCircle,
+  Zap,
+  Shield,
+  Eye,
+  Play,
+  RefreshCw,
+  ChevronRight,
+  Thermometer,
+  BarChart3,
+  Brain,
+  Timer,
+  Droplets,
+  Wind,
+  FlaskConical,
+  BellRing,
+  TrendingDown,
+} from 'lucide-react';
+import {
+  TransformerSensor,
+  LoadEvent,
+  AlarmEvent,
+  DGAReading,
+  TransformerAsset,
+} from '@/lib/transformer-iot/types';
+import {
+  generateTransformerAsset,
+  generateRecentLoadEvents,
+  generateAlarmEvents,
+  generateDGAHistory,
+  updateSensorValue,
+} from '@/lib/transformer-iot/mock-data';
+import { AIPredictiveMaintenance } from '@/app/components/PredictiveMaintenance';
+import { getScenarioForAsset } from '@/lib/demo-scenarios';
+
+// ──────────────────────────── Sensor Card ────────────────────────────
+function SensorCard({ sensor }: { sensor: TransformerSensor }) {
+  const percentage = ((sensor.value - sensor.minValue) / (sensor.maxValue - sensor.minValue)) * 100;
+  const statusColors = { normal: 'text-emerald-400/50', warning: 'text-amber-400/50', critical: 'text-rose-400/50' };
+  const statusBg = { normal: 'bg-emerald-500/10', warning: 'bg-amber-500/10', critical: 'bg-rose-500/10' };
+  const icons: Record<string, React.ReactNode> = {
+    thermal: <Thermometer className="w-4 h-4" />,
+    load: <Zap className="w-4 h-4" />,
+    dga: <FlaskConical className="w-4 h-4" />,
+    oil: <Droplets className="w-4 h-4" />,
+    electrical: <Activity className="w-4 h-4" />,
+    environmental: <Wind className="w-4 h-4" />,
+  };
+
+  return (
+    <div className={`p-3 rounded-xl border transition-all ${
+      sensor.status === 'critical' ? 'bg-rose-500/[0.04] border-rose-500/15' :
+      sensor.status === 'warning' ? 'bg-amber-500/[0.04] border-amber-500/15' :
+      'bg-white/[0.02] border-white/[0.06] hover:border-white/[0.12]'
+    }`}>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <span className={statusColors[sensor.status]}>{icons[sensor.type]}</span>
+          <span className="text-xs text-white/50">{sensor.name}</span>
+        </div>
+        <span className={`text-[10px] px-1.5 py-0.5 rounded ${statusBg[sensor.status]} ${statusColors[sensor.status]}`}>
+          {sensor.status}
+        </span>
+      </div>
+      <div className="flex items-baseline gap-1">
+        <span className={`text-xl font-bold ${
+          sensor.status === 'critical' ? 'text-rose-400/70' :
+          sensor.status === 'warning' ? 'text-amber-400/70' : 'text-white/80'
+        }`}>
+          {sensor.value.toFixed(sensor.unit === 'ppm' ? 0 : 1)}
+        </span>
+        <span className="text-xs text-white/35">{sensor.unit}</span>
+      </div>
+      <div className="mt-2 h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all duration-500 ${
+            sensor.status === 'critical' ? 'bg-rose-500/40' :
+            sensor.status === 'warning' ? 'bg-amber-500/40' : 'bg-emerald-500/30'
+          }`}
+          style={{ width: `${Math.min(100, percentage)}%` }}
+        />
+      </div>
+      <div className="flex justify-between mt-1 text-[10px] text-white/25">
+        <span>{sensor.normalRange.min}</span>
+        <span>Normal range</span>
+        <span>{sensor.normalRange.max}</span>
+      </div>
+    </div>
+  );
+}
+
+// ──────────────────────── DGA Trend Panel ─────────────────────────
+function DGATrendPanel({ history }: { history: DGAReading[] }) {
+  if (history.length === 0) return null;
+  const latest = history[history.length - 1];
+  const prev = history.length > 1 ? history[history.length - 2] : null;
+
+  const gases = [
+    { label: 'H₂', key: 'h2' as const, color: 'text-rose-400/60', limit: 300 },
+    { label: 'CH₄', key: 'ch4' as const, color: 'text-amber-400/60', limit: 120 },
+    { label: 'C₂H₂', key: 'c2h2' as const, color: 'text-red-400/60', limit: 35 },
+    { label: 'C₂H₄', key: 'c2h4' as const, color: 'text-orange-400/60', limit: 150 },
+    { label: 'CO', key: 'co' as const, color: 'text-blue-400/60', limit: 570 },
+  ];
+
+  return (
+    <div className="space-y-3">
+      {/* Fault Diagnosis */}
+      <div className={`p-3 rounded-lg border ${
+        latest.faultType === 'normal' ? 'bg-emerald-500/[0.04] border-emerald-500/15' :
+        latest.faultType === 'arcing' ? 'bg-rose-500/[0.04] border-rose-500/15' :
+        'bg-amber-500/[0.04] border-amber-500/15'
+      }`}>
+        <div className="flex items-center gap-2 mb-1">
+          <Brain className="w-4 h-4 text-violet-400/50" />
+          <span className="text-xs font-medium text-white/70">Duval Triangle Analysis</span>
+        </div>
+        <p className="text-xs text-white/60">{latest.interpretation}</p>
+        <p className="text-[10px] text-white/35 mt-1">TDCG: {latest.tdcg} ppm</p>
+      </div>
+
+      {/* Gas bars */}
+      <div className="space-y-2">
+        {gases.map(gas => {
+          const value = latest[gas.key];
+          const prevValue = prev ? prev[gas.key] : value;
+          const change = prev ? ((value - prevValue) / Math.max(1, prevValue) * 100) : 0;
+          const pct = Math.min(100, (value / gas.limit) * 100);
+          const isOver = value > gas.limit;
+
+          return (
+            <div key={gas.key} className="flex items-center gap-2">
+              <span className={`text-[10px] w-10 font-mono ${gas.color}`}>{gas.label}</span>
+              <div className="flex-1 h-2 bg-white/[0.06] rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full ${isOver ? 'bg-rose-500/30' : 'bg-cyan-500/25'}`}
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+              <span className={`text-[10px] w-14 text-right font-mono ${isOver ? 'text-rose-400/60' : 'text-white/50'}`}>
+                {value}
+              </span>
+              {change !== 0 && (
+                <span className={`text-[9px] w-12 text-right ${change > 0 ? 'text-rose-400/50' : 'text-emerald-400/50'}`}>
+                  {change > 0 ? '↑' : '↓'}{Math.abs(change).toFixed(0)}%
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* History timeline */}
+      <div className="pt-2 border-t border-white/[0.06]">
+        <div className="text-[10px] text-white/30 mb-1">Sample History</div>
+        <div className="flex items-end gap-1">
+          {history.map((reading, i) => {
+            const height = Math.min(32, (reading.tdcg / 3000) * 32);
+            const isLatest = i === history.length - 1;
+            return (
+              <div key={i} className="flex-1 flex flex-col items-center gap-0.5" title={`${reading.timestamp.toLocaleDateString()} — TDCG: ${reading.tdcg}`}>
+                <div
+                  className={`w-full rounded-t ${isLatest ? 'bg-cyan-500/40' : reading.tdcg > 1920 ? 'bg-rose-500/30' : reading.tdcg > 720 ? 'bg-amber-500/30' : 'bg-emerald-500/30'}`}
+                  style={{ height }}
+                />
+                <span className="text-[8px] text-white/30">
+                  {reading.timestamp.toLocaleDateString('en-US', { month: 'short' })}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ──────────────────── Load Event Timeline ─────────────────────────
+function LoadTimeline({ events, highlightedId, onHighlightClear }: {
+  events: LoadEvent[];
+  highlightedId?: string | null;
+  onHighlightClear?: () => void;
+}) {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (highlightedId) setExpandedId(highlightedId);
+  }, [highlightedId]);
+
+  const eventTypeColors: Record<string, string> = {
+    normal: 'text-emerald-400/50', peak: 'text-amber-400/50', overload: 'text-rose-400/50',
+    switching: 'text-cyan-400/50', fault_clearing: 'text-red-400/50',
+  };
+
+  return (
+    <div className="space-y-2">
+      {events.slice(0, 5).map(event => {
+        const isHighlighted = highlightedId === event.id;
+        const isExpanded = expandedId === event.id;
+        const hasWarnings = event.warnings.length > 0;
+
+        return (
+          <div
+            key={event.id}
+            id={`event-${event.id}`}
+            onClick={() => {
+              setExpandedId(isExpanded ? null : event.id);
+              if (isHighlighted && onHighlightClear) onHighlightClear();
+            }}
+            className={`p-3 rounded-lg border transition-all cursor-pointer ${
+              isHighlighted ? 'bg-violet-500/[0.06] border-violet-500/20 ring-1 ring-violet-500/15' :
+              event.eventType === 'fault_clearing' ? 'bg-rose-500/[0.03] border-rose-500/10' :
+              hasWarnings ? 'bg-amber-500/[0.02] border-amber-500/10 hover:border-amber-500/20' :
+              'bg-white/[0.02] border-white/[0.05] hover:border-white/[0.12]'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2">
+                {event.eventType === 'fault_clearing' ? (
+                  <AlertTriangle className="w-4 h-4 text-rose-400/50" />
+                ) : event.eventType === 'peak' ? (
+                  <TrendingUp className="w-4 h-4 text-amber-400/50" />
+                ) : (
+                  <Activity className="w-4 h-4 text-emerald-400/40" />
+                )}
+                <span className="text-sm font-medium text-white/80">{event.description}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-white/35">
+                  {event.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+                <ChevronRight className={`w-4 h-4 text-white/25 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 text-xs text-white/50">
+              <span className="flex items-center gap-1">
+                <Zap className="w-3 h-3" />
+                {event.loadMVA} MVA ({event.loadPercent}%)
+              </span>
+              <span className="flex items-center gap-1">
+                <Thermometer className="w-3 h-3" />
+                {event.topOilTemp.toFixed(0)}°C / {event.hotSpotTemp.toFixed(0)}°C
+              </span>
+              <span className={`capitalize ${eventTypeColors[event.eventType] || 'text-white/40'}`}>
+                {event.eventType.replace('_', ' ')}
+              </span>
+              {hasWarnings && (
+                <span className="text-amber-400/50 flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" />
+                  {event.warnings.length}
+                </span>
+              )}
+            </div>
+
+            {isExpanded && (
+              <div className="mt-3 pt-3 border-t border-white/[0.06] space-y-3">
+                {hasWarnings && (
+                  <div className="space-y-2">
+                    <div className="text-xs font-medium text-amber-400/60 flex items-center gap-1">
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                      Alerts ({event.warnings.length})
+                    </div>
+                    {event.warnings.map((w, i) => (
+                      <div key={i} className="text-xs bg-amber-500/[0.05] text-amber-200/60 px-2.5 py-1.5 rounded-lg border border-amber-500/10">
+                        {w}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {event.dgaChange && (
+                  <div className="bg-white/[0.04] rounded-lg p-2">
+                    <span className="text-[10px] text-white/35">DGA Change During Event</span>
+                    <div className="flex items-center gap-2 mt-1 text-xs">
+                      <span className="text-white/70">{event.dgaChange.gasName}:</span>
+                      <span className="text-white/50">{event.dgaChange.before} → {event.dgaChange.after} ppm</span>
+                      <span className={event.dgaChange.changePercent > 5 ? 'text-rose-400/60' : 'text-amber-400/60'}>
+                        +{event.dgaChange.changePercent}%
+                      </span>
+                    </div>
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="bg-white/[0.04] rounded-lg p-2">
+                    <span className="text-white/35 block mb-0.5">Duration</span>
+                    <span className="text-white/80">{(event.duration / 60).toFixed(0)} min</span>
+                  </div>
+                  <div className="bg-white/[0.04] rounded-lg p-2">
+                    <span className="text-white/35 block mb-0.5">Type</span>
+                    <span className="text-white/80 capitalize">{event.eventType.replace('_', ' ')}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ──────────────────── Alarm Events Panel ──────────────────────────
+function AlarmEventsPanel({ events, onEventClick }: {
+  events: AlarmEvent[];
+  onEventClick?: (eventId: string) => void;
+}) {
+  const severityColors: Record<string, string> = {
+    info: 'text-blue-400/50 bg-blue-500/[0.05] border-blue-500/15',
+    warning: 'text-amber-400/50 bg-amber-500/[0.05] border-amber-500/15',
+    alarm: 'text-orange-400/50 bg-orange-500/[0.05] border-orange-500/15',
+    trip: 'text-rose-400/50 bg-rose-500/[0.05] border-rose-500/15',
+  };
+
+  const typeIcons: Record<string, React.ReactNode> = {
+    dga_alarm: <FlaskConical className="w-4 h-4" />,
+    thermal_alarm: <Thermometer className="w-4 h-4" />,
+    electrical_fault: <Zap className="w-4 h-4" />,
+    oil_alarm: <Droplets className="w-4 h-4" />,
+    bushing_alarm: <Activity className="w-4 h-4" />,
+    tap_changer: <Gauge className="w-4 h-4" />,
+    cooling_failure: <Wind className="w-4 h-4" />,
+  };
+
+  return (
+    <div className="space-y-2">
+      {events.map(event => (
+        <div
+          key={event.id}
+          onClick={() => event.relatedLoadEventId && onEventClick?.(event.relatedLoadEventId)}
+          className={`p-3 rounded-lg border transition-all ${severityColors[event.severity]} ${
+            !event.resolved ? 'animate-pulse' : ''
+          } ${event.relatedLoadEventId ? 'cursor-pointer hover:ring-1 hover:ring-violet-500/20' : ''}`}
+        >
+          <div className="flex items-start gap-2">
+            {typeIcons[event.type] || <AlertTriangle className="w-4 h-4" />}
+            <div className="flex-1">
+              <p className="text-sm font-medium text-white/70">{event.description}</p>
+              {event.value !== undefined && event.threshold !== undefined && (
+                <div className="mt-1 flex items-center gap-2">
+                  <span className="text-[10px] text-white/35">
+                    Value: {event.value} {event.parameter && `(${event.parameter})`} · Limit: {event.threshold}
+                  </span>
+                </div>
+              )}
+              <p className="text-xs text-white/30 mt-1">
+                {event.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                {event.resolved && ' · Resolved'}
+              </p>
+              {event.aiRecommendation && (
+                <div className="mt-2 p-2 rounded bg-white/[0.03] border border-white/[0.05]">
+                  <p className="text-xs flex items-start gap-1">
+                    <Brain className="w-3 h-3 text-violet-400/40 mt-0.5 flex-shrink-0" />
+                    <span className="text-white/50">{event.aiRecommendation}</span>
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ──────────────────── Thermal Diagram ─────────────────────────────
+function ThermalDiagram({ transformer }: { transformer: TransformerAsset }) {
+  const { thermal, metrics } = transformer;
+  const hotSpotColor = thermal.windingHotSpot > 105 ? 'text-rose-400/70' : thermal.windingHotSpot > 90 ? 'text-amber-400/70' : 'text-emerald-400/60';
+  const topOilColor = thermal.topOilTemp > 85 ? 'text-rose-400/70' : thermal.topOilTemp > 75 ? 'text-amber-400/70' : 'text-emerald-400/60';
+
+  return (
+    <div className="p-4 rounded-xl bg-blue-500/[0.02] border border-blue-500/10">
+      <h3 className="text-xs font-semibold text-white/80 flex items-center gap-2 mb-3">
+        <Thermometer className="w-4 h-4 text-cyan-400/50" />
+        Thermal Profile
+      </h3>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="text-center">
+          <div className={`text-2xl font-bold ${topOilColor}`}>{thermal.topOilTemp.toFixed(0)}°C</div>
+          <div className="text-[10px] text-white/40">Top Oil</div>
+        </div>
+        <div className="text-center">
+          <div className={`text-2xl font-bold ${hotSpotColor}`}>{thermal.windingHotSpot.toFixed(0)}°C</div>
+          <div className="text-[10px] text-white/40">Winding Hot Spot</div>
+        </div>
+        <div className="text-center">
+          <div className="text-lg font-bold text-white/60">{thermal.bottomOilTemp.toFixed(0)}°C</div>
+          <div className="text-[10px] text-white/40">Bottom Oil</div>
+        </div>
+        <div className="text-center">
+          <div className="text-lg font-bold text-white/60">{thermal.ambientTemp.toFixed(0)}°C</div>
+          <div className="text-[10px] text-white/40">Ambient</div>
+        </div>
+      </div>
+      <div className="mt-3 pt-3 border-t border-white/[0.06] flex items-center justify-between text-xs">
+        <div>
+          <span className="text-white/30">Cooling: </span>
+          <span className="text-cyan-400/50 font-medium">{thermal.coolingMode}</span>
+        </div>
+        <div>
+          <span className="text-white/30">Fans: </span>
+          <span className="text-white/60">{thermal.fansRunning}</span>
+        </div>
+        <div>
+          <span className="text-white/30">Pumps: </span>
+          <span className="text-white/60">{thermal.pumpsRunning}</span>
+        </div>
+        <div>
+          <span className="text-white/30">Tap: </span>
+          <span className="text-white/60">{metrics.tapPosition}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════ MAIN DASHBOARD ═════════════════════════════
+export default function TransformerIoTPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="w-16 h-16 border-4 border-cyan-500/30 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <TransformerIoTDashboard />
+    </Suspense>
+  );
+}
+
+function TransformerIoTDashboard() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const assetTag = searchParams.get('asset') || 'BGE-TF-001';
+
+  const [transformer, setTransformer] = useState<TransformerAsset | null>(null);
+  const [loadEvents, setLoadEvents] = useState<LoadEvent[]>([]);
+  const [alarmEvents, setAlarmEvents] = useState<AlarmEvent[]>([]);
+  const [dgaHistory, setDGAHistory] = useState<DGAReading[]>([]);
+  const [isLive, setIsLive] = useState(true);
+  const [highlightedEventId, setHighlightedEventId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const tf = generateTransformerAsset(assetTag);
+    setTransformer(tf);
+    const events = generateRecentLoadEvents(10, assetTag);
+    setLoadEvents(events);
+    setAlarmEvents(generateAlarmEvents(events, assetTag));
+    setDGAHistory(generateDGAHistory(assetTag));
+  }, [assetTag]);
+
+  useEffect(() => {
+    if (!isLive || !transformer) return;
+    const interval = setInterval(() => {
+      setTransformer(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          sensors: prev.sensors.map(updateSensorValue),
+          metrics: {
+            ...prev.metrics,
+            loadFactor: prev.metrics.loadFactor + (Math.random() - 0.5) * 0.5,
+            topOilTemp: prev.metrics.topOilTemp + (Math.random() - 0.5) * 0.2,
+            hotSpotTemp: prev.metrics.hotSpotTemp + (Math.random() - 0.5) * 0.3,
+          },
+        };
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isLive, transformer]);
+
+  if (!transformer) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="w-16 h-16 border-4 border-cyan-500/30 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  const healthColor = transformer.metrics.healthIndex >= 70 ? 'text-emerald-400/70' :
+    transformer.metrics.healthIndex >= 50 ? 'text-amber-400/70' : 'text-rose-400/70';
+
+  return (
+    <div className="min-h-screen bg-black">
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-black/95 backdrop-blur-sm border-b border-white/5">
+        <div className="max-w-[2000px] mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <button onClick={() => router.push('/')} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
+                <ArrowLeft className="w-5 h-5 text-white/60" />
+              </button>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-cyan-500/[0.06] border border-cyan-500/15 flex items-center justify-center">
+                  <Zap className="w-6 h-6 text-cyan-400/50" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold text-white/90">{transformer.name}</h1>
+                  <p className="text-sm text-white/40">
+                    <Link href={`/vessel/${transformer.assetTag}`} className="text-cyan-400/60 hover:text-cyan-400/80 transition-colors">
+                      {transformer.assetTag}
+                    </Link>
+                    {' · '}{transformer.rating} · {transformer.opCo}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+              {/* Health Index */}
+              <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/[0.03] border border-white/[0.08]">
+                <Shield className="w-4 h-4 text-white/40" />
+                <span className={`text-sm font-bold ${healthColor}`}>{transformer.metrics.healthIndex}</span>
+                <span className="text-xs text-white/35">HI</span>
+              </div>
+              {/* Status */}
+              <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/[0.03] border border-white/[0.08]">
+                <span className={`w-2.5 h-2.5 rounded-full ${
+                  transformer.status === 'energized' ? 'bg-emerald-500/50' :
+                  transformer.status === 'faulted' ? 'bg-rose-500/50' :
+                  transformer.status === 'maintenance' ? 'bg-amber-500/40' : 'bg-gray-500/40'
+                }`} />
+                <span className="text-sm text-white/60 capitalize">{transformer.status}</span>
+              </div>
+              {/* Live toggle */}
+              <button
+                onClick={() => setIsLive(!isLive)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                  isLive ? 'bg-emerald-500/10 text-emerald-400/60 border border-emerald-500/15' :
+                  'bg-white/[0.03] text-white/40 border border-white/[0.06]'
+                }`}
+              >
+                {isLive ? <Play className="w-4 h-4" /> : <RefreshCw className="w-4 h-4" />}
+                {isLive ? 'Live' : 'Paused'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Hero Scenario Banner */}
+      {(() => {
+        const scenario = getScenarioForAsset(assetTag);
+        if (!scenario) return null;
+        const catConfig = {
+          aging_asset: { bg: 'bg-orange-500/[0.03]', border: 'border-orange-500/10', text: 'text-orange-400/60', label: 'Aging Asset' },
+          dga_alert: { bg: 'bg-red-500/[0.03]', border: 'border-red-500/10', text: 'text-red-400/60', label: 'DGA Alert' },
+          avoided_outage: { bg: 'bg-emerald-500/[0.03]', border: 'border-emerald-500/10', text: 'text-emerald-400/60', label: 'Outage Prevention' },
+        };
+        const cfg = catConfig[scenario.category];
+        return (
+          <div className={`border-b ${cfg.border} ${cfg.bg}`}>
+            <div className="max-w-[2000px] mx-auto px-6 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider ${cfg.text} bg-white/[0.04]`}>
+                  <Shield className="w-3 h-3" /> {cfg.label}
+                </span>
+                <span className="text-sm font-medium text-white/70">{scenario.title}</span>
+                <span className="text-xs text-white/30">— {scenario.subtitle}</span>
+              </div>
+              <div className="flex items-center gap-4">
+                <span className="text-xs text-emerald-400/50 font-medium">{scenario.outcome.costAvoided} avoided</span>
+                <Link href="/scenarios" className="text-xs font-medium text-amber-400/50 hover:text-amber-400/70 flex items-center gap-1 transition-colors">
+                  Full Story <ChevronRight className="w-3 h-3" />
+                </Link>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Main Content */}
+      <main className="max-w-[2000px] mx-auto px-6 py-6">
+        <div className="grid grid-cols-12 gap-6">
+          {/* ── Left Column: Sensors + DGA ── */}
+          <div className="col-span-4 space-y-6">
+            {/* Sensor Grid */}
+            <div className="rounded-2xl bg-white/[0.02] border border-white/[0.06] p-4">
+              <h2 className="text-sm font-semibold text-white/80 flex items-center gap-2 mb-4">
+                <Gauge className="w-4 h-4 text-cyan-400/50" />
+                Real-Time Sensors
+              </h2>
+              <div className="grid grid-cols-2 gap-3">
+                {transformer.sensors.map(sensor => (
+                  <SensorCard key={sensor.id} sensor={sensor} />
+                ))}
+              </div>
+            </div>
+
+            {/* DGA Trend */}
+            <div className="rounded-2xl bg-white/[0.02] border border-white/[0.06] p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-sm font-semibold text-white/80 flex items-center gap-2">
+                  <FlaskConical className="w-4 h-4 text-violet-400/50" />
+                  Dissolved Gas Analysis
+                </h2>
+                <span className="text-xs text-white/35">
+                  Last sample: {transformer.metrics.lastDGASample.toLocaleDateString()}
+                </span>
+              </div>
+              <DGATrendPanel history={dgaHistory} />
+            </div>
+          </div>
+
+          {/* ── Center Column: Metrics + Load Events + Thermal ── */}
+          <div className="col-span-5 space-y-6">
+            {/* Key Metrics */}
+            <div className="grid grid-cols-4 gap-4">
+              <div className="p-4 rounded-xl bg-cyan-500/[0.03] border border-cyan-500/10">
+                <div className="flex items-center justify-between mb-2">
+                  <Zap className="w-5 h-5 text-cyan-400/50" />
+                  <span className="text-xs text-cyan-400/40">Load</span>
+                </div>
+                <p className="text-2xl font-bold text-cyan-400/70">{transformer.metrics.loadFactor.toFixed(0)}%</p>
+                <p className="text-xs text-white/35">{transformer.metrics.avgLoadToday} MVA avg</p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-amber-500/[0.03] border border-amber-500/10">
+                <div className="flex items-center justify-between mb-2">
+                  <Thermometer className="w-5 h-5 text-amber-400/50" />
+                  <span className="text-xs text-amber-400/40">Hotspot</span>
+                </div>
+                <p className={`text-2xl font-bold ${
+                  transformer.metrics.hotSpotTemp > 105 ? 'text-rose-400/70' :
+                  transformer.metrics.hotSpotTemp > 90 ? 'text-amber-400/70' : 'text-emerald-400/60'
+                }`}>{transformer.metrics.hotSpotTemp.toFixed(0)}°C</p>
+                <p className="text-xs text-white/35">Winding max</p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-violet-500/[0.03] border border-violet-500/10">
+                <div className="flex items-center justify-between mb-2">
+                  <FlaskConical className="w-5 h-5 text-violet-400/50" />
+                  <span className="text-xs text-violet-400/40">TDCG</span>
+                </div>
+                <p className={`text-2xl font-bold ${
+                  transformer.metrics.tdcg > 1920 ? 'text-rose-400/70' :
+                  transformer.metrics.tdcg > 720 ? 'text-amber-400/70' : 'text-emerald-400/60'
+                }`}>{transformer.metrics.tdcg}</p>
+                <p className="text-xs text-white/35">ppm total gas</p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-emerald-500/[0.03] border border-emerald-500/10">
+                <div className="flex items-center justify-between mb-2">
+                  <Shield className="w-5 h-5 text-emerald-400/50" />
+                  <span className="text-xs text-emerald-400/40">DGA Score</span>
+                </div>
+                <p className={`text-2xl font-bold ${
+                  transformer.metrics.dgaScore > 60 ? 'text-emerald-400/70' :
+                  transformer.metrics.dgaScore > 30 ? 'text-amber-400/70' : 'text-rose-400/70'
+                }`}>{transformer.metrics.dgaScore.toFixed(0)}</p>
+                <p className="text-xs text-white/35">/100 quality</p>
+              </div>
+            </div>
+
+            {/* Load Event Timeline */}
+            <div className="rounded-2xl bg-white/[0.02] border border-white/[0.06] p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-sm font-semibold text-white/80 flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-cyan-400/50" />
+                  Load Event Timeline
+                </h2>
+                <span className="text-xs text-white/35">Recent events</span>
+              </div>
+              <LoadTimeline
+                events={loadEvents}
+                highlightedId={highlightedEventId}
+                onHighlightClear={() => setHighlightedEventId(null)}
+              />
+            </div>
+
+            {/* Thermal Profile */}
+            <ThermalDiagram transformer={transformer} />
+
+            {/* Asset Info */}
+            <div className="rounded-2xl bg-blue-500/[0.02] border border-blue-500/10 p-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400/60 font-bold text-sm">
+                  {transformer.opCo.slice(0, 3)}
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-white/80">{transformer.location}</p>
+                  <p className="text-xs text-white/40">{transformer.manufacturer} · Installed {transformer.yearInstalled}</p>
+                </div>
+                <div className="text-right">
+                  <p className={`text-lg font-bold ${healthColor}`}>{transformer.metrics.healthIndex}%</p>
+                  <p className="text-xs text-white/35">Health Index</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-lg font-bold text-white/70">{Math.round(transformer.metrics.operatingHours / 8760)}y</p>
+                  <p className="text-xs text-white/35">Service Life</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Right Column: Alarms + PM ── */}
+          <div className="col-span-3 space-y-6">
+            {/* Alarm Events */}
+            <div className="rounded-2xl bg-white/[0.02] border border-white/[0.06] p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-sm font-semibold text-white/80 flex items-center gap-2">
+                  <BellRing className="w-4 h-4 text-rose-400/40" />
+                  Alarm Monitor
+                </h2>
+                <span className="text-xs text-rose-400/40 flex items-center gap-1">
+                  <Eye className="w-3 h-3" />
+                  AI Active
+                </span>
+              </div>
+              <AlarmEventsPanel
+                events={alarmEvents}
+                onEventClick={(eventId) => {
+                  setHighlightedEventId(eventId);
+                  const el = document.getElementById(`event-${eventId}`);
+                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }}
+              />
+            </div>
+
+            {/* AI Predictive Maintenance */}
+            <AIPredictiveMaintenance
+              assetType="transformer"
+              assetId={transformer.id}
+              assetName={transformer.name}
+              equipment={[
+                {
+                  id: 'winding-hv',
+                  name: 'HV Winding',
+                  type: 'winding',
+                  currentHealth: transformer.metrics.healthIndex,
+                  operatingHours: transformer.metrics.operatingHours,
+                  temperature: transformer.thermal.windingHotSpot,
+                },
+                {
+                  id: 'bushing-h1',
+                  name: 'H1 Bushing',
+                  type: 'bushing',
+                  currentHealth: Math.min(100, transformer.metrics.healthIndex + 15),
+                  operatingHours: transformer.metrics.operatingHours,
+                },
+                {
+                  id: 'tap-changer',
+                  name: 'OLTC Tap Changer',
+                  type: 'tap_changer',
+                  currentHealth: 68,
+                  operatingHours: transformer.metrics.operatingHours * 0.4,
+                },
+                {
+                  id: 'cooling-system',
+                  name: 'Cooling System',
+                  type: 'cooling_system',
+                  currentHealth: 75,
+                  operatingHours: transformer.metrics.operatingHours * 0.6,
+                  temperature: transformer.thermal.topOilTemp,
+                },
+              ]}
+              onResolve={(query) => {
+                router.push(`/troubleshoot?q=${encodeURIComponent(query)}&asset=${encodeURIComponent(transformer.name)}`);
+              }}
+            />
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}

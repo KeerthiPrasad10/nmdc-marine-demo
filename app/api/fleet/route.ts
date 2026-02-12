@@ -1,5 +1,5 @@
 /**
- * NMDC Fleet API
+ * Legacy Fleet API (marine vessels)
  * 
  * Combines live AIS data from Datalastic with operational data.
  * Live data: position, speed, heading, destination, ETA
@@ -18,16 +18,16 @@ import {
   calculateDistanceNm,
 } from '@/lib/datalastic';
 import { 
-  NMDC_FLEET, 
-  NMDC_ENERGY_FLEET, 
-  getNMDCVesselByMMSI,
-  getNMDCActiveProjects,
-  NMDCVessel,
-  getVesselsByCompany,
+  NMDC_FLEET as LEGACY_FLEET, 
+  NMDC_ENERGY_FLEET as LEGACY_ENERGY_FLEET, 
+  getNMDCVesselByMMSI as getLegacyVesselByMMSI,
+  getNMDCActiveProjects as getLegacyActiveProjects,
+  NMDCVessel as LegacyVessel,
+  getVesselsByCompany as getLegacyVesselsByCompany,
 } from '@/lib/nmdc/fleet';
 
-// Use NMDC Energy fleet for this demo
-const ACTIVE_FLEET = NMDC_ENERGY_FLEET;
+// Legacy fleet for marine demo compatibility
+const ACTIVE_FLEET = LEGACY_ENERGY_FLEET;
 
 export const dynamic = 'force-dynamic';
 
@@ -75,8 +75,8 @@ function setApiStats(stats: ApiStats) {
 const ABU_DHABI_PORT = { lat: 24.4539, lng: 54.3773 };
 
 export interface FleetVessel extends SimplifiedVessel {
-  // NMDC metadata
-  nmdc: NMDCVessel;
+  // Legacy vessel metadata
+  legacyMarine: LegacyVessel;
   isOnline: boolean;
   distanceFromAbuDhabi?: number;
   
@@ -110,14 +110,14 @@ interface FleetStats {
 }
 
 // Generate consistent simulated operational data based on MMSI
-function generateOperationalData(mmsi: string, nmdcVessel: NMDCVessel) {
+function generateOperationalData(mmsi: string, legacyVessel: LegacyVessel) {
   // Use MMSI as seed for consistent values between refreshes
   const seed = parseInt(mmsi.slice(-6)) / 1000000;
   
   const healthScore = 70 + (seed * 25);
   const fuelLevel = 40 + (seed * 50);
-  const baseFuelConsumption = nmdcVessel.type === 'hopper_dredger' || nmdcVessel.type === 'csd' ? 400 : 
-                               nmdcVessel.type === 'supply' ? 200 : 150;
+  const baseFuelConsumption = legacyVessel.type === 'hopper_dredger' || legacyVessel.type === 'csd' ? 400 : 
+                               legacyVessel.type === 'supply' ? 200 : 150;
   const fuelConsumption = baseFuelConsumption * (0.8 + seed * 0.4);
   
   return {
@@ -130,7 +130,7 @@ function generateOperationalData(mmsi: string, nmdcVessel: NMDCVessel) {
       sox: Math.round(fuelConsumption * 0.002 * 1000) / 1000,
     },
     crew: {
-      count: nmdcVessel.crewCount || 15,
+      count: legacyVessel.crewCount || 15,
       hoursOnDuty: Math.round(seed * 12),
       safetyScore: Math.round(88 + seed * 12),
     },
@@ -156,7 +156,7 @@ export async function GET(request: NextRequest) {
         speed: Math.round(Math.random() * 80) / 10, // 1 decimal place, 0-8 knots
         heading: Math.round(Math.random() * 360),
         navStatus: 'Under way using engine',
-        nmdc: v,
+        legacyMarine: v,
         isOnline: false,
         ...generateOperationalData(v.mmsi, v),
       })),
@@ -169,7 +169,7 @@ export async function GET(request: NextRequest) {
         totalCrew: ACTIVE_FLEET.reduce((sum, v) => sum + (v.crewCount || 15), 0),
         avgSpeed: 0,
         avgHealthScore: 85,
-        activeProjects: getNMDCActiveProjects().length,
+        activeProjects: getLegacyActiveProjects().length,
         totalEmissionsCO2: 0,
       },
       meta: {
@@ -204,7 +204,7 @@ export async function GET(request: NextRequest) {
           fromCache = true;
           console.log('Using cached fleet data from', cached.fetchedAt);
         } else {
-          // Fetch live positions for all NMDC Energy vessels
+          // Fetch live positions for all fleet vessels
           const mmsiList = ACTIVE_FLEET.map(v => v.mmsi);
           try {
             liveVessels = await client.getVesselsBulk(mmsiList);
@@ -227,9 +227,9 @@ export async function GET(request: NextRequest) {
         let totalHealth = 0;
         let totalCO2 = 0;
 
-        for (const nmdcVessel of ACTIVE_FLEET) {
-          const liveData = liveVessels.find(v => v.mmsi === nmdcVessel.mmsi);
-          const operationalData = generateOperationalData(nmdcVessel.mmsi, nmdcVessel);
+        for (const legacyVessel of ACTIVE_FLEET) {
+          const liveData = liveVessels.find(v => v.mmsi === legacyVessel.mmsi);
+          const operationalData = generateOperationalData(legacyVessel.mmsi, legacyVessel);
           
           if (liveData) {
             const simplified = convertToSimplifiedVessel(liveData);
@@ -254,10 +254,10 @@ export async function GET(request: NextRequest) {
 
             fleetVessels.push({
               ...simplified,
-              name: nmdcVessel.name,
-              type: nmdcVessel.type,
-              subType: nmdcVessel.subType,
-              nmdc: nmdcVessel,
+              name: legacyVessel.name,
+              type: legacyVessel.type,
+              subType: legacyVessel.subType,
+              legacyMarine: legacyVessel,
               isOnline,
               distanceFromAbuDhabi: Math.round(distanceFromAbuDhabi * 10) / 10,
               ...operationalData,
@@ -267,22 +267,22 @@ export async function GET(request: NextRequest) {
             totalHealth += operationalData.healthScore;
             
             // Generate consistent mock position based on MMSI (UAE waters area)
-            const seed = parseInt(nmdcVessel.mmsi.slice(-6)) / 1000000;
+            const seed = parseInt(legacyVessel.mmsi.slice(-6)) / 1000000;
             const fallbackLat = 24.2 + (seed * 1.8); // ~24.2 to 26.0
             const fallbackLng = 52.5 + (seed * 4.0); // ~52.5 to 56.5
             
             fleetVessels.push({
-              id: nmdcVessel.mmsi,
-              mmsi: nmdcVessel.mmsi,
-              imo: nmdcVessel.imo,
-              name: nmdcVessel.name,
-              type: nmdcVessel.type,
-              subType: nmdcVessel.subType,
+              id: legacyVessel.mmsi,
+              mmsi: legacyVessel.mmsi,
+              imo: legacyVessel.imo,
+              name: legacyVessel.name,
+              type: legacyVessel.type,
+              subType: legacyVessel.subType,
               position: { lat: fallbackLat, lng: fallbackLng },
               speed: rateLimited ? 2 + seed * 6 : 0,
               heading: seed * 360,
               navStatus: rateLimited ? 'Under way using engine' : 'Unknown',
-              nmdc: nmdcVessel,
+              legacyMarine: legacyVessel,
               isOnline: rateLimited, // If rate limited, show as "simulated online"
               distanceFromAbuDhabi: calculateDistanceNm(ABU_DHABI_PORT.lat, ABU_DHABI_PORT.lng, fallbackLat, fallbackLng),
               ...operationalData,
@@ -308,7 +308,7 @@ export async function GET(request: NextRequest) {
           totalCrew: ACTIVE_FLEET.reduce((sum, v) => sum + (v.crewCount || 15), 0),
           avgSpeed: speedCount > 0 ? Math.round(totalSpeed / speedCount * 10) / 10 : 0,
           avgHealthScore: Math.round(totalHealth / ACTIVE_FLEET.length),
-          activeProjects: getNMDCActiveProjects().length,
+          activeProjects: getLegacyActiveProjects().length,
           totalEmissionsCO2: Math.round(totalCO2),
         };
 
@@ -343,21 +343,21 @@ export async function GET(request: NextRequest) {
           return NextResponse.json({ success: false, error: 'Missing mmsi' }, { status: 400 });
         }
 
-        const nmdcVessel = getNMDCVesselByMMSI(mmsi);
-        if (!nmdcVessel) {
-          return NextResponse.json({ success: false, error: 'Vessel not in NMDC fleet' }, { status: 404 });
+        const legacyVessel = getLegacyVesselByMMSI(mmsi);
+        if (!legacyVessel) {
+          return NextResponse.json({ success: false, error: 'Vessel not found in fleet' }, { status: 404 });
         }
 
         const liveData = await client.getVesselByMMSI(mmsi);
         const simplified = convertToSimplifiedVessel(liveData);
-        const operationalData = generateOperationalData(mmsi, nmdcVessel);
+        const operationalData = generateOperationalData(mmsi, legacyVessel);
 
         return NextResponse.json({
           success: true,
           vessel: {
             ...simplified,
-            name: nmdcVessel.name,
-            nmdc: nmdcVessel,
+            name: legacyVessel.name,
+            legacyMarine: legacyVessel,
             isOnline: true,
             ...operationalData,
           },
@@ -365,7 +365,7 @@ export async function GET(request: NextRequest) {
       }
 
       case 'stats': {
-        const projects = getNMDCActiveProjects();
+        const projects = getLegacyActiveProjects();
         const vesselsByType = ACTIVE_FLEET.reduce((acc, v) => {
           acc[v.type] = (acc[v.type] || 0) + 1;
           return acc;

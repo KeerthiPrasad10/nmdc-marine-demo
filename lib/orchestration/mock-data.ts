@@ -1,8 +1,8 @@
 import { Project, VesselAssignment, ScheduleConflict, FleetMetrics } from './types';
 import { getVesselIssues, VESSEL_ISSUES, VesselIssues } from '../vessel-issues';
-import { getNMDCVesselByMMSI } from '../nmdc/fleet';
+import { getNMDCVesselByMMSI as getLegacyVesselByMMSI } from '../nmdc/fleet';
 
-// Generate mock projects - ALIGNED with lib/nmdc/projects.ts PROJECT_SITES
+// Generate mock projects - ALIGNED with legacy marine project sites
 // Uses actual vessel MMSIs to match vessels with equipment issues
 export function generateMockProjects(): Project[] {
   const now = new Date();
@@ -168,7 +168,7 @@ export function generateMockConflicts(): ScheduleConflict[] {
   
   // Generate conflicts from actual vessel issues
   Object.entries(VESSEL_ISSUES).forEach(([mmsi, vesselIssues]) => {
-    const vessel = getNMDCVesselByMMSI(mmsi);
+    const vessel = getLegacyVesselByMMSI(mmsi);
     if (!vessel) return;
     
     vesselIssues.issues.forEach((issue, index) => {

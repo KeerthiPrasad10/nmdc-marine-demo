@@ -8,7 +8,8 @@ import * as THREE from 'three';
 export interface SensorData {
   id: string;
   name: string;
-  type: 'temperature' | 'vibration' | 'pressure' | 'rpm' | 'fuel' | 'power';
+  type: 'temperature' | 'vibration' | 'pressure' | 'rpm' | 'fuel' | 'power'
+    | 'dga' | 'oil_quality' | 'load' | 'moisture' | 'partial_discharge';
   value: number;
   unit: string;
   normalRange: { min: number; max: number };
@@ -50,6 +51,11 @@ function SensorMarker({ sensor, onClick, isSelected }: SensorMarkerProps) {
       case 'rpm': return '⚙️';
       case 'fuel': return '⛽';
       case 'power': return '⚡';
+      case 'dga': return '🧪';
+      case 'oil_quality': return '🛢️';
+      case 'load': return '📊';
+      case 'moisture': return '💧';
+      case 'partial_discharge': return '⚡';
       default: return '📊';
     }
   };
@@ -75,7 +81,7 @@ function SensorMarker({ sensor, onClick, isSelected }: SensorMarkerProps) {
         />
       </Sphere>
 
-      {/* Connection line to vessel */}
+      {/* Connection line to model */}
       <mesh position={[0, -sensor.position[1] / 2, 0]}>
         <cylinderGeometry args={[0.005, 0.005, Math.abs(sensor.position[1]), 8]} />
         <meshBasicMaterial color={color} transparent opacity={0.3} />
@@ -152,7 +158,10 @@ export function SensorOverlay({
   );
 }
 
-// Generate sensor positions based on equipment data
+// ───────────────────────────────────────────────
+// Generate sensor positions from equipment data
+// (legacy – still works for Supabase equipment rows)
+// ───────────────────────────────────────────────
 export function generateSensorsFromEquipment(equipment: Array<{
   id: string;
   name: string;
@@ -164,14 +173,12 @@ export function generateSensorsFromEquipment(equipment: Array<{
   const sensors: SensorData[] = [];
   
   equipment.forEach((eq, index) => {
-    // Distribute sensors around the vessel
     const angle = (index / equipment.length) * Math.PI * 2;
     const radius = 0.8;
     const x = Math.cos(angle) * radius * 0.5;
     const z = Math.sin(angle) * radius;
     const y = 0.3 + Math.random() * 0.3;
 
-    // Temperature sensor
     if (eq.temperature != null) {
       const temp = eq.temperature;
       const tempStatus = temp > 90 ? 'critical' : temp > 75 ? 'warning' : 'normal';
@@ -187,7 +194,6 @@ export function generateSensorsFromEquipment(equipment: Array<{
       });
     }
 
-    // Vibration sensor
     if (eq.vibration != null) {
       const vib = eq.vibration;
       const vibStatus = vib > 8 ? 'critical' : vib > 5 ? 'warning' : 'normal';
@@ -203,7 +209,6 @@ export function generateSensorsFromEquipment(equipment: Array<{
       });
     }
 
-    // Health-based power sensor
     const healthScore = eq.health_score ?? 100;
     const powerStatus = healthScore < 50 ? 'critical' : healthScore < 70 ? 'warning' : 'normal';
     sensors.push({
@@ -221,3 +226,156 @@ export function generateSensorsFromEquipment(equipment: Array<{
   return sensors;
 }
 
+// ───────────────────────────────────────────────
+// Generate transformer-specific sensors
+// Positions are mapped to the TransformerModel geometry.
+// ───────────────────────────────────────────────
+export interface TransformerSensorInput {
+  assetTag: string;
+  healthIndex: number;        // 0-100
+  topOilTemp?: number;        // °C
+  windingHotSpot?: number;    // °C
+  dgaH2?: number;             // ppm
+  dgaCH4?: number;            // ppm
+  dgaC2H2?: number;           // ppm
+  oilMoisture?: number;       // ppm
+  loadPercent?: number;        // % of nameplate
+  partialDischarge?: number;  // pC (picocoulombs)
+  bushingPowerFactor?: number;// %
+}
+
+export function generateTransformerSensors(input: TransformerSensorInput): SensorData[] {
+  const sensors: SensorData[] = [];
+
+  // ── Top oil temperature (conservator area) ──
+  const topOilTemp = input.topOilTemp ?? 55 + Math.random() * 30;
+  sensors.push({
+    id: `${input.assetTag}-top-oil`,
+    name: 'Top Oil Temperature',
+    type: 'temperature',
+    value: topOilTemp,
+    unit: '°C',
+    normalRange: { min: 30, max: 85 },
+    position: [0.6, 1.6, 0],
+    status: topOilTemp > 95 ? 'critical' : topOilTemp > 80 ? 'warning' : 'normal',
+  });
+
+  // ── Winding hot-spot temperature (main tank centre) ──
+  const windingTemp = input.windingHotSpot ?? topOilTemp + 10 + Math.random() * 15;
+  sensors.push({
+    id: `${input.assetTag}-winding-hs`,
+    name: 'Winding Hot-Spot',
+    type: 'temperature',
+    value: windingTemp,
+    unit: '°C',
+    normalRange: { min: 40, max: 110 },
+    position: [0, 0.6, 0],
+    status: windingTemp > 120 ? 'critical' : windingTemp > 105 ? 'warning' : 'normal',
+  });
+
+  // ── DGA – Hydrogen (main tank, top) ──
+  const h2 = input.dgaH2 ?? Math.random() * 200;
+  sensors.push({
+    id: `${input.assetTag}-dga-h2`,
+    name: 'DGA – Hydrogen (H₂)',
+    type: 'dga',
+    value: h2,
+    unit: 'ppm',
+    normalRange: { min: 0, max: 100 },
+    position: [-0.6, 0.9, 0.3],
+    status: h2 > 500 ? 'critical' : h2 > 100 ? 'warning' : 'normal',
+  });
+
+  // ── DGA – Acetylene (main tank, bottom) ──
+  const c2h2 = input.dgaC2H2 ?? Math.random() * 10;
+  sensors.push({
+    id: `${input.assetTag}-dga-c2h2`,
+    name: 'DGA – Acetylene (C₂H₂)',
+    type: 'dga',
+    value: c2h2,
+    unit: 'ppm',
+    normalRange: { min: 0, max: 2 },
+    position: [-0.6, 0.2, -0.3],
+    status: c2h2 > 10 ? 'critical' : c2h2 > 2 ? 'warning' : 'normal',
+  });
+
+  // ── DGA – Methane ──
+  const ch4 = input.dgaCH4 ?? Math.random() * 150;
+  sensors.push({
+    id: `${input.assetTag}-dga-ch4`,
+    name: 'DGA – Methane (CH₄)',
+    type: 'dga',
+    value: ch4,
+    unit: 'ppm',
+    normalRange: { min: 0, max: 120 },
+    position: [0.4, 0.4, -0.4],
+    status: ch4 > 400 ? 'critical' : ch4 > 120 ? 'warning' : 'normal',
+  });
+
+  // ── Oil moisture (conservator / breather) ──
+  const moisture = input.oilMoisture ?? 10 + Math.random() * 25;
+  sensors.push({
+    id: `${input.assetTag}-moisture`,
+    name: 'Oil Moisture',
+    type: 'moisture',
+    value: moisture,
+    unit: 'ppm',
+    normalRange: { min: 0, max: 20 },
+    position: [0.8, 1.2, 0.2],
+    status: moisture > 35 ? 'critical' : moisture > 20 ? 'warning' : 'normal',
+  });
+
+  // ── Load (% of nameplate) ──
+  const load = input.loadPercent ?? 40 + Math.random() * 50;
+  sensors.push({
+    id: `${input.assetTag}-load`,
+    name: 'Load (MVA)',
+    type: 'load',
+    value: load,
+    unit: '%',
+    normalRange: { min: 0, max: 100 },
+    position: [0, -0.3, 0.5],
+    status: load > 110 ? 'critical' : load > 90 ? 'warning' : 'normal',
+  });
+
+  // ── Partial discharge ──
+  const pd = input.partialDischarge ?? Math.random() * 200;
+  sensors.push({
+    id: `${input.assetTag}-pd`,
+    name: 'Partial Discharge',
+    type: 'partial_discharge',
+    value: pd,
+    unit: 'pC',
+    normalRange: { min: 0, max: 300 },
+    position: [-0.3, 1.5, -0.2],
+    status: pd > 500 ? 'critical' : pd > 300 ? 'warning' : 'normal',
+  });
+
+  // ── Bushing power factor (HV bushing #2) ──
+  const bpf = input.bushingPowerFactor ?? 0.3 + Math.random() * 0.5;
+  sensors.push({
+    id: `${input.assetTag}-bushing-pf`,
+    name: 'Bushing Power Factor',
+    type: 'power',
+    value: bpf,
+    unit: '%',
+    normalRange: { min: 0, max: 0.5 },
+    position: [0, 1.8, -0.2],
+    status: bpf > 1.0 ? 'critical' : bpf > 0.5 ? 'warning' : 'normal',
+  });
+
+  // ── Health index (overall) ──
+  const hi = input.healthIndex;
+  sensors.push({
+    id: `${input.assetTag}-health`,
+    name: 'Health Index',
+    type: 'power',
+    value: hi,
+    unit: '%',
+    normalRange: { min: 60, max: 100 },
+    position: [0.6, 0.4, 0.5],
+    status: hi < 40 ? 'critical' : hi < 65 ? 'warning' : 'normal',
+  });
+
+  return sensors;
+}

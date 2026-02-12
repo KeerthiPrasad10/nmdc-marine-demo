@@ -1,4 +1,4 @@
-// NMDC Project Sites Data
+// Legacy Marine Project Sites Data
 
 export interface ProjectSite {
   id: string;
@@ -24,7 +24,7 @@ export interface ProjectSite {
   value?: string; // Contract value
 }
 
-// NMDC Energy vessels available for project assignment:
+// Legacy marine energy vessels available for project assignment:
 // - 470212000: DLS-4200 (Derrick Lay Semi-Submersible)
 // - 471026000: DELMA 2000 (Pipelay Crane Vessel)  
 // - 470285000: PLB-648 (Pipelay Barge)

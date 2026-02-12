@@ -1,10 +1,5 @@
-// NMDC Fleet Vessel Profiles with specifications and documentation links
-// Data sourced from official NMDC Group resources:
-// - Fleet Page: https://nmdc-group.com/en/about-us/fleet-and-equipment
-// - Investor Presentations: https://nmdc-group.com/assets/files/investor-presentation/
-// - Integrated Reports: https://www.nmdc-group.com/assets/files/annual-reports/
-// 
-// Note: NMDC does not publish individual vessel PDF brochures. Specifications are from the fleet page.
+// Legacy Fleet Vessel Profiles with specifications and documentation links
+// Data sourced from official resources.
 // For detailed fleet information, refer to the Investor Presentations and Integrated Reports.
 
 export interface VesselProfile {
@@ -13,7 +8,7 @@ export interface VesselProfile {
   type: 'dredger' | 'tugboat' | 'supply_vessel' | 'crane_barge' | 'survey_vessel' 
       | 'pipelay_barge' | 'derrick_barge' | 'jack_up_barge' | 'accommodation_barge' | 'work_barge';
   subtype: string;
-  company: 'nmdc_group' | 'nmdc_energy';
+  company: 'legacy_marine_group' | 'legacy_marine_energy';
   
   // Specifications
   specs: {
@@ -86,10 +81,10 @@ export interface FailureMode {
   mtbf?: number; // Mean Time Between Failures (hours)
 }
 
-// NMDC Dredging & Marine Fleet
+// Legacy Marine Dredging & Marine Fleet
 export const VESSEL_PROFILES: Record<string, VesselProfile> = {
   // ============================================================================
-  // NMDC GROUP - Dredging & Marine Construction
+  // Legacy Marine Group - Dredging & Marine Construction
   // ============================================================================
   
   // Heavy Duty Cutter Suction Dredgers
@@ -98,7 +93,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'Al Hamra',
     type: 'dredger',
     subtype: 'Heavy Duty Cutter Suction Dredger (CSD)',
-    company: 'nmdc_group',
+    company: 'legacy_marine_group',
     specs: {
       lengthOverall: 89.0,
       breadth: 18.0,
@@ -111,11 +106,11 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     },
     systems: generateDredgerSystems('al-hamra'),
     docs: {
-      fleetPageUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-      investorPresentationUrl: 'https://nmdc-group.com/assets/files/investor-presentation/2025/NMDC%20Group%20-%20Investor%20Presentation%203Q2025.pdf',
-      integratedReportUrl: 'https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf',
+      fleetPageUrl: 'https://example.com/legacy-marine/fleet',
+      investorPresentationUrl: 'https://example.com/legacy-marine/investor-presentation.pdf',
+      integratedReportUrl: 'https://example.com/legacy-marine/integrated-report-2023.pdf',
     },
-    officialUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
+    officialUrl: 'https://example.com/legacy-marine/fleet',
     description: 'Heavy duty cutter suction dredger capable of dredging in challenging soil conditions including rock and coral.',
     capabilities: [
       'Rock dredging',
@@ -131,7 +126,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'Al Khatem',
     type: 'dredger',
     subtype: 'Heavy Duty Cutter Suction Dredger (CSD)',
-    company: 'nmdc_group',
+    company: 'legacy_marine_group',
     specs: {
       lengthOverall: 89.0,
       breadth: 18.0,
@@ -144,11 +139,11 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     },
     systems: generateDredgerSystems('al-khatem'),
     docs: {
-      fleetPageUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-      investorPresentationUrl: 'https://nmdc-group.com/assets/files/investor-presentation/2025/NMDC%20Group%20-%20Investor%20Presentation%203Q2025.pdf',
-      integratedReportUrl: 'https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf',
+      fleetPageUrl: 'https://example.com/legacy-marine/fleet',
+      investorPresentationUrl: 'https://example.com/legacy-marine/investor-presentation.pdf',
+      integratedReportUrl: 'https://example.com/legacy-marine/integrated-report-2023.pdf',
     },
-    officialUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
+    officialUrl: 'https://example.com/legacy-marine/fleet',
     description: 'Heavy duty CSD with proven track record in major reclamation and infrastructure projects.',
     capabilities: [
       'Capital dredging',
@@ -163,7 +158,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'Al Mirfa',
     type: 'dredger',
     subtype: 'Heavy Duty Cutter Suction Dredger (CSD)',
-    company: 'nmdc_group',
+    company: 'legacy_marine_group',
     specs: {
       lengthOverall: 85.0,
       breadth: 17.0,
@@ -176,11 +171,11 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     },
     systems: generateDredgerSystems('al-mirfa'),
     docs: {
-      fleetPageUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-      investorPresentationUrl: 'https://nmdc-group.com/assets/files/investor-presentation/2025/NMDC%20Group%20-%20Investor%20Presentation%203Q2025.pdf',
-      integratedReportUrl: 'https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf',
+      fleetPageUrl: 'https://example.com/legacy-marine/fleet',
+      investorPresentationUrl: 'https://example.com/legacy-marine/investor-presentation.pdf',
+      integratedReportUrl: 'https://example.com/legacy-marine/integrated-report-2023.pdf',
     },
-    officialUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
+    officialUrl: 'https://example.com/legacy-marine/fleet',
     description: 'Modern CSD designed for efficient operation in UAE waters with advanced control systems.',
     capabilities: [
       'High production dredging',
@@ -195,7 +190,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'Al Sadr',
     type: 'dredger',
     subtype: 'Cutter Suction Dredger (CSD)',
-    company: 'nmdc_group',
+    company: 'legacy_marine_group',
     specs: {
       lengthOverall: 75.0,
       breadth: 14.0,
@@ -207,11 +202,11 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     },
     systems: generateDredgerSystems('al-sadr'),
     docs: {
-      fleetPageUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-      investorPresentationUrl: 'https://nmdc-group.com/assets/files/investor-presentation/2025/NMDC%20Group%20-%20Investor%20Presentation%203Q2025.pdf',
-      integratedReportUrl: 'https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf',
+      fleetPageUrl: 'https://example.com/legacy-marine/fleet',
+      investorPresentationUrl: 'https://example.com/legacy-marine/investor-presentation.pdf',
+      integratedReportUrl: 'https://example.com/legacy-marine/integrated-report-2023.pdf',
     },
-    officialUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
+    officialUrl: 'https://example.com/legacy-marine/fleet',
     description: 'Versatile CSD suitable for a variety of dredging operations in the Gulf region.',
     capabilities: [
       'Channel dredging',
@@ -226,7 +221,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'Al Yassat',
     type: 'dredger',
     subtype: 'Cutter Suction Dredger (CSD)',
-    company: 'nmdc_group',
+    company: 'legacy_marine_group',
     specs: {
       lengthOverall: 70.0,
       breadth: 13.0,
@@ -238,11 +233,11 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     },
     systems: generateDredgerSystems('al-yassat'),
     docs: {
-      fleetPageUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-      investorPresentationUrl: 'https://nmdc-group.com/assets/files/investor-presentation/2025/NMDC%20Group%20-%20Investor%20Presentation%203Q2025.pdf',
-      integratedReportUrl: 'https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf',
+      fleetPageUrl: 'https://example.com/legacy-marine/fleet',
+      investorPresentationUrl: 'https://example.com/legacy-marine/investor-presentation.pdf',
+      integratedReportUrl: 'https://example.com/legacy-marine/integrated-report-2023.pdf',
     },
-    officialUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
+    officialUrl: 'https://example.com/legacy-marine/fleet',
     description: 'Medium-sized CSD with excellent maneuverability for confined area dredging.',
     capabilities: [
       'Confined area dredging',
@@ -257,7 +252,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'Kattouf',
     type: 'dredger',
     subtype: 'Heavy Duty Cutter Suction Dredger (CSD)',
-    company: 'nmdc_group',
+    company: 'legacy_marine_group',
     specs: {
       lengthOverall: 92.0,
       breadth: 19.0,
@@ -270,12 +265,12 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     },
     systems: generateDredgerSystems('kattouf'),
     docs: {
-      fleetPageUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-      investorPresentationUrl: 'https://nmdc-group.com/assets/files/investor-presentation/2025/NMDC%20Group%20-%20Investor%20Presentation%203Q2025.pdf',
-      integratedReportUrl: 'https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf',
+      fleetPageUrl: 'https://example.com/legacy-marine/fleet',
+      investorPresentationUrl: 'https://example.com/legacy-marine/investor-presentation.pdf',
+      integratedReportUrl: 'https://example.com/legacy-marine/integrated-report-2023.pdf',
     },
-    officialUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-    description: 'One of the most powerful CSDs in the NMDC fleet, capable of deepest dredging operations.',
+    officialUrl: 'https://example.com/legacy-marine/fleet',
+    description: 'One of the most powerful CSDs in the legacy marine fleet, capable of deepest dredging operations.',
     capabilities: [
       'Ultra-deep dredging up to 20m',
       'Heavy rock cutting',
@@ -290,7 +285,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'Gulf Hopper',
     type: 'dredger',
     subtype: 'Trailing Suction Hopper Dredger (TSHD)',
-    company: 'nmdc_group',
+    company: 'legacy_marine_group',
     specs: {
       lengthOverall: 95.0,
       breadth: 18.0,
@@ -304,11 +299,11 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     },
     systems: generateHopperSystems('gulf-hopper'),
     docs: {
-      fleetPageUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-      investorPresentationUrl: 'https://nmdc-group.com/assets/files/investor-presentation/2025/NMDC%20Group%20-%20Investor%20Presentation%203Q2025.pdf',
-      integratedReportUrl: 'https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf',
+      fleetPageUrl: 'https://example.com/legacy-marine/fleet',
+      investorPresentationUrl: 'https://example.com/legacy-marine/investor-presentation.pdf',
+      integratedReportUrl: 'https://example.com/legacy-marine/integrated-report-2023.pdf',
     },
-    officialUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
+    officialUrl: 'https://example.com/legacy-marine/fleet',
     description: 'Self-propelled hopper dredger for maintenance dredging and sand supply operations.',
     capabilities: [
       'Trailing suction dredging',
@@ -320,12 +315,12 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
   },
   
   // Crane Barges / Heavy Lift
-  'nmdc-lifter-i': {
-    id: 'nmdc-lifter-i',
-    name: 'NMDC Lifter I',
+  'heavy-lifter-i': {
+    id: 'heavy-lifter-i',
+    name: 'Heavy Lifter I',
     type: 'crane_barge',
     subtype: 'Heavy Lift Crane Barge',
-    company: 'nmdc_group',
+    company: 'legacy_marine_group',
     specs: {
       lengthOverall: 120.0,
       breadth: 36.0,
@@ -336,13 +331,13 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
       yearBuilt: 2011,
       flag: 'UAE',
     },
-    systems: generateCraneBargeSystems('nmdc-lifter-i'),
+    systems: generateCraneBargeSystems('heavy-lifter-i'),
     docs: {
-      fleetPageUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-      investorPresentationUrl: 'https://nmdc-group.com/assets/files/investor-presentation/2025/NMDC%20Group%20-%20Investor%20Presentation%203Q2025.pdf',
-      integratedReportUrl: 'https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf',
+      fleetPageUrl: 'https://example.com/legacy-marine/fleet',
+      investorPresentationUrl: 'https://example.com/legacy-marine/investor-presentation.pdf',
+      integratedReportUrl: 'https://example.com/legacy-marine/integrated-report-2023.pdf',
     },
-    officialUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
+    officialUrl: 'https://example.com/legacy-marine/fleet',
     description: 'Heavy lift crane barge capable of lifting major offshore structures and modules.',
     capabilities: [
       'Heavy lift operations up to 2000T',
@@ -353,12 +348,12 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     ],
   },
   
-  'nmdc-lifter-ii': {
-    id: 'nmdc-lifter-ii',
-    name: 'NMDC Lifter II',
+  'heavy-lifter-ii': {
+    id: 'heavy-lifter-ii',
+    name: 'Heavy Lifter II',
     type: 'crane_barge',
     subtype: 'Derrick Lay Barge',
-    company: 'nmdc_group',
+    company: 'legacy_marine_group',
     specs: {
       lengthOverall: 196.9,
       breadth: 43.4,
@@ -370,13 +365,13 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
       flag: 'UAE',
       classNotation: 'ABS',
     },
-    systems: generateCraneBargeSystems('nmdc-lifter-ii'),
+    systems: generateCraneBargeSystems('heavy-lifter-ii'),
     docs: {
-      fleetPageUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-      investorPresentationUrl: 'https://nmdc-group.com/assets/files/investor-presentation/2025/NMDC%20Group%20-%20Investor%20Presentation%203Q2025.pdf',
-      integratedReportUrl: 'https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf',
+      fleetPageUrl: 'https://example.com/legacy-marine/fleet',
+      investorPresentationUrl: 'https://example.com/legacy-marine/investor-presentation.pdf',
+      integratedReportUrl: 'https://example.com/legacy-marine/integrated-report-2023.pdf',
     },
-    officialUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
+    officialUrl: 'https://example.com/legacy-marine/fleet',
     description: 'Major derrick and pipelay barge - one of the largest in the Middle East region.',
     capabilities: [
       'Heavy lift up to 4200T',
@@ -392,7 +387,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'Heavy Lift Alpha',
     type: 'crane_barge',
     subtype: 'Sheerleg Crane Barge',
-    company: 'nmdc_group',
+    company: 'legacy_marine_group',
     specs: {
       lengthOverall: 85.0,
       breadth: 28.0,
@@ -404,11 +399,11 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     },
     systems: generateCraneBargeSystems('heavy-lift-alpha'),
     docs: {
-      fleetPageUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-      investorPresentationUrl: 'https://nmdc-group.com/assets/files/investor-presentation/2025/NMDC%20Group%20-%20Investor%20Presentation%203Q2025.pdf',
-      integratedReportUrl: 'https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf',
+      fleetPageUrl: 'https://example.com/legacy-marine/fleet',
+      investorPresentationUrl: 'https://example.com/legacy-marine/investor-presentation.pdf',
+      integratedReportUrl: 'https://example.com/legacy-marine/integrated-report-2023.pdf',
     },
-    officialUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
+    officialUrl: 'https://example.com/legacy-marine/fleet',
     description: 'Versatile sheerleg crane barge for medium-heavy lift operations.',
     capabilities: [
       'Medium-heavy lifts up to 800T',
@@ -424,7 +419,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'Gulf Pioneer',
     type: 'tugboat',
     subtype: 'Anchor Handling Tug Supply (AHTS)',
-    company: 'nmdc_group',
+    company: 'legacy_marine_group',
     specs: {
       lengthOverall: 65.0,
       breadth: 15.0,
@@ -438,11 +433,11 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     },
     systems: generateTugSystems('gulf-pioneer'),
     docs: {
-      fleetPageUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-      investorPresentationUrl: 'https://nmdc-group.com/assets/files/investor-presentation/2025/NMDC%20Group%20-%20Investor%20Presentation%203Q2025.pdf',
-      integratedReportUrl: 'https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf',
+      fleetPageUrl: 'https://example.com/legacy-marine/fleet',
+      investorPresentationUrl: 'https://example.com/legacy-marine/investor-presentation.pdf',
+      integratedReportUrl: 'https://example.com/legacy-marine/integrated-report-2023.pdf',
     },
-    officialUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
+    officialUrl: 'https://example.com/legacy-marine/fleet',
     description: 'Powerful AHTS vessel for anchor handling and towing operations.',
     capabilities: [
       'Anchor handling',
@@ -458,7 +453,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'Al Dhafra Tug',
     type: 'tugboat',
     subtype: 'Harbor Tug',
-    company: 'nmdc_group',
+    company: 'legacy_marine_group',
     specs: {
       lengthOverall: 32.0,
       breadth: 10.0,
@@ -471,11 +466,11 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     },
     systems: generateTugSystems('al-dhafra-tug'),
     docs: {
-      fleetPageUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-      investorPresentationUrl: 'https://nmdc-group.com/assets/files/investor-presentation/2025/NMDC%20Group%20-%20Investor%20Presentation%203Q2025.pdf',
-      integratedReportUrl: 'https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf',
+      fleetPageUrl: 'https://example.com/legacy-marine/fleet',
+      investorPresentationUrl: 'https://example.com/legacy-marine/investor-presentation.pdf',
+      integratedReportUrl: 'https://example.com/legacy-marine/integrated-report-2023.pdf',
     },
-    officialUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
+    officialUrl: 'https://example.com/legacy-marine/fleet',
     description: 'Compact harbor tug for port operations and dredger support.',
     capabilities: [
       'Ship handling',
@@ -490,7 +485,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'Harbor Force',
     type: 'tugboat',
     subtype: 'Harbor Tug',
-    company: 'nmdc_group',
+    company: 'legacy_marine_group',
     specs: {
       lengthOverall: 28.0,
       breadth: 9.0,
@@ -503,11 +498,11 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     },
     systems: generateTugSystems('harbor-force'),
     docs: {
-      fleetPageUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-      investorPresentationUrl: 'https://nmdc-group.com/assets/files/investor-presentation/2025/NMDC%20Group%20-%20Investor%20Presentation%203Q2025.pdf',
-      integratedReportUrl: 'https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf',
+      fleetPageUrl: 'https://example.com/legacy-marine/fleet',
+      investorPresentationUrl: 'https://example.com/legacy-marine/investor-presentation.pdf',
+      integratedReportUrl: 'https://example.com/legacy-marine/integrated-report-2023.pdf',
     },
-    officialUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
+    officialUrl: 'https://example.com/legacy-marine/fleet',
     description: 'Modern harbor tug with excellent maneuverability.',
     capabilities: [
       'Ship berthing assistance',
@@ -522,7 +517,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'Sea Guardian',
     type: 'tugboat',
     subtype: 'Emergency Response Tug',
-    company: 'nmdc_group',
+    company: 'legacy_marine_group',
     specs: {
       lengthOverall: 45.0,
       breadth: 12.0,
@@ -535,11 +530,11 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     },
     systems: generateTugSystems('sea-guardian'),
     docs: {
-      fleetPageUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-      investorPresentationUrl: 'https://nmdc-group.com/assets/files/investor-presentation/2025/NMDC%20Group%20-%20Investor%20Presentation%203Q2025.pdf',
-      integratedReportUrl: 'https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf',
+      fleetPageUrl: 'https://example.com/legacy-marine/fleet',
+      investorPresentationUrl: 'https://example.com/legacy-marine/investor-presentation.pdf',
+      integratedReportUrl: 'https://example.com/legacy-marine/integrated-report-2023.pdf',
     },
-    officialUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
+    officialUrl: 'https://example.com/legacy-marine/fleet',
     description: 'Fast emergency response and standby vessel with firefighting capabilities.',
     capabilities: [
       'Emergency response',
@@ -556,7 +551,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'Gulf Provider',
     type: 'supply_vessel',
     subtype: 'Platform Supply Vessel (PSV)',
-    company: 'nmdc_group',
+    company: 'legacy_marine_group',
     specs: {
       lengthOverall: 72.0,
       breadth: 16.0,
@@ -571,11 +566,11 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     },
     systems: generateSupplyVesselSystems('gulf-provider'),
     docs: {
-      fleetPageUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-      investorPresentationUrl: 'https://nmdc-group.com/assets/files/investor-presentation/2025/NMDC%20Group%20-%20Investor%20Presentation%203Q2025.pdf',
-      integratedReportUrl: 'https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf',
+      fleetPageUrl: 'https://example.com/legacy-marine/fleet',
+      investorPresentationUrl: 'https://example.com/legacy-marine/investor-presentation.pdf',
+      integratedReportUrl: 'https://example.com/legacy-marine/integrated-report-2023.pdf',
     },
-    officialUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
+    officialUrl: 'https://example.com/legacy-marine/fleet',
     description: 'Modern PSV for offshore platform supply and support operations.',
     capabilities: [
       'Deck cargo transport',
@@ -585,12 +580,12 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     ],
   },
   
-  'nmdc-supplier-i': {
-    id: 'nmdc-supplier-i',
-    name: 'NMDC Supplier I',
+  'marine-supplier-i': {
+    id: 'marine-supplier-i',
+    name: 'Marine Supplier I',
     type: 'supply_vessel',
     subtype: 'Platform Supply Vessel (PSV)',
-    company: 'nmdc_group',
+    company: 'legacy_marine_group',
     specs: {
       lengthOverall: 68.0,
       breadth: 15.0,
@@ -603,13 +598,13 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
       yearBuilt: 2009,
       flag: 'UAE',
     },
-    systems: generateSupplyVesselSystems('nmdc-supplier-i'),
+    systems: generateSupplyVesselSystems('marine-supplier-i'),
     docs: {
-      fleetPageUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-      investorPresentationUrl: 'https://nmdc-group.com/assets/files/investor-presentation/2025/NMDC%20Group%20-%20Investor%20Presentation%203Q2025.pdf',
-      integratedReportUrl: 'https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf',
+      fleetPageUrl: 'https://example.com/legacy-marine/fleet',
+      investorPresentationUrl: 'https://example.com/legacy-marine/investor-presentation.pdf',
+      integratedReportUrl: 'https://example.com/legacy-marine/integrated-report-2023.pdf',
     },
-    officialUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
+    officialUrl: 'https://example.com/legacy-marine/fleet',
     description: 'Reliable PSV for regular offshore supply runs.',
     capabilities: [
       'General supply duties',
@@ -624,7 +619,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'Offshore Express',
     type: 'supply_vessel',
     subtype: 'Fast Supply Vessel (FSV)',
-    company: 'nmdc_group',
+    company: 'legacy_marine_group',
     specs: {
       lengthOverall: 55.0,
       breadth: 12.0,
@@ -639,11 +634,11 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     },
     systems: generateSupplyVesselSystems('offshore-express'),
     docs: {
-      fleetPageUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-      investorPresentationUrl: 'https://nmdc-group.com/assets/files/investor-presentation/2025/NMDC%20Group%20-%20Investor%20Presentation%203Q2025.pdf',
-      integratedReportUrl: 'https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf',
+      fleetPageUrl: 'https://example.com/legacy-marine/fleet',
+      investorPresentationUrl: 'https://example.com/legacy-marine/investor-presentation.pdf',
+      integratedReportUrl: 'https://example.com/legacy-marine/integrated-report-2023.pdf',
     },
-    officialUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
+    officialUrl: 'https://example.com/legacy-marine/fleet',
     description: 'High-speed supply vessel for urgent offshore deliveries.',
     capabilities: [
       'Fast cargo delivery',
@@ -659,7 +654,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'Marine Scanner',
     type: 'survey_vessel',
     subtype: 'Hydrographic Survey Vessel',
-    company: 'nmdc_group',
+    company: 'legacy_marine_group',
     specs: {
       lengthOverall: 42.0,
       breadth: 10.0,
@@ -673,11 +668,11 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     },
     systems: generateSurveyVesselSystems('marine-scanner'),
     docs: {
-      fleetPageUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-      investorPresentationUrl: 'https://nmdc-group.com/assets/files/investor-presentation/2025/NMDC%20Group%20-%20Investor%20Presentation%203Q2025.pdf',
-      integratedReportUrl: 'https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf',
+      fleetPageUrl: 'https://example.com/legacy-marine/fleet',
+      investorPresentationUrl: 'https://example.com/legacy-marine/investor-presentation.pdf',
+      integratedReportUrl: 'https://example.com/legacy-marine/integrated-report-2023.pdf',
     },
-    officialUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
+    officialUrl: 'https://example.com/legacy-marine/fleet',
     description: 'Advanced hydrographic survey vessel with multibeam capabilities.',
     capabilities: [
       'Multibeam bathymetry',
@@ -693,7 +688,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'Deep Scanner',
     type: 'survey_vessel',
     subtype: 'Geophysical Survey Vessel',
-    company: 'nmdc_group',
+    company: 'legacy_marine_group',
     specs: {
       lengthOverall: 55.0,
       breadth: 12.0,
@@ -707,11 +702,11 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     },
     systems: generateSurveyVesselSystems('deep-scanner'),
     docs: {
-      fleetPageUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-      investorPresentationUrl: 'https://nmdc-group.com/assets/files/investor-presentation/2025/NMDC%20Group%20-%20Investor%20Presentation%203Q2025.pdf',
-      integratedReportUrl: 'https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf',
+      fleetPageUrl: 'https://example.com/legacy-marine/fleet',
+      investorPresentationUrl: 'https://example.com/legacy-marine/investor-presentation.pdf',
+      integratedReportUrl: 'https://example.com/legacy-marine/integrated-report-2023.pdf',
     },
-    officialUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
+    officialUrl: 'https://example.com/legacy-marine/fleet',
     description: 'Deep water capable survey vessel for geophysical and pipeline surveys.',
     capabilities: [
       'Deep water surveys',
@@ -727,7 +722,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'Ocean Explorer',
     type: 'survey_vessel',
     subtype: 'Multi-Purpose Survey Vessel',
-    company: 'nmdc_group',
+    company: 'legacy_marine_group',
     specs: {
       lengthOverall: 48.0,
       breadth: 11.0,
@@ -741,11 +736,11 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     },
     systems: generateSurveyVesselSystems('ocean-explorer'),
     docs: {
-      fleetPageUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-      investorPresentationUrl: 'https://nmdc-group.com/assets/files/investor-presentation/2025/NMDC%20Group%20-%20Investor%20Presentation%203Q2025.pdf',
-      integratedReportUrl: 'https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf',
+      fleetPageUrl: 'https://example.com/legacy-marine/fleet',
+      investorPresentationUrl: 'https://example.com/legacy-marine/investor-presentation.pdf',
+      integratedReportUrl: 'https://example.com/legacy-marine/integrated-report-2023.pdf',
     },
-    officialUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
+    officialUrl: 'https://example.com/legacy-marine/fleet',
     description: 'Versatile survey vessel for various offshore survey operations.',
     capabilities: [
       'Hydrographic surveys',
@@ -756,8 +751,8 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
   },
   
   // ============================================================================
-  // NMDC ENERGY - Offshore EPC, Pipelaying & Heavy Lift
-  // Source: https://www.nmdc-energy.com/en/about-us/fleet/
+  // Legacy Marine Energy - Offshore EPC, Pipelaying & Heavy Lift
+  // Source: https://example.com/legacy-marine-energy/fleet/
   // Specs verified from official PDF datasheets via Exa search
   // ============================================================================
   
@@ -767,7 +762,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'DLS-4200',
     type: 'derrick_barge',
     subtype: 'Derrick Lay Semi-Submersible',
-    company: 'nmdc_energy',
+    company: 'legacy_marine_energy',
     specs: {
       lengthOverall: 196.9,   // Verified from Ulstein design docs
       breadth: 43.4,
@@ -781,10 +776,10 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     },
     systems: generateCraneBargeSystems('dls-4200'),
     docs: {
-      fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
-      specsUrl: 'https://www.nmdc-energy.com/assets/files/fleet/derrick%20barges/DLS-4200.pdf',
+      fleetPageUrl: 'https://example.com/legacy-marine-energy/en/about-us/fleet/',
+      specsUrl: 'https://example.com/legacy-marine-energy/assets/files/fleet/derrick%20barges/DLS-4200.pdf',
     },
-    officialUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
+    officialUrl: 'https://example.com/legacy-marine-energy/en/about-us/fleet/',
     description: 'Major derrick and pipelay vessel - one of the largest in the Middle East. 10-point mooring, pipes up to 66" diameter, water depth 10-2000m.',
     capabilities: [
       'Heavy lift up to 4200 short tons',
@@ -801,7 +796,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'DELMA 2000',
     type: 'derrick_barge',
     subtype: 'Pipelay Crane Vessel',
-    company: 'nmdc_energy',
+    company: 'legacy_marine_energy',
     specs: {
       lengthOverall: 180.0,   // 232m with fixed stinger
       breadth: 32.0,
@@ -813,10 +808,10 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     },
     systems: generateCraneBargeSystems('delma-2000'),
     docs: {
-      fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
-      specsUrl: 'https://www.nmdc-energy.com/assets/files/fleet/derrick%20barges/Delma%202000.pdf',
+      fleetPageUrl: 'https://example.com/legacy-marine-energy/en/about-us/fleet/',
+      specsUrl: 'https://example.com/legacy-marine-energy/assets/files/fleet/derrick%20barges/Delma%202000.pdf',
     },
-    officialUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
+    officialUrl: 'https://example.com/legacy-marine-energy/en/about-us/fleet/',
     description: 'Major pipelay crane vessel with 2000T lift capacity. IMO: 9429455.',
     capabilities: [
       'Heavy lift up to 2000T',
@@ -832,7 +827,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'PLB-648',
     type: 'pipelay_barge',
     subtype: 'Conventional Flat Bottom Pipelay Barge',
-    company: 'nmdc_energy',
+    company: 'legacy_marine_energy',
     specs: {
       lengthOverall: 106.0,
       breadth: 30.0,
@@ -846,10 +841,10 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     },
     systems: generatePipelayBargeSystems('plb-648'),
     docs: {
-      fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
-      specsUrl: 'https://www.nmdc-energy.com/assets/files/fleet/conventional%20flat%20bottom%20barges/PLB-648.pdf',
+      fleetPageUrl: 'https://example.com/legacy-marine-energy/en/about-us/fleet/',
+      specsUrl: 'https://example.com/legacy-marine-energy/assets/files/fleet/conventional%20flat%20bottom%20barges/PLB-648.pdf',
     },
-    officialUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
+    officialUrl: 'https://example.com/legacy-marine-energy/en/about-us/fleet/',
     description: 'Conventional flat bottom pipelay barge with Huisman 600MT pedestal crane. Pipes 6"-48". IMO: 8758055.',
     capabilities: [
       'Heavy lift up to 600T',
@@ -865,7 +860,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'DLB-750',
     type: 'pipelay_barge',
     subtype: 'Conventional Flat Bottom Barge / Side Lay',
-    company: 'nmdc_energy',
+    company: 'legacy_marine_energy',
     specs: {
       lengthOverall: 122.0,
       breadth: 33.5,
@@ -876,10 +871,10 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     },
     systems: generatePipelayBargeSystems('dlb-750'),
     docs: {
-      fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
-      specsUrl: 'https://www.nmdc-energy.com/assets/files/fleet/conventional%20flat%20bottom%20barges/DLB-750.pdf',
+      fleetPageUrl: 'https://example.com/legacy-marine-energy/en/about-us/fleet/',
+      specsUrl: 'https://example.com/legacy-marine-energy/assets/files/fleet/conventional%20flat%20bottom%20barges/DLB-750.pdf',
     },
-    officialUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
+    officialUrl: 'https://example.com/legacy-marine-energy/en/about-us/fleet/',
     description: 'Side lay pipelay barge with 4500m² deck area. Pipes 4"-60". IMO: 8758108.',
     capabilities: [
       'Pipe laying 4" to 60" diameter',
@@ -894,7 +889,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'DLB-1000',
     type: 'pipelay_barge',
     subtype: 'Conventional Flat Bottom Pipelay Barge',
-    company: 'nmdc_energy',
+    company: 'legacy_marine_energy',
     specs: {
       lengthOverall: 121.9,
       breadth: 36.6,
@@ -906,10 +901,10 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     },
     systems: generatePipelayBargeSystems('dlb-1000'),
     docs: {
-      fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
-      specsUrl: 'https://www.nmdc-energy.com/assets/files/fleet/conventional%20flat%20bottom%20barges/DLB-1000.pdf',
+      fleetPageUrl: 'https://example.com/legacy-marine-energy/en/about-us/fleet/',
+      specsUrl: 'https://example.com/legacy-marine-energy/assets/files/fleet/conventional%20flat%20bottom%20barges/DLB-1000.pdf',
     },
-    officialUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
+    officialUrl: 'https://example.com/legacy-marine-energy/en/about-us/fleet/',
     description: 'Pipelay barge built by Daewoo. Derrick crane CLYDE 52-DE-230-30-15.',
     capabilities: [
       'Heavy lift',
@@ -925,7 +920,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'SEP-450',
     type: 'jack_up_barge',
     subtype: 'Self-Elevating Platform (Self-Propelled)',
-    company: 'nmdc_energy',
+    company: 'legacy_marine_energy',
     specs: {
       lengthOverall: 61.0,
       breadth: 36.0,
@@ -938,10 +933,10 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     },
     systems: generateJackUpSystems('sep-450'),
     docs: {
-      fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
-      specsUrl: 'https://www.nmdc-energy.com/assets/files/fleet/jack-up%20barges/SEP-450.pdf',
+      fleetPageUrl: 'https://example.com/legacy-marine-energy/en/about-us/fleet/',
+      specsUrl: 'https://example.com/legacy-marine-energy/assets/files/fleet/jack-up%20barges/SEP-450.pdf',
     },
-    officialUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
+    officialUrl: 'https://example.com/legacy-marine-energy/en/about-us/fleet/',
     description: 'Self-propelled jack-up with 4 triangular legs (94.2m). Helideck for Sikorsky S61N.',
     capabilities: [
       'Self-propelled',
@@ -957,7 +952,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'SEP-550',
     type: 'jack_up_barge',
     subtype: 'Self-Elevating Platform',
-    company: 'nmdc_energy',
+    company: 'legacy_marine_energy',
     specs: {
       lengthOverall: 76.0,    // 61m waterline
       breadth: 36.0,
@@ -968,10 +963,10 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     },
     systems: generateJackUpSystems('sep-550'),
     docs: {
-      fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
-      specsUrl: 'https://www.nmdc-energy.com/assets/files/fleet/jack-up%20barges/SEP-550.pdf',
+      fleetPageUrl: 'https://example.com/legacy-marine-energy/en/about-us/fleet/',
+      specsUrl: 'https://example.com/legacy-marine-energy/assets/files/fleet/jack-up%20barges/SEP-550.pdf',
     },
-    officialUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
+    officialUrl: 'https://example.com/legacy-marine-energy/en/about-us/fleet/',
     description: 'Jack-up with 4 triangular legs (66.6m). 800m² deck area.',
     capabilities: [
       'Self-elevating platform',
@@ -986,7 +981,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'SEP-650',
     type: 'jack_up_barge',
     subtype: 'Self-Elevating Platform',
-    company: 'nmdc_energy',
+    company: 'legacy_marine_energy',
     specs: {
       lengthOverall: 80.0,
       breadth: 36.0,
@@ -997,9 +992,9 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     },
     systems: generateJackUpSystems('sep-650'),
     docs: {
-      fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
+      fleetPageUrl: 'https://example.com/legacy-marine-energy/en/about-us/fleet/',
     },
-    officialUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
+    officialUrl: 'https://example.com/legacy-marine-energy/en/about-us/fleet/',
     description: 'Jack-up with 4 triangular legs. Self-propelled platform for offshore operations.',
     capabilities: [
       'Self-elevating platform',
@@ -1014,7 +1009,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'SEP-750',
     type: 'jack_up_barge',
     subtype: 'Self-Elevating Platform',
-    company: 'nmdc_energy',
+    company: 'legacy_marine_energy',
     specs: {
       lengthOverall: 61.0,
       breadth: 36.0,
@@ -1027,10 +1022,10 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     },
     systems: generateJackUpSystems('sep-750'),
     docs: {
-      fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
-      specsUrl: 'https://www.nmdc-energy.com/assets/files/fleet/jack-up%20barges/SEP-750.pdf',
+      fleetPageUrl: 'https://example.com/legacy-marine-energy/en/about-us/fleet/',
+      specsUrl: 'https://example.com/legacy-marine-energy/assets/files/fleet/jack-up%20barges/SEP-750.pdf',
     },
-    officialUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
+    officialUrl: 'https://example.com/legacy-marine-energy/en/about-us/fleet/',
     description: 'Jack-up with 4 triangular legs (66.6m). CAP437 helideck. 800m² deck, 10T/m² capacity.',
     capabilities: [
       'Self-elevating platform',
@@ -1046,7 +1041,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'UMM SHAIF',
     type: 'supply_vessel',
     subtype: 'DP3 Offshore Support & Cable Laying Vessel',
-    company: 'nmdc_energy',
+    company: 'legacy_marine_energy',
     specs: {
       lengthOverall: 111.56,  // 129.86m with stern extension
       breadth: 43.4,
@@ -1060,10 +1055,10 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     },
     systems: generateSupplyVesselSystems('umm-shaif'),
     docs: {
-      fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
-      specsUrl: 'https://www.nmdc-energy.com/assets/files/fleet/offshore%20support%20and%20cable%20lay/Umm%20Shaif.pdf',
+      fleetPageUrl: 'https://example.com/legacy-marine-energy/en/about-us/fleet/',
+      specsUrl: 'https://example.com/legacy-marine-energy/assets/files/fleet/offshore%20support%20and%20cable%20lay/Umm%20Shaif.pdf',
     },
-    officialUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
+    officialUrl: 'https://example.com/legacy-marine-energy/en/about-us/fleet/',
     description: 'DP3 cable laying vessel with 5000mt carousel. IMO: 8771497. 7200kW thruster power.',
     capabilities: [
       'DP3 positioning',
@@ -1080,7 +1075,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'SAADIYAT',
     type: 'tugboat',
     subtype: 'Tug/AHTS/Supply/Fire Fighting Vessel',
-    company: 'nmdc_energy',
+    company: 'legacy_marine_energy',
     specs: {
       lengthOverall: 48.0,
       breadth: 13.2,
@@ -1093,10 +1088,10 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     },
     systems: generateTugSystems('saadiyat'),
     docs: {
-      fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
-      specsUrl: 'https://www.nmdc-energy.com/assets/files/fleet/anchor%20handling%20tug%20supply/Saadiyat.pdf',
+      fleetPageUrl: 'https://example.com/legacy-marine-energy/en/about-us/fleet/',
+      specsUrl: 'https://example.com/legacy-marine-energy/assets/files/fleet/anchor%20handling%20tug%20supply/Saadiyat.pdf',
     },
-    officialUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
+    officialUrl: 'https://example.com/legacy-marine-energy/en/about-us/fleet/',
     description: 'AHTS vessel with 75T bollard pull. IMO: 9577513. Fire fighting capable.',
     capabilities: [
       'Anchor handling (200T capacity)',
@@ -1111,7 +1106,7 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     name: 'YAS',
     type: 'tugboat',
     subtype: 'Tug/AHTS/Supply/Fire Fighting Vessel',
-    company: 'nmdc_energy',
+    company: 'legacy_marine_energy',
     specs: {
       lengthOverall: 48.0,
       breadth: 13.2,
@@ -1123,10 +1118,10 @@ export const VESSEL_PROFILES: Record<string, VesselProfile> = {
     },
     systems: generateTugSystems('yas'),
     docs: {
-      fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
-      specsUrl: 'https://www.nmdc-energy.com/assets/files/fleet/anchor%20handling%20tug%20supply/Yas.pdf',
+      fleetPageUrl: 'https://example.com/legacy-marine-energy/en/about-us/fleet/',
+      specsUrl: 'https://example.com/legacy-marine-energy/assets/files/fleet/anchor%20handling%20tug%20supply/Yas.pdf',
     },
-    officialUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
+    officialUrl: 'https://example.com/legacy-marine-energy/en/about-us/fleet/',
     description: 'Sister vessel to SAADIYAT. AHTS with 75T bollard pull.',
     capabilities: [
       'Anchor handling (200T capacity)',

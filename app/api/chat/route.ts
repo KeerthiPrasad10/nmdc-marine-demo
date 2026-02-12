@@ -1,267 +1,200 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { streamText } from 'ai';
-import { createClient } from '@supabase/supabase-js';
-import { getWeatherAtLocation } from '@/lib/weather';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { EXELON_ASSETS } from '@/lib/exelon/fleet';
+import { ASSET_ISSUES, getAssetIssueSummary } from '@/lib/asset-issues';
+import { TRANSFORMER_HEALTH_DATA } from '@/lib/datasets/transformer-health';
+import {
+  getAssetSnapshots,
+  getGridWeather,
+  getPendingInsights,
+} from '@/lib/simulation/grid-orchestrator';
 
 const anthropic = createAnthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-// Fetch current fleet data for context with per-vessel weather
-async function getFleetContext() {
-  const [vesselsRes, alertsRes, offshoreRes, datasheetsRes] = await Promise.all([
-    supabase.from('vessels').select('*').order('name'),
-    supabase.from('alerts').select('*, vessels(name, type)').eq('resolved', false).order('created_at', { ascending: false }).limit(20),
-    supabase.from('offshore_assets').select('*'),
-    supabase.from('vessel_datasheets').select('vessel_subtype, title, url, text_content, highlights, source_domain').order('score', { ascending: false }).limit(50),
-  ]);
+// Fetch current grid data for context
+function getGridContext() {
+  const snapshots = getAssetSnapshots();
+  const weather = getGridWeather();
+  const insights = getPendingInsights();
 
-  const vessels = vesselsRes.data || [];
-  const alerts = alertsRes.data || [];
-  const offshoreAssets = offshoreRes.data || [];
-  const datasheets = datasheetsRes.data || [];
+  // Enrich assets with DGA and issues
+  const assetsWithDetails = EXELON_ASSETS.map(asset => {
+    const dgaRecords = TRANSFORMER_HEALTH_DATA.filter(r => r.assetTag === asset.assetTag);
+    const latestDGA = dgaRecords[dgaRecords.length - 1];
+    const issues = getAssetIssueSummary(asset.assetTag);
+    const snapshot = snapshots.find(s => s.assetTag === asset.assetTag);
 
-  // Calculate fleet metrics
-  const operationalVessels = vessels.filter((v) => v.status === 'operational');
-  const maintenanceVessels = vessels.filter((v) => v.status === 'maintenance');
-  const alertVessels = vessels.filter((v) => v.status === 'alert');
-  const avgHealth = Math.round(vessels.reduce((sum, v) => sum + (v.health_score ?? 100), 0) / Math.max(vessels.length, 1));
-  const avgFuel = Math.round(vessels.reduce((sum, v) => sum + (v.fuel_level ?? 100), 0) / Math.max(vessels.length, 1));
-  const criticalAlerts = alerts.filter((a) => a.severity === 'critical');
-  const warningAlerts = alerts.filter((a) => a.severity === 'warning');
-
-  // Find vessels with issues
-  const lowFuelVessels = vessels.filter((v) => (v.fuel_level ?? 100) < 30);
-  const lowHealthVessels = vessels.filter((v) => (v.health_score ?? 100) < 70);
-  const highSpeedVessels = vessels.filter((v) => (v.speed ?? 0) > 10);
-
-  // Get per-vessel weather and identify weather risks
-  const vesselsWithWeather = vessels.map((v) => {
-    const weather = getWeatherAtLocation(v.position_lat, v.position_lng);
     return {
-      name: v.name,
-      type: v.type,
-      status: v.status,
-      healthScore: v.health_score,
-      fuelLevel: v.fuel_level,
-      speed: v.speed,
-      position: { lat: v.position_lat, lng: v.position_lng },
-      project: v.project,
-      crewCount: v.crew_count,
-      opMode: v.op_mode,
-      safetyState: v.safety_state,
-      localWeather: {
-        zone: weather.zone,
-        condition: weather.condition,
-        temperature: weather.temperature,
-        windSpeed: weather.windSpeed,
-        waveHeight: weather.waveHeight,
-        visibility: weather.visibility,
-        operationalRisk: weather.operationalRisk,
-      },
+      name: asset.name,
+      assetTag: asset.assetTag,
+      type: asset.type,
+      opCo: asset.opCo,
+      substationName: asset.substationName,
+      voltageClassKV: asset.voltageClassKV,
+      ratedMVA: asset.ratedMVA,
+      yearInstalled: asset.yearInstalled,
+      healthIndex: asset.healthIndex,
+      status: asset.status,
+      age: new Date().getFullYear() - asset.yearInstalled,
+      latestDGA: latestDGA ? {
+        tdcg: latestDGA.tdcg,
+        h2: latestDGA.h2,
+        c2h2: latestDGA.c2h2,
+        c2h4: latestDGA.c2h4,
+        moisture: latestDGA.moisture,
+        condition: latestDGA.condition,
+        healthIndex: latestDGA.healthIndex,
+      } : null,
+      activeIssues: issues.issueCount,
+      criticalIssues: issues.hasCritical ? 'yes' : 'no',
+      liveLoad: snapshot?.loadPercent ?? null,
+      liveTemp: snapshot?.hotSpotTemp ?? null,
     };
   });
 
-  // Identify vessels with weather-related risks
-  const weatherRiskVessels = vesselsWithWeather.filter(
-    (v) => v.localWeather.operationalRisk === 'high'
-  );
+  // Compute fleet stats
+  const avgHealth = Math.round(EXELON_ASSETS.reduce((s, a) => s + a.healthIndex, 0) / EXELON_ASSETS.length);
+  const criticalAssets = EXELON_ASSETS.filter(a => a.healthIndex < 40);
+  const allIssues = Object.values(ASSET_ISSUES).flatMap(a => a.issues);
+  const activeIssues = allIssues;
 
-  // Group vessels by weather zone for summary
-  const vesselsByZone: Record<string, number> = {};
-  vesselsWithWeather.forEach((v) => {
-    vesselsByZone[v.localWeather.zone] = (vesselsByZone[v.localWeather.zone] || 0) + 1;
+  // Group by OpCo
+  const byOpCo: Record<string, { count: number; avgHealth: number }> = {};
+  EXELON_ASSETS.forEach(a => {
+    if (!byOpCo[a.opCo]) byOpCo[a.opCo] = { count: 0, avgHealth: 0 };
+    byOpCo[a.opCo].count++;
+    byOpCo[a.opCo].avgHealth += a.healthIndex;
+  });
+  Object.keys(byOpCo).forEach(k => {
+    byOpCo[k].avgHealth = Math.round(byOpCo[k].avgHealth / byOpCo[k].count);
   });
 
   return {
     summary: {
-      totalVessels: vessels.length,
-      operational: operationalVessels.length,
-      maintenance: maintenanceVessels.length,
-      alert: alertVessels.length,
-      averageHealth: avgHealth,
-      averageFuel: avgFuel,
-      totalAlerts: alerts.length,
-      criticalAlerts: criticalAlerts.length,
-      warningAlerts: warningAlerts.length,
-      vesselsWithWeatherRisk: weatherRiskVessels.length,
+      totalAssets: EXELON_ASSETS.length,
+      averageHealthIndex: avgHealth,
+      criticalAssets: criticalAssets.length,
+      activeIssues: activeIssues.length,
+      criticalIssues: activeIssues.filter(i => i.status === 'critical').length,
+      assetsByOpCo: byOpCo,
     },
-    vesselsByWeatherZone: vesselsByZone,
-    vessels: vesselsWithWeather,
-    alerts: alerts.map((a) => ({
-      severity: a.severity,
-      type: a.type,
-      title: a.title,
-      message: a.message,
-      vesselName: a.vessels?.name,
-      acknowledged: a.acknowledged,
-      createdAt: a.created_at,
-    })),
-    offshoreAssets: offshoreAssets.map((a) => ({
-      name: a.name,
-      type: a.asset_subtype,
-      status: a.op_mode,
-      healthScore: a.health_score,
-      safetyState: a.safety_state,
-    })),
-    insights: {
-      lowFuelVessels: lowFuelVessels.map((v) => ({ name: v.name, fuelLevel: v.fuel_level })),
-      lowHealthVessels: lowHealthVessels.map((v) => ({ name: v.name, healthScore: v.health_score })),
-      highSpeedVessels: highSpeedVessels.map((v) => ({ name: v.name, speed: v.speed })),
-      weatherRiskVessels: weatherRiskVessels.map((v) => ({
-        name: v.name,
-        zone: v.localWeather.zone,
-        condition: v.localWeather.condition,
-        waveHeight: v.localWeather.waveHeight,
-        risk: v.localWeather.operationalRisk,
+    assets: assetsWithDetails,
+    weather,
+    recentInsights: insights.slice(0, 5),
+    topCriticalIssues: activeIssues
+      .filter(i => i.status === 'critical')
+      .slice(0, 5)
+      .map(i => ({
+        componentName: i.componentName,
+        category: i.category,
+        issue: i.issue,
+        healthScore: i.healthScore,
+        recommendedAction: i.pmPrediction.recommendedAction,
       })),
-    },
-    // Technical documentation knowledge from datasheets
-    technicalKnowledge: datasheets.reduce((acc, ds) => {
-      const key = ds.vessel_subtype;
-      if (!acc[key]) {
-        acc[key] = {
-          subtype: key,
-          documents: [],
-          extractedKnowledge: [],
-        };
-      }
-      acc[key].documents.push({
-        title: ds.title,
-        url: ds.url,
-        source: ds.source_domain,
-      });
-      // Add extracted highlights as knowledge
-      if (ds.highlights && ds.highlights.length > 0) {
-        acc[key].extractedKnowledge.push(...ds.highlights.slice(0, 3));
-      }
-      if (ds.text_content) {
-        acc[key].extractedKnowledge.push(ds.text_content.slice(0, 500));
-      }
-      return acc;
-    }, {} as Record<string, { subtype: string; documents: { title: string; url: string; source: string | null }[]; extractedKnowledge: string[] }>),
   };
 }
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
-  // Get current fleet data
-  const fleetContext = await getFleetContext();
+  // Get current grid data
+  const gridContext = getGridContext();
 
-  const systemPrompt = `You are the Resolve Fleet Operations optimizer. Your job is to help fleet managers TAKE ACTION to improve operations, reduce costs, and prevent problems.
+  const systemPrompt = `You are the Exelon GridIQ Operations Advisor — an AI assistant for utility grid operations. Your job is to help grid operations managers TAKE ACTION to improve reliability, reduce outage risk, and optimize maintenance.
 
 ## Your Primary Mission
-You are NOT a passive dashboard. You actively help managers:
-- **Optimize routes** to reduce fuel and transit time
-- **Prevent breakdowns** by scheduling maintenance proactively  
-- **Cut fuel costs** by identifying inefficiencies
-- **Mitigate risks** before they become emergencies
-- **Improve efficiency** across the entire fleet
+You actively help managers:
+- **Prevent transformer failures** by analyzing DGA trends and health indices
+- **Optimize maintenance schedules** by prioritizing critical assets
+- **Manage grid loading** to prevent overloads during peak demand
+- **Reduce operational costs** while maintaining 100% blue-sky uptime goal
+- **Meet the 30% operational cost reduction target by 2027**
 
-## Current Fleet Data (Real-time)
-${JSON.stringify(fleetContext, null, 2)}
+## Current Grid Data (Real-time)
+${JSON.stringify(gridContext, null, 2)}
 
 ## How You Respond
 
 ### Always Be Actionable
-Every response must include SPECIFIC ACTIONS the user can take. Not "you should consider" but "Do this now: [specific action]"
+Every response must include SPECIFIC ACTIONS. Not "you should consider" but "Do this now: [specific action]"
 
 ### Structure Your Responses
 1. **Quick Summary** (1-2 sentences max)
 2. **Recommended Actions** (numbered, prioritized)
-3. **Expected Impact** (savings, risk reduction, efficiency gains)
+3. **Expected Impact** (reliability improvement, cost savings, risk reduction)
 
 ### Quantify Everything
-- Fuel savings in liters/day and estimated cost
-- Time savings in hours
-- Risk reduction percentage
-- Efficiency improvements
+- DGA values relative to IEEE C57.104 thresholds
+- Health index trends and remaining life estimates
+- Loading percentages relative to nameplate rating
+- Cost of deferred maintenance vs proactive action
+- Outage risk in customer-hours
 
 ### Be Direct and Concise
 - No filler words or hedging
 - Skip the pleasantries
 - Get straight to the action
 
-## Technical Knowledge Base
-You have access to technical datasheets and specifications for various vessel types in the fleet. Use this knowledge to:
-- Provide accurate technical specifications when asked about vessel capabilities
-- Reference maintenance intervals and procedures from manufacturer documentation
-- Cite relevant technical documents with download links when helpful
-- Explain equipment specifications and operational parameters
+## Technical Knowledge
+You are an expert in:
+- **DGA Analysis**: Duval Triangle, Rogers Ratio, Key Gas method, IEEE C57.104
+- **Transformer Loading**: IEEE C57.91 loading guide, emergency overload limits
+- **Predictive Maintenance**: Health indexing per IEEE C57.152, condition-based maintenance
+- **Grid Operations**: N-1 contingency, PJM coordination, load transfer procedures
+- **Exelon OpCos**: BGE, ComEd, PECO, Pepco, ACE, DPL service territories
 
 ## Optimization Capabilities
 
-### Route Optimization
-- Analyze weather conditions along routes
-- Recommend speed adjustments for fuel efficiency
-- Suggest route deviations to avoid weather risks
-- Calculate fuel savings from route changes
+### DGA Trending Analysis
+- Identify transformers with accelerating gas rates
+- Classify fault types using Duval Triangle
+- Recommend sampling frequency adjustments
+- Predict time to action thresholds
 
-### Fuel Efficiency
-- Identify vessels consuming above-average fuel
-- Recommend speed reductions (every knot reduction saves ~15% fuel)
-- Flag vessels running at inefficient speeds for conditions
-- Calculate fleet-wide fuel savings opportunities
+### Loading Optimization
+- Identify peak demand periods and at-risk transformers
+- Recommend load transfers between feeders
+- Calculate emergency overload duration limits per IEEE C57.91
+- Plan mobile substation deployment
 
-### Maintenance Scheduling
-- Prioritize by health score and criticality
-- Recommend preventive maintenance before failures
-- Suggest optimal maintenance windows based on operations
-- Estimate cost of delayed maintenance vs proactive action
+### Maintenance Prioritization
+- Rank assets by health index and criticality
+- Recommend maintenance windows during low-load periods
+- Estimate cost-benefit of repair vs replace decisions
+- Track lead times for replacement transformers
 
 ### Risk Mitigation
-- Weather-based operational adjustments
-- Equipment failure prevention
-- Safety protocol recommendations
-- Crew scheduling optimization
+- Weather impact on grid operations
+- N-1 contingency analysis
+- Age-based failure probability
+- Spare equipment inventory planning
 
 ## Response Examples
 
-User: "Optimize routes"
-Response: 
-**3 Route Optimizations Available**
-
-1. **Al Hamra** - Reduce speed from 12kn to 9kn
-   - Saves 180L fuel/day ($540/day)
-   - Adds 2 hours to transit (acceptable for current schedule)
-
-2. **Zakher** - Deviate 15nm south to avoid 2.5m swells
-   - Prevents 8-hour weather delay
-   - Reduces crew fatigue risk
-   - Net time savings: 6 hours
-
-3. **Al Reem** - Current route optimal, no changes needed
-
-**Total Daily Savings: $890 | Risk Reduction: 40%**
-
----
-
-User: "Quick wins"
+User: "What needs attention today?"
 Response:
-**Top 3 Immediate Actions**
+**3 Actions Required Today**
 
-1. **Slow down Al Yasat** (currently 14kn → reduce to 10kn)
-   - Saves $720/day in fuel
-   - No schedule impact
+1. **TR-BGE-1042 at Westport Substation** — TDCG at 1,850 ppm
+   - Acetylene rising: 8 ppm → potential arcing
+   - Action: Emergency oil sample, schedule Duval Triangle analysis
+   - Risk: Failure within 30 days if untreated
 
-2. **Schedule Zakher engine inspection** 
-   - Health score dropped 8% this week
-   - Prevents potential $50K emergency repair
+2. **TR-PECO-2001 load at 97% of nameplate**
+   - Peak demand forecast: 102% by 3 PM
+   - Action: Transfer 15 MVA to adjacent feeder TR-PECO-2003
+   - Prevents emergency overload condition
 
-3. **Reroute coastal vessels** before tomorrow's weather system
-   - 3 vessels affected
-   - Avoids 12+ hour combined delays
+3. **TR-ComEd-3050 health index dropped to 38**
+   - Moisture at 42 ppm — insulation degradation
+   - Action: Schedule oil reconditioning this weekend
+   - Cost: $12K now vs $2.5M emergency replacement
 
-**Execute all three? Or focus on one?**
+**Net Risk Reduction: 65% | Cost Avoidance: $2.8M**
 
----
-
-Remember: You're an operations optimizer, not an information display. Every response should help the user DO something to improve their fleet.`;
+Remember: You are a grid operations advisor. Every response should help the user DO something to improve reliability and reduce risk.`;
 
   const result = await streamText({
     model: anthropic('claude-sonnet-4-20250514'),
@@ -275,7 +208,6 @@ Remember: You're an operations optimizer, not an information display. Every resp
     async start(controller) {
       try {
         for await (const chunk of result.textStream) {
-          // Format as AI SDK data stream
           controller.enqueue(encoder.encode(`0:${JSON.stringify(chunk)}\n`));
         }
         controller.close();

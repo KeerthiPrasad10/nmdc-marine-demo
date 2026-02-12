@@ -2,7 +2,7 @@
  * Vessel Specifications API
  * 
  * Fetches detailed vessel specifications from Datalastic API
- * and caches them for the NMDC Energy fleet.
+ * and caches them for the fleet.
  * 
  * Endpoint: GET /api/vessel-specs
  * Query params:
@@ -17,7 +17,7 @@ import {
   isDatalasticConfigured,
   DatalasticVesselInfo,
 } from '@/lib/datalastic';
-import { NMDC_ENERGY_FLEET, NMDCVessel } from '@/lib/nmdc/fleet';
+import { NMDC_ENERGY_FLEET as LEGACY_ENERGY_FLEET, NMDCVessel as LegacyVessel } from '@/lib/nmdc/fleet';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,8 +33,8 @@ export interface EnrichedVesselSpec {
   mmsi: string;
   imo?: string;
   name: string;
-  // From NMDC Fleet config
-  nmdc: {
+  // From Fleet config
+  legacyMarine: {
     type: string;
     subType: string;
     company: string;
@@ -137,37 +137,37 @@ function generateSensorData(mmsi: string): EnrichedVesselSpec['sensors'] {
 
 // Convert Datalastic vessel info to our enriched format
 function convertToEnrichedSpec(
-  nmdcVessel: NMDCVessel,
+  legacyVessel: LegacyVessel,
   apiInfo?: DatalasticVesselInfo,
   source: 'live' | 'cache' | 'static' = 'static'
 ): EnrichedVesselSpec {
   return {
-    mmsi: nmdcVessel.mmsi,
-    imo: nmdcVessel.imo || apiInfo?.imo,
-    name: nmdcVessel.name,
-    nmdc: {
-      type: nmdcVessel.type,
-      subType: nmdcVessel.subType,
-      company: nmdcVessel.company,
-      project: nmdcVessel.project,
-      captain: nmdcVessel.captain,
-      crewCount: nmdcVessel.crewCount,
-      datasheetUrl: nmdcVessel.datasheetUrl,
+    mmsi: legacyVessel.mmsi,
+    imo: legacyVessel.imo || apiInfo?.imo,
+    name: legacyVessel.name,
+    legacyMarine: {
+      type: legacyVessel.type,
+      subType: legacyVessel.subType,
+      company: legacyVessel.company,
+      project: legacyVessel.project,
+      captain: legacyVessel.captain,
+      crewCount: legacyVessel.crewCount,
+      datasheetUrl: legacyVessel.datasheetUrl,
     },
     specifications: {
-      // Prefer API data, fall back to NMDC fleet config
-      length: apiInfo?.length || nmdcVessel.specs?.length,
-      width: apiInfo?.width || nmdcVessel.specs?.breadth,
+      // Prefer API data, fall back to fleet config
+      length: apiInfo?.length || legacyVessel.specs?.length,
+      width: apiInfo?.width || legacyVessel.specs?.breadth,
       draught: apiInfo?.draught,
-      maxDraught: apiInfo?.max_draught || nmdcVessel.specs?.depth,
+      maxDraught: apiInfo?.max_draught || legacyVessel.specs?.depth,
       grossTonnage: apiInfo?.grt,
       deadweight: apiInfo?.dwt,
-      yearBuilt: apiInfo?.year_built || nmdcVessel.specs?.yearBuilt,
+      yearBuilt: apiInfo?.year_built || legacyVessel.specs?.yearBuilt,
       homeport: apiInfo?.homeport,
       flag: apiInfo?.flag || apiInfo?.country_iso || 'AE',
       callSign: apiInfo?.call_sign,
-      shipType: apiInfo?.ship_type || nmdcVessel.type,
-      shipSubType: apiInfo?.ship_sub_type || nmdcVessel.subType,
+      shipType: apiInfo?.ship_type || legacyVessel.type,
+      shipSubType: apiInfo?.ship_sub_type || legacyVessel.subType,
       enginePower: apiInfo?.engine_power,
       engineType: apiInfo?.engine_type,
       averageSpeed: apiInfo?.average_speed,
@@ -175,7 +175,7 @@ function convertToEnrichedSpec(
       teu: apiInfo?.teu,
       liquidGas: apiInfo?.liquid_gas,
     },
-    sensors: generateSensorData(nmdcVessel.mmsi),
+    sensors: generateSensorData(legacyVessel.mmsi),
     lastUpdated: new Date().toISOString(),
     source,
   };
@@ -206,10 +206,10 @@ export async function GET(request: NextRequest) {
   try {
     // Single vessel lookup
     if (mmsi) {
-      const nmdcVessel = NMDC_ENERGY_FLEET.find(v => v.mmsi === mmsi);
-      if (!nmdcVessel) {
+      const legacyVessel = LEGACY_ENERGY_FLEET.find(v => v.mmsi === mmsi);
+      if (!legacyVessel) {
         return NextResponse.json(
-          { success: false, error: 'Vessel not found in NMDC Energy fleet' },
+          { success: false, error: 'Vessel not found in fleet' },
           { status: 404 }
         );
       }
@@ -226,7 +226,7 @@ export async function GET(request: NextRequest) {
       // Fetch from API
       const apiInfo = await fetchVesselInfo(mmsi);
       const enrichedSpec = convertToEnrichedSpec(
-        nmdcVessel,
+        legacyVessel,
         apiInfo || undefined,
         apiInfo ? 'live' : 'static'
       );
@@ -250,7 +250,7 @@ export async function GET(request: NextRequest) {
     // Fetch all fleet specs
     if (action === 'all' || action === 'fleet') {
       // Return cached data if available and not forcing refresh
-      if (!forceRefresh && specsCache && specsCache.specs.size === NMDC_ENERGY_FLEET.length) {
+      if (!forceRefresh && specsCache && specsCache.specs.size === LEGACY_ENERGY_FLEET.length) {
         const vessels = Array.from(specsCache.specs.values());
         return NextResponse.json({
           success: true,
@@ -267,18 +267,18 @@ export async function GET(request: NextRequest) {
       const enrichedSpecs: EnrichedVesselSpec[] = [];
       let apiSuccessCount = 0;
 
-      for (const nmdcVessel of NMDC_ENERGY_FLEET) {
+      for (const legacyVessel of LEGACY_ENERGY_FLEET) {
         let apiInfo: DatalasticVesselInfo | null = null;
         
-        if (forceRefresh || !specsCache?.specs.has(nmdcVessel.mmsi)) {
-          apiInfo = await fetchVesselInfo(nmdcVessel.mmsi);
+        if (forceRefresh || !specsCache?.specs.has(legacyVessel.mmsi)) {
+          apiInfo = await fetchVesselInfo(legacyVessel.mmsi);
           if (apiInfo) apiSuccessCount++;
         }
 
         const enrichedSpec = convertToEnrichedSpec(
-          nmdcVessel,
+          legacyVessel,
           apiInfo || undefined,
-          apiInfo ? 'live' : (specsCache?.specs.has(nmdcVessel.mmsi) ? 'cache' : 'static')
+          apiInfo ? 'live' : (specsCache?.specs.has(legacyVessel.mmsi) ? 'cache' : 'static')
         );
 
         enrichedSpecs.push(enrichedSpec);
@@ -308,7 +308,7 @@ export async function GET(request: NextRequest) {
     // Default: Return fleet summary
     return NextResponse.json({
       success: true,
-      fleet: NMDC_ENERGY_FLEET.map(v => ({
+      fleet: LEGACY_ENERGY_FLEET.map(v => ({
         mmsi: v.mmsi,
         name: v.name,
         type: v.type,
@@ -316,7 +316,7 @@ export async function GET(request: NextRequest) {
         hasCachedSpecs: specsCache?.specs.has(v.mmsi) || false,
       })),
       meta: {
-        vesselCount: NMDC_ENERGY_FLEET.length,
+        vesselCount: LEGACY_ENERGY_FLEET.length,
         cachedCount: specsCache?.specs.size || 0,
         actions: ['?action=all', '?mmsi=<MMSI>', '?refresh=true'],
       },

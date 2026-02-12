@@ -8,7 +8,7 @@ import {
   getPendingInsights,
   clearInsights,
   resetSimulation,
-} from '@/lib/simulation/orchestrator';
+} from '@/lib/simulation/grid-orchestrator';
 
 export const dynamic = 'force-dynamic';
 

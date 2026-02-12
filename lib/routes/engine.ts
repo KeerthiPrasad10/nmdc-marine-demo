@@ -1,7 +1,7 @@
 /**
  * Route Engine - Maritime routing for Persian Gulf & Arabian Sea
  * 
- * Custom routing solution designed specifically for NMDC operations
+ * Custom routing solution designed specifically for legacy marine operations
  * in the Persian Gulf, Gulf of Oman, and Arabian Sea.
  * 
  * Uses a graph-based approach with predefined shipping lane waypoints
@@ -36,7 +36,7 @@ export interface VesselProfile {
   };
 }
 
-// Default vessel profiles based on NMDC fleet types
+// Default vessel profiles based on legacy marine fleet types
 export const VESSEL_PROFILES: Record<string, VesselProfile> = {
   dredger: {
     type: 'dredger',

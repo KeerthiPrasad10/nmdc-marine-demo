@@ -1,53 +1,56 @@
-// ESG Intelligence Center Types
+// ESG Intelligence Center Types — Utility Grid Context
 
 export interface EmissionsData {
-  co2: number; // tonnes
-  nox: number; // kg
-  sox: number; // kg
-  pm: number; // kg (particulate matter)
+  co2: number; // tonnes — from grid losses and SF6
+  sf6: number; // kg — sulfur hexafluoride leakage
+  gridLosses: number; // MWh lost in transmission/distribution
+  linelossPct: number; // percentage of energy lost
 }
 
-export interface VesselEmissions {
-  vesselId: string;
-  vesselName: string;
-  vesselType: string;
+export interface AssetEmissions {
+  assetTag: string;
+  assetName: string;
+  assetType: string;
+  opCo: string;
   period: 'daily' | 'weekly' | 'monthly' | 'yearly';
   emissions: EmissionsData;
-  fuelConsumed: number; // liters
-  fuelType: 'HFO' | 'MDO' | 'LNG' | 'Hybrid';
-  distance: number; // nautical miles
-  operatingHours: number;
-  efficiency: number; // grams CO2 per tonne-mile
+  energyDelivered: number; // MWh
+  peakLoadMW: number;
+  efficiency: number; // % — transformer / substation efficiency
   benchmark: {
     fleetAverage: number;
     industryAverage: number;
     bestInClass: number;
   };
-  ciiRating?: string; // CII rating (A, B, C, D, E)
-  etsEligible?: boolean; // EU ETS eligibility
+  healthIndex: number;
+  sf6EquipmentCount?: number; // # of SF6 breakers at substation
+  hasMaintenanceIssues?: boolean;
+  maintenanceImpact?: string;
+  customersServed?: number;
 }
 
-export interface FleetEmissionsSummary {
+export interface GridEmissionsSummary {
   totalCO2: number;
-  totalNOx: number;
-  totalSOx: number;
-  totalPM: number;
-  totalFuel: number;
-  avgEfficiency: number;
-  vesselCount: number;
+  totalSF6: number; // kg
+  totalGridLosses: number; // MWh
+  avgEfficiency: number; // %
+  avgLineLoss: number; // %
+  assetCount: number;
   period: string;
   trend: {
     co2Change: number; // percentage
+    sf6Change: number;
     efficiencyChange: number;
   };
   bestPerformer?: string;
   worstPerformer?: string;
+  totalCustomersServed: number;
 }
 
 export interface ComplianceTarget {
   id: string;
   name: string;
-  type: 'IMO2030' | 'IMO2050' | 'ETS' | 'CII' | 'EEXI' | 'Custom';
+  type: 'NERC_Reliability' | 'EPA_SF6' | 'State_RPS' | 'State_Clean_Energy' | 'IEEE_C57' | 'Custom';
   targetValue: number;
   currentValue: number;
   unit: string;
@@ -58,9 +61,9 @@ export interface ComplianceTarget {
 
 export interface CarbonCredit {
   id: string;
-  type: 'offset' | 'allowance';
-  amount: number; // tonnes CO2
-  price: number; // USD per tonne
+  type: 'offset' | 'allowance' | 'REC';
+  amount: number; // tonnes CO2 or MWh for REC
+  price: number; // USD per unit
   source: string;
   expiryDate: Date;
   status: 'available' | 'used' | 'expired';
@@ -112,7 +115,3 @@ export interface ESGReport {
     data: Record<string, unknown>;
   }>;
 }
-
-
-
-

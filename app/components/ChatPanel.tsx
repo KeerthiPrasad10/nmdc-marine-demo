@@ -1,25 +1,18 @@
 'use client';
 
 import { useState, useRef, useEffect, FormEvent, useMemo } from 'react';
-import { Vessel } from '@/lib/supabase';
 import {
   Send,
   Sparkles,
   User,
   Loader2,
   RotateCcw,
-  Route,
-  Fuel,
   Wrench,
   Zap,
   Shield,
   TrendingUp,
-  Ship,
-  AlertTriangle,
-  CheckCircle2,
-  ArrowRight,
-  Clock,
-  DollarSign,
+  Activity,
+  BarChart3,
 } from 'lucide-react';
 
 interface Message {
@@ -29,28 +22,28 @@ interface Message {
 }
 
 interface ChatPanelProps {
-  selectedVessel?: Vessel | null;
+  selectedAsset?: { id: string; name: string; type: string } | null;
 }
 
-// Dynamic greetings focused on action
+// Dynamic greetings focused on grid operations
 const GREETINGS = [
-  "What would you like to optimize?",
-  "Ready to improve operations.",
-  "How can I help optimize today?",
-  "What should we work on?",
+  "What needs attention today?",
+  "Ready to optimize grid operations.",
+  "How can I help improve reliability?",
+  "What should we prioritize?",
 ];
 
-// Optimization-focused actions
+// Grid operations-focused actions
 const OPTIMIZATION_ACTIONS = [
-  { icon: Route, text: "Optimize routes", action: "Analyze current vessel routes and recommend optimizations to reduce fuel consumption and transit time" },
-  { icon: Fuel, text: "Reduce fuel costs", action: "Identify fuel inefficiencies across the fleet and suggest immediate actions to reduce consumption" },
-  { icon: Wrench, text: "Schedule maintenance", action: "Review equipment health scores and create an optimized maintenance schedule to prevent downtime" },
-  { icon: Shield, text: "Mitigate risks", action: "Analyze current alerts and weather conditions, then recommend risk mitigation actions" },
-  { icon: TrendingUp, text: "Improve efficiency", action: "Provide a comprehensive analysis of fleet efficiency with actionable recommendations" },
-  { icon: Zap, text: "Quick wins", action: "What are the top 3 immediate actions I can take right now to improve fleet operations?" },
+  { icon: Activity, text: "DGA trending", action: "Analyze DGA gas trends across all transformers and identify which units need immediate attention based on IEEE C57.104 thresholds" },
+  { icon: Wrench, text: "Maintenance priorities", action: "Review health indices and create a prioritized maintenance schedule to prevent transformer failures" },
+  { icon: Shield, text: "Mitigate risks", action: "Analyze current grid alerts, weather impacts, and asset health to recommend risk mitigation actions" },
+  { icon: TrendingUp, text: "Improve reliability", action: "Provide a comprehensive analysis of grid reliability with actionable recommendations to achieve 100% blue-sky uptime" },
+  { icon: BarChart3, text: "Loading analysis", action: "Identify transformers approaching or exceeding nameplate ratings and recommend load transfer options" },
+  { icon: Zap, text: "Quick wins", action: "What are the top 3 immediate actions I can take right now to reduce outage risk and improve grid performance?" },
 ];
 
-export function ChatPanel({ selectedVessel }: ChatPanelProps) {
+export function ChatPanel({ selectedAsset }: ChatPanelProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -74,8 +67,8 @@ export function ChatPanel({ selectedVessel }: ChatPanelProps) {
     setHasInteracted(true);
     
     let contextualContent = content.trim();
-    if (selectedVessel && !content.toLowerCase().includes(selectedVessel.name.toLowerCase())) {
-      contextualContent = `[Context: Regarding vessel "${selectedVessel.name}" (${selectedVessel.type})] ${content.trim()}`;
+    if (selectedAsset && !content.toLowerCase().includes(selectedAsset.name.toLowerCase())) {
+      contextualContent = `[Context: Regarding grid asset "${selectedAsset.name}" (${selectedAsset.type})] ${content.trim()}`;
     }
 
     const userMessage: Message = {
@@ -97,7 +90,7 @@ export function ChatPanel({ selectedVessel }: ChatPanelProps) {
             role: m.role,
             content: m.content,
           })),
-          vesselId: selectedVessel?.id,
+          assetId: selectedAsset?.id,
         }),
       });
 
@@ -168,7 +161,7 @@ export function ChatPanel({ selectedVessel }: ChatPanelProps) {
       {/* Minimal Header - only show when there are messages */}
       {messages.length > 0 && (
         <div className="flex-shrink-0 px-4 py-3 border-b border-white/5 flex items-center justify-between">
-          <span className="text-sm text-white/40">Fleet Operations</span>
+          <span className="text-sm text-white/40">Grid Operations</span>
           <button
             onClick={resetChat}
             className="p-1.5 rounded-md text-white/30 hover:text-white/60 hover:bg-white/5 transition-all"
@@ -256,7 +249,7 @@ export function ChatPanel({ selectedVessel }: ChatPanelProps) {
                 </div>
                 <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl rounded-tl-sm bg-white/5">
                   <Loader2 className="h-3.5 w-3.5 text-cyan-400 animate-spin" />
-                  <span className="text-sm text-white/50">Analyzing fleet data...</span>
+                  <span className="text-sm text-white/50">Analyzing grid data...</span>
                 </div>
               </div>
             )}

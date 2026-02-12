@@ -1,0 +1,46 @@
+[     476ms] [WARNING] Image with src "/IFS NB.png" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+Read more: https://nextjs.org/docs/app/api-reference/components/image#loading @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 3425754ms] [ERROR] ./app/routes/page.tsx:6:1
+Export LEGACY_FLEET doesn't exist in target module
+  4 | import { useState, useCallback, useRef, useEffect } from 'react';
+  5 | import { useRouter } from 'next/navigation';
+> 6 | import { LEGACY_FLEET as LEGACY_FLEET } from '@/lib/nmdc/fleet';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  7 | import { RouteOptimizationPanel } from '@/app/components/RouteOptimization';
+  8 | import { RouteOptimizationResult } from '@/lib/route-optimization/types';
+  9 | import {
+
+The export LEGACY_FLEET was not found in module [project]/lib/nmdc/fleet.ts [app-client] (ecmascript).
+Did you mean to import NMDC_FLEET?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./app/routes/page.tsx [Client Component Browser]
+    ./app/routes/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/routes/page.tsx [Client Component SSR]
+    ./app/routes/page.tsx [Server Component] @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127
+[ 3425754ms] [ERROR] ./app/routes/page.tsx:6:1
+Export LEGACY_FLEET doesn't exist in target module
+  4 | import { useState, useCallback, useRef, useEffect } from 'react';
+  5 | import { useRouter } from 'next/navigation';
+> 6 | import { LEGACY_FLEET as LEGACY_FLEET } from '@/lib/nmdc/fleet';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  7 | import { RouteOptimizationPanel } from '@/app/components/RouteOptimization';
+  8 | import { RouteOptimizationResult } from '@/lib/route-optimization/types';
+  9 | import {
+
+The export LEGACY_FLEET was not found in module [project]/lib/nmdc/fleet.ts [app-ssr] (ecmascript).
+Did you mean to import NMDC_FLEET?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./app/routes/page.tsx [Client Component Browser]
+    ./app/routes/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/routes/page.tsx [Client Component SSR]
+    ./app/routes/page.tsx [Server Component] @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:3127

@@ -220,3 +220,6 @@ export function JackUpModel({ healthScore, isSelected = false, legCount = 4 }: J
 
 
 
+
+
+

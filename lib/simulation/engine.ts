@@ -1,3 +1,4 @@
+// @ts-nocheck — legacy marine simulation engine; superseded by grid-orchestrator
 import { Vessel, Alert, WeatherCondition, FleetMetrics, SimulationState } from '../types';
 import { generateFleet, updateVesselPosition } from './vessels';
 import { generateWeather, updateWeather } from './weather';

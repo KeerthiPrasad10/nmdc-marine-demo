@@ -1,691 +1,492 @@
-import { PMEquipmentProfile, PMEquipmentType } from './types'
+import { PMEquipmentProfile, PMComponentType } from './types'
 
-export const OEM_EQUIPMENT_PROFILES: Record<PMEquipmentType, PMEquipmentProfile> = {
-  wire_rope: {
-    id: 'oem-wire-rope-001',
-    equipmentType: 'wire_rope',
-    manufacturer: 'Bridon-Bekaert',
-    model: '8-Strand IWRC',
+export const OEM_COMPONENT_PROFILES: Record<PMComponentType, PMEquipmentProfile> = {
+  winding: {
+    id: 'oem-winding-001',
+    componentType: 'winding',
+    manufacturer: 'ABB / Hitachi Energy',
+    model: 'Power Transformer Winding Assembly',
     specs: {
-      ratedCapacity: 300,
-      ratedCapacityUnit: 'tons',
-      expectedLifeCycles: 15000,
-      maxOperatingHours: 8000,
+      maxTemperature: 110,
+      maxMoisture: 35,
+      expectedLifeYears: 50,
+      maintenanceIntervalHours: 8760,
+      mtbf: 175000,
     },
     wearCurve: [
-      { cycles: 0, healthPercent: 100 },
-      { cycles: 3000, healthPercent: 95 },
-      { cycles: 6000, healthPercent: 85 },
-      { cycles: 9000, healthPercent: 70 },
-      { cycles: 12000, healthPercent: 50 },
-      { cycles: 14000, healthPercent: 30 },
-      { cycles: 15000, healthPercent: 10 },
+      { years: 0, healthPercent: 100 },
+      { years: 10, healthPercent: 95 },
+      { years: 20, healthPercent: 85 },
+      { years: 30, healthPercent: 70 },
+      { years: 40, healthPercent: 50 },
+      { years: 50, healthPercent: 25 },
     ],
     failureModes: [
       {
-        mode: 'Wire breakage due to fatigue',
-        probability: 0.45,
-        warningSignals: ['Visible broken wires', 'Increased diameter variation', 'Localized wear patterns'],
-        mtbf: 12000,
-      },
-      {
-        mode: 'Corrosion-induced degradation',
-        probability: 0.25,
-        warningSignals: ['Surface rust', 'Pitting', 'Reduced lubrication retention'],
-        mtbf: 10000,
-      },
-      {
-        mode: 'Abrasion wear',
-        probability: 0.20,
-        warningSignals: ['Flat spots on wires', 'Reduced rope diameter', 'Metallic debris'],
-        mtbf: 11000,
-      },
-      {
-        mode: 'Kinking or bird-caging',
-        probability: 0.10,
-        warningSignals: ['Deformation visible', 'Uneven load distribution', 'Abnormal sounds'],
-        mtbf: 8000,
-      },
-    ],
-    maintenanceTasks: [
-      {
-        task: 'Visual inspection',
-        intervalHours: 50,
-        estimatedDuration: 0.5,
-      },
-      {
-        task: 'Lubrication application',
-        intervalHours: 100,
-        estimatedDuration: 1,
-        requiredParts: ['Wire rope lubricant 5L'],
-      },
-      {
-        task: 'Detailed NDT inspection',
-        intervalHours: 500,
-        estimatedDuration: 4,
-      },
-      {
-        task: 'Full replacement',
-        intervalHours: 8000,
-        estimatedDuration: 24,
-        requiredParts: ['Wire rope assembly', 'End fittings', 'Swage sleeves'],
-      },
-    ],
-  },
-
-  hoist_motor: {
-    id: 'oem-hoist-motor-001',
-    equipmentType: 'hoist_motor',
-    manufacturer: 'ABB',
-    model: 'AMI 450 Marine Motor',
-    specs: {
-      ratedCapacity: 750,
-      ratedCapacityUnit: 'kW',
-      maxOperatingHours: 40000,
-      maintenanceIntervalHours: 4000,
-      maxTemperature: 85,
-      maxVibration: 4.5,
-      mtbf: 35000,
-    },
-    wearCurve: [
-      { cycles: 0, healthPercent: 100 },
-      { cycles: 10000, healthPercent: 92 },
-      { cycles: 20000, healthPercent: 80 },
-      { cycles: 30000, healthPercent: 65 },
-      { cycles: 35000, healthPercent: 45 },
-      { cycles: 40000, healthPercent: 20 },
-    ],
-    failureModes: [
-      {
-        mode: 'Bearing failure',
-        probability: 0.40,
-        warningSignals: ['Increased vibration', 'Abnormal noise', 'Temperature rise', 'Grease discoloration'],
-        mtbf: 25000,
-      },
-      {
-        mode: 'Winding insulation breakdown',
-        probability: 0.25,
-        warningSignals: ['Partial discharge activity', 'Increased winding temperature', 'Megger test degradation'],
-        mtbf: 35000,
-      },
-      {
-        mode: 'Shaft seal failure',
-        probability: 0.20,
-        warningSignals: ['Oil leakage', 'Contamination in housing', 'Bearing temperature increase'],
-        mtbf: 20000,
-      },
-      {
-        mode: 'Cooling system degradation',
-        probability: 0.15,
-        warningSignals: ['Fan noise', 'Blocked vents', 'Elevated operating temperature'],
-        mtbf: 30000,
-      },
-    ],
-    maintenanceTasks: [
-      {
-        task: 'Vibration analysis',
-        intervalHours: 500,
-        estimatedDuration: 1,
-      },
-      {
-        task: 'Bearing regreasing',
-        intervalHours: 2000,
-        estimatedDuration: 2,
-        requiredParts: ['High-temp bearing grease 1kg'],
-      },
-      {
-        task: 'Insulation resistance test',
-        intervalHours: 4000,
-        estimatedDuration: 2,
-      },
-      {
-        task: 'Complete bearing replacement',
-        intervalHours: 25000,
-        estimatedDuration: 16,
-        requiredParts: ['SKF 6320 bearing x2', 'Shaft seals', 'Bearing housing gaskets'],
-      },
-    ],
-  },
-
-  main_engine: {
-    id: 'oem-main-engine-001',
-    equipmentType: 'main_engine',
-    manufacturer: 'Caterpillar Marine',
-    model: 'CAT 3516E',
-    specs: {
-      ratedCapacity: 2525,
-      ratedCapacityUnit: 'kW',
-      maxOperatingHours: 60000,
-      maintenanceIntervalHours: 500,
-      maxTemperature: 95,
-      mtbf: 50000,
-    },
-    wearCurve: [
-      { cycles: 0, healthPercent: 100 },
-      { cycles: 15000, healthPercent: 90 },
-      { cycles: 30000, healthPercent: 75 },
-      { cycles: 45000, healthPercent: 55 },
-      { cycles: 55000, healthPercent: 35 },
-      { cycles: 60000, healthPercent: 15 },
-    ],
-    failureModes: [
-      {
-        mode: 'Turbocharger failure',
-        probability: 0.25,
-        warningSignals: ['Reduced boost pressure', 'Abnormal turbo noise', 'Increased exhaust temperature', 'Black smoke'],
-        mtbf: 20000,
-      },
-      {
-        mode: 'Injector degradation',
-        probability: 0.30,
-        warningSignals: ['Poor fuel atomization', 'Increased fuel consumption', 'Rough running', 'Misfires'],
-        mtbf: 15000,
-      },
-      {
-        mode: 'Cylinder liner wear',
-        probability: 0.20,
-        warningSignals: ['Increased oil consumption', 'Blow-by gases', 'Compression loss'],
-        mtbf: 40000,
-      },
-      {
-        mode: 'Cooling system failure',
-        probability: 0.15,
-        warningSignals: ['Coolant loss', 'Temperature fluctuations', 'Corrosion in coolant'],
-        mtbf: 25000,
-      },
-      {
-        mode: 'Governor/control system fault',
-        probability: 0.10,
-        warningSignals: ['Speed hunting', 'Load acceptance issues', 'Sensor faults'],
-        mtbf: 35000,
-      },
-    ],
-    maintenanceTasks: [
-      {
-        task: 'Oil and filter change',
-        intervalHours: 500,
-        estimatedDuration: 4,
-        requiredParts: ['Engine oil 200L', 'Oil filter x4', 'Fuel filter x2'],
-      },
-      {
-        task: 'Valve clearance adjustment',
-        intervalHours: 2000,
-        estimatedDuration: 8,
-      },
-      {
-        task: 'Injector overhaul',
-        intervalHours: 8000,
-        estimatedDuration: 16,
-        requiredParts: ['Injector nozzles x16', 'Injector seals kit'],
-      },
-      {
-        task: 'Turbocharger service',
-        intervalHours: 10000,
-        estimatedDuration: 12,
-        requiredParts: ['Turbo bearing kit', 'Turbo seals'],
-      },
-      {
-        task: 'Major overhaul',
-        intervalHours: 30000,
-        estimatedDuration: 120,
-        requiredParts: ['Piston rings x16', 'Bearings set', 'Gasket set', 'Liner sleeves'],
-      },
-    ],
-  },
-
-  pump_system: {
-    id: 'oem-pump-001',
-    equipmentType: 'pump_system',
-    manufacturer: 'Warman',
-    model: 'WBH 500',
-    specs: {
-      ratedCapacity: 5000,
-      ratedCapacityUnit: 'm³/hr',
-      maxOperatingHours: 20000,
-      maintenanceIntervalHours: 2000,
-      maxVibration: 6.0,
-      mtbf: 15000,
-    },
-    wearCurve: [
-      { cycles: 0, healthPercent: 100 },
-      { cycles: 5000, healthPercent: 88 },
-      { cycles: 10000, healthPercent: 70 },
-      { cycles: 15000, healthPercent: 48 },
-      { cycles: 18000, healthPercent: 30 },
-      { cycles: 20000, healthPercent: 10 },
-    ],
-    failureModes: [
-      {
-        mode: 'Impeller erosion',
+        mode: 'Insulation thermal degradation (cellulose aging)',
         probability: 0.35,
-        warningSignals: ['Reduced flow rate', 'Increased vibration', 'Cavitation noise', 'Pressure drop'],
-        mtbf: 8000,
+        warningSignals: ['Elevated CO/CO2 in DGA', 'Furan levels increasing', 'DP below 400', 'Hot-spot temperature exceedance'],
+        mtbf: 175000,
       },
       {
-        mode: 'Mechanical seal failure',
-        probability: 0.30,
-        warningSignals: ['Seal leakage', 'Contamination in bearing housing', 'Temperature rise at seal'],
-        mtbf: 6000,
-      },
-      {
-        mode: 'Bearing failure',
-        probability: 0.25,
-        warningSignals: ['High vibration amplitude', 'Bearing temperature', 'Abnormal noise'],
-        mtbf: 12000,
-      },
-      {
-        mode: 'Shaft wear/damage',
-        probability: 0.10,
-        warningSignals: ['Shaft runout', 'Seal wear pattern', 'Coupling misalignment'],
-        mtbf: 18000,
-      },
-    ],
-    maintenanceTasks: [
-      {
-        task: 'Seal inspection',
-        intervalHours: 500,
-        estimatedDuration: 1,
-      },
-      {
-        task: 'Vibration monitoring',
-        intervalHours: 250,
-        estimatedDuration: 0.5,
-      },
-      {
-        task: 'Mechanical seal replacement',
-        intervalHours: 4000,
-        estimatedDuration: 8,
-        requiredParts: ['Mechanical seal assembly', 'O-rings kit'],
-      },
-      {
-        task: 'Impeller replacement',
-        intervalHours: 8000,
-        estimatedDuration: 16,
-        requiredParts: ['Impeller', 'Wear plates', 'Volute liner'],
-      },
-      {
-        task: 'Complete pump overhaul',
-        intervalHours: 16000,
-        estimatedDuration: 48,
-        requiredParts: ['Overhaul kit', 'Bearings', 'Shaft sleeves', 'Impeller'],
-      },
-    ],
-  },
-
-  hydraulic_system: {
-    id: 'oem-hydraulic-001',
-    equipmentType: 'hydraulic_system',
-    manufacturer: 'Bosch Rexroth',
-    model: 'A4VSO Series',
-    specs: {
-      ratedCapacity: 500,
-      ratedCapacityUnit: 'bar',
-      maxOperatingHours: 30000,
-      maintenanceIntervalHours: 1000,
-      maxTemperature: 70,
-      mtbf: 25000,
-    },
-    wearCurve: [
-      { cycles: 0, healthPercent: 100 },
-      { cycles: 7500, healthPercent: 90 },
-      { cycles: 15000, healthPercent: 75 },
-      { cycles: 22500, healthPercent: 55 },
-      { cycles: 27500, healthPercent: 35 },
-      { cycles: 30000, healthPercent: 15 },
-    ],
-    failureModes: [
-      {
-        mode: 'Internal pump wear',
-        probability: 0.30,
-        warningSignals: ['Reduced system pressure', 'Increased cycle time', 'Pump noise change'],
-        mtbf: 20000,
-      },
-      {
-        mode: 'Oil contamination',
-        probability: 0.25,
-        warningSignals: ['Particle count increase', 'Filter bypass', 'Valve sticking'],
-        mtbf: 15000,
-      },
-      {
-        mode: 'Seal/hose failure',
-        probability: 0.25,
-        warningSignals: ['External leakage', 'Hose bulging', 'Fitting weepage'],
-        mtbf: 12000,
-      },
-      {
-        mode: 'Valve malfunction',
+        mode: 'Turn-to-turn insulation failure',
         probability: 0.20,
-        warningSignals: ['Erratic operation', 'Slow response', 'Overheating'],
-        mtbf: 22000,
-      },
-    ],
-    maintenanceTasks: [
-      {
-        task: 'Oil analysis',
-        intervalHours: 500,
-        estimatedDuration: 0.5,
+        warningSignals: ['Elevated H2 in DGA', 'Partial discharge activity', 'Winding resistance imbalance', 'Hot-spot deviation'],
+        mtbf: 200000,
       },
       {
-        task: 'Filter replacement',
-        intervalHours: 1000,
-        estimatedDuration: 2,
-        requiredParts: ['Hydraulic filter element x3'],
-      },
-      {
-        task: 'Hose inspection',
-        intervalHours: 2000,
-        estimatedDuration: 4,
-      },
-      {
-        task: 'Complete oil change',
-        intervalHours: 5000,
-        estimatedDuration: 8,
-        requiredParts: ['Hydraulic oil ISO VG46 500L'],
-      },
-      {
-        task: 'Pump overhaul',
-        intervalHours: 20000,
-        estimatedDuration: 24,
-        requiredParts: ['Pump repair kit', 'Bearings', 'Seals'],
-      },
-    ],
-  },
-
-  generator: {
-    id: 'oem-generator-001',
-    equipmentType: 'generator',
-    manufacturer: 'Cummins Power Generation',
-    model: 'QSK60-G',
-    specs: {
-      ratedCapacity: 2000,
-      ratedCapacityUnit: 'kVA',
-      maxOperatingHours: 50000,
-      maintenanceIntervalHours: 500,
-      maxTemperature: 90,
-      mtbf: 40000,
-    },
-    wearCurve: [
-      { cycles: 0, healthPercent: 100 },
-      { cycles: 12500, healthPercent: 92 },
-      { cycles: 25000, healthPercent: 78 },
-      { cycles: 37500, healthPercent: 58 },
-      { cycles: 45000, healthPercent: 38 },
-      { cycles: 50000, healthPercent: 15 },
-    ],
-    failureModes: [
-      {
-        mode: 'AVR/excitation failure',
-        probability: 0.25,
-        warningSignals: ['Voltage instability', 'Frequency hunting', 'Excitation current anomaly'],
-        mtbf: 30000,
-      },
-      {
-        mode: 'Stator winding degradation',
-        probability: 0.20,
-        warningSignals: ['Insulation resistance drop', 'Partial discharge', 'Hot spots'],
-        mtbf: 45000,
-      },
-      {
-        mode: 'Bearing wear',
-        probability: 0.30,
-        warningSignals: ['Vibration increase', 'Temperature rise', 'Noise change'],
-        mtbf: 25000,
-      },
-      {
-        mode: 'Engine-generator coupling issue',
+        mode: 'Winding deformation from through-faults',
         probability: 0.15,
-        warningSignals: ['Alignment drift', 'Vibration at 1x RPM', 'Coupling wear'],
-        mtbf: 35000,
+        warningSignals: ['FRA pattern change', 'Impedance shift', 'Elevated C2H2 after fault', 'Oil movement during faults'],
+        mtbf: 250000,
       },
       {
-        mode: 'Cooling fan/system failure',
-        probability: 0.10,
-        warningSignals: ['Overheating', 'Fan bearing noise', 'Reduced airflow'],
-        mtbf: 20000,
+        mode: 'Overload-accelerated aging',
+        probability: 0.30,
+        warningSignals: ['Sustained load above nameplate', 'Top-oil > 95°C', 'Hot-spot > 110°C', 'Furan rate of increase'],
+        mtbf: 120000,
       },
     ],
     maintenanceTasks: [
-      {
-        task: 'Routine inspection',
-        intervalHours: 250,
-        estimatedDuration: 1,
-      },
-      {
-        task: 'Oil and filter service',
-        intervalHours: 500,
-        estimatedDuration: 4,
-        requiredParts: ['Engine oil 100L', 'Oil filter x2', 'Fuel filter'],
-      },
-      {
-        task: 'Insulation testing',
-        intervalHours: 4000,
-        estimatedDuration: 4,
-      },
-      {
-        task: 'Bearing inspection/regreasing',
-        intervalHours: 8000,
-        estimatedDuration: 8,
-        requiredParts: ['Generator bearing grease 2kg'],
-      },
-      {
-        task: 'Major service',
-        intervalHours: 20000,
-        estimatedDuration: 48,
-        requiredParts: ['Service kit', 'Bearings', 'Coupling elements'],
-      },
+      { task: 'DGA oil sampling and analysis', intervalMonths: 6, estimatedDuration: 2 },
+      { task: 'Power factor / dissipation factor test', intervalMonths: 12, estimatedDuration: 4 },
+      { task: 'Winding resistance measurement', intervalMonths: 24, estimatedDuration: 4 },
+      { task: 'Frequency response analysis (FRA)', intervalMonths: 60, estimatedDuration: 8 },
+      { task: 'Furan analysis (oil sample)', intervalMonths: 12, estimatedDuration: 2 },
     ],
   },
 
-  crane_boom: {
-    id: 'oem-crane-boom-001',
-    equipmentType: 'crane_boom',
-    manufacturer: 'Huisman',
-    model: 'Offshore Crane Boom',
+  bushing: {
+    id: 'oem-bushing-001',
+    componentType: 'bushing',
+    manufacturer: 'ABB / Trench / HSP',
+    model: 'OIP/RIP HV Bushing',
     specs: {
-      ratedCapacity: 300,
-      ratedCapacityUnit: 'tons',
-      maxOperatingHours: 100000,
-      maintenanceIntervalHours: 2000,
+      maxTemperature: 85,
+      expectedLifeYears: 40,
+      maintenanceIntervalHours: 8760,
+      mtbf: 200000,
+    },
+    wearCurve: [
+      { years: 0, healthPercent: 100 },
+      { years: 10, healthPercent: 96 },
+      { years: 20, healthPercent: 88 },
+      { years: 30, healthPercent: 72 },
+      { years: 35, healthPercent: 55 },
+      { years: 40, healthPercent: 30 },
+    ],
+    failureModes: [
+      {
+        mode: 'Capacitance / power factor change (dielectric deterioration)',
+        probability: 0.35,
+        warningSignals: ['Power factor increase > 0.5%', 'Capacitance change > 5%', 'Oil leakage at base', 'Thermal asymmetry'],
+        mtbf: 200000,
+      },
+      {
+        mode: 'Moisture ingress through gasket',
+        probability: 0.25,
+        warningSignals: ['Capacitance change', 'Elevated power factor', 'Oil discoloration', 'Reduced dielectric strength'],
+        mtbf: 150000,
+      },
+      {
+        mode: 'Porcelain cracking / flashover',
+        probability: 0.15,
+        warningSignals: ['Visible cracks', 'Partial discharge during fog/rain', 'Salt/pollution buildup', 'Corona activity'],
+        mtbf: 180000,
+      },
+      {
+        mode: 'Internal short circuit',
+        probability: 0.25,
+        warningSignals: ['Sudden power factor jump', 'DGA shows H2/C2H2 spike', 'Trip event', 'Oil discoloration'],
+        mtbf: 220000,
+      },
+    ],
+    maintenanceTasks: [
+      { task: 'Visual inspection and IR thermography', intervalMonths: 6, estimatedDuration: 1 },
+      { task: 'Power factor and capacitance test', intervalMonths: 12, estimatedDuration: 4 },
+      { task: 'Oil level and leakage check', intervalMonths: 3, estimatedDuration: 0.5 },
+      { task: 'Bushing replacement (planned)', intervalMonths: 480, estimatedDuration: 48, requiredParts: ['RIP bushing assembly', 'Gasket set', 'Connection hardware'] },
+    ],
+  },
+
+  tap_changer: {
+    id: 'oem-tap-changer-001',
+    componentType: 'tap_changer',
+    manufacturer: 'MR (Maschinenfabrik Reinhausen)',
+    model: 'OLTC Type M',
+    specs: {
+      expectedLifeYears: 30,
+      maintenanceIntervalHours: 4380,
       mtbf: 80000,
     },
     wearCurve: [
-      { cycles: 0, healthPercent: 100 },
-      { cycles: 25000, healthPercent: 95 },
-      { cycles: 50000, healthPercent: 85 },
-      { cycles: 75000, healthPercent: 70 },
-      { cycles: 90000, healthPercent: 50 },
-      { cycles: 100000, healthPercent: 25 },
+      { years: 0, healthPercent: 100 },
+      { years: 5, healthPercent: 92 },
+      { years: 15, healthPercent: 75 },
+      { years: 25, healthPercent: 50 },
+      { years: 30, healthPercent: 25 },
     ],
     failureModes: [
       {
-        mode: 'Structural fatigue crack',
-        probability: 0.30,
-        warningSignals: ['Crack detection in NDT', 'Paint flaking at stress points', 'Deformation'],
-        mtbf: 70000,
+        mode: 'Contact erosion / carbon buildup',
+        probability: 0.40,
+        warningSignals: ['Elevated contact resistance', 'DGA in OLTC compartment: C2H2', 'Oil discoloration', 'Slow tap change time'],
+        mtbf: 80000,
       },
       {
-        mode: 'Pin/bushing wear',
-        probability: 0.35,
-        warningSignals: ['Play in joints', 'Squeaking', 'Uneven wear pattern'],
-        mtbf: 30000,
-      },
-      {
-        mode: 'Corrosion damage',
+        mode: 'Diverter switch wear',
         probability: 0.25,
-        warningSignals: ['Surface rust', 'Pitting', 'Paint degradation'],
-        mtbf: 50000,
+        warningSignals: ['Arcing during operation', 'Oil carbonization', 'Transition resistance change', 'Motor current anomaly'],
+        mtbf: 60000,
       },
       {
-        mode: 'Hydraulic cylinder failure',
-        probability: 0.10,
-        warningSignals: ['Leakage', 'Slow movement', 'Rod scoring'],
-        mtbf: 25000,
+        mode: 'Drive mechanism failure',
+        probability: 0.20,
+        warningSignals: ['Motor current spike', 'Tap change time increase', 'Mechanical noise', 'Position feedback error'],
+        mtbf: 100000,
+      },
+      {
+        mode: 'Oil contamination from switching',
+        probability: 0.15,
+        warningSignals: ['Oil darkening', 'Particle count increase', 'Dielectric strength reduction', 'Sludge formation'],
+        mtbf: 50000,
       },
     ],
     maintenanceTasks: [
-      {
-        task: 'Visual inspection',
-        intervalHours: 500,
-        estimatedDuration: 2,
-      },
-      {
-        task: 'Pin and bushing greasing',
-        intervalHours: 250,
-        estimatedDuration: 4,
-        requiredParts: ['Grease 10kg'],
-      },
-      {
-        task: 'NDT inspection',
-        intervalHours: 5000,
-        estimatedDuration: 16,
-      },
-      {
-        task: 'Pin and bushing replacement',
-        intervalHours: 25000,
-        estimatedDuration: 48,
-        requiredParts: ['Pin set', 'Bushings', 'Seals'],
-      },
+      { task: 'Oil sampling from OLTC compartment', intervalMonths: 6, estimatedDuration: 1 },
+      { task: 'Operations counter reading and drive test', intervalMonths: 3, estimatedDuration: 0.5 },
+      { task: 'Contact resistance measurement', intervalMonths: 12, estimatedDuration: 4 },
+      { task: 'OLTC overhaul (contact/diverter replacement)', intervalMonths: 120, estimatedDuration: 72, requiredParts: ['Contact assembly', 'Diverter switch', 'Resistors', 'Oil for OLTC compartment'] },
     ],
   },
 
-  slew_bearing: {
-    id: 'oem-slew-bearing-001',
-    equipmentType: 'slew_bearing',
-    manufacturer: 'Rothe Erde',
-    model: 'KD 800 Series',
+  cooling_system: {
+    id: 'oem-cooling-001',
+    componentType: 'cooling_system',
+    manufacturer: 'Kelvion / GE',
+    model: 'ONAF/OFAF Cooling Bank',
     specs: {
-      ratedCapacity: 400,
-      ratedCapacityUnit: 'tons',
-      maxOperatingHours: 50000,
-      maintenanceIntervalHours: 500,
-      maxVibration: 3.0,
-      mtbf: 40000,
+      maxTemperature: 65,
+      expectedLifeYears: 25,
+      maintenanceIntervalHours: 4380,
+      mtbf: 30000,
     },
     wearCurve: [
-      { cycles: 0, healthPercent: 100 },
-      { cycles: 12500, healthPercent: 90 },
-      { cycles: 25000, healthPercent: 75 },
-      { cycles: 37500, healthPercent: 55 },
-      { cycles: 45000, healthPercent: 35 },
-      { cycles: 50000, healthPercent: 10 },
+      { years: 0, healthPercent: 100 },
+      { years: 5, healthPercent: 92 },
+      { years: 10, healthPercent: 80 },
+      { years: 15, healthPercent: 65 },
+      { years: 20, healthPercent: 45 },
+      { years: 25, healthPercent: 20 },
     ],
     failureModes: [
       {
-        mode: 'Raceway wear',
+        mode: 'Fan motor bearing failure',
         probability: 0.35,
-        warningSignals: ['Increased rotational resistance', 'Play in bearing', 'Noise during slewing'],
+        warningSignals: ['Motor current increase', 'Vibration', 'Reduced airflow', 'Fan motor temperature rise'],
+        mtbf: 30000,
+      },
+      {
+        mode: 'Radiator blockage (internal sludge)',
+        probability: 0.25,
+        warningSignals: ['Oil flow reduction', 'Temperature differential across radiator', 'Top-oil temperature rise'],
+        mtbf: 40000,
+      },
+      {
+        mode: 'Oil pump failure',
+        probability: 0.20,
+        warningSignals: ['Flow rate decrease', 'Pump motor current change', 'Oil temperature differential', 'Pump noise'],
         mtbf: 35000,
       },
       {
-        mode: 'Seal degradation',
-        probability: 0.25,
-        warningSignals: ['Grease leakage', 'Contamination ingress', 'Corrosion at seal area'],
-        mtbf: 20000,
-      },
-      {
-        mode: 'Gear tooth wear',
-        probability: 0.25,
-        warningSignals: ['Backlash increase', 'Gear noise', 'Vibration during slewing'],
-        mtbf: 30000,
-      },
-      {
-        mode: 'Bolt loosening/failure',
-        probability: 0.15,
-        warningSignals: ['Torque loss on bolts', 'Movement at interface', 'Fretting corrosion'],
+        mode: 'Control system malfunction',
+        probability: 0.20,
+        warningSignals: ['Fans not starting on temperature', 'Stage control failure', 'Sensor drift', 'Relay failure'],
         mtbf: 25000,
       },
     ],
     maintenanceTasks: [
+      { task: 'Fan motor inspection and cleaning', intervalMonths: 6, estimatedDuration: 2 },
+      { task: 'Oil pump flow verification', intervalMonths: 12, estimatedDuration: 2 },
+      { task: 'Radiator cleaning (external)', intervalMonths: 6, estimatedDuration: 4 },
+      { task: 'Fan motor replacement', intervalMonths: 120, estimatedDuration: 8, requiredParts: ['Fan motor assembly', 'Fan blades', 'Mounting hardware'] },
+      { task: 'Oil pump replacement', intervalMonths: 144, estimatedDuration: 16, requiredParts: ['Oil circulation pump', 'Coupling', 'Gaskets'] },
+    ],
+  },
+
+  oil_system: {
+    id: 'oem-oil-001',
+    componentType: 'oil_system',
+    manufacturer: 'Nynas / Shell Diala',
+    model: 'Mineral Insulating Oil System',
+    specs: {
+      maxMoisture: 35,
+      expectedLifeYears: 20,
+      maintenanceIntervalHours: 4380,
+      mtbf: 50000,
+    },
+    wearCurve: [
+      { years: 0, healthPercent: 100 },
+      { years: 5, healthPercent: 90 },
+      { years: 10, healthPercent: 75 },
+      { years: 15, healthPercent: 55 },
+      { years: 20, healthPercent: 30 },
+    ],
+    failureModes: [
       {
-        task: 'Greasing',
-        intervalHours: 250,
-        estimatedDuration: 2,
-        requiredParts: ['Slew bearing grease 5kg'],
+        mode: 'Oil oxidation and acidity increase',
+        probability: 0.30,
+        warningSignals: ['Acidity > 0.20 mg KOH/g', 'IFT < 22 mN/m', 'Color darkening', 'Sludge formation'],
+        mtbf: 50000,
       },
       {
-        task: 'Bolt torque check',
-        intervalHours: 1000,
-        estimatedDuration: 4,
+        mode: 'Moisture contamination',
+        probability: 0.30,
+        warningSignals: ['Moisture > 30 ppm (for 230kV+)', 'Dielectric strength drop', 'Power factor increase', 'Gasket deterioration'],
+        mtbf: 40000,
       },
       {
-        task: 'Backlash measurement',
-        intervalHours: 2000,
-        estimatedDuration: 2,
+        mode: 'Corrosive sulfur attack',
+        probability: 0.15,
+        warningSignals: ['Copper strip test fails', 'DBDS detection', 'Conductor surface deposits', 'Elevated copper in oil'],
+        mtbf: 60000,
       },
       {
-        task: 'Seal replacement',
-        intervalHours: 15000,
-        estimatedDuration: 24,
-        requiredParts: ['Seal kit'],
+        mode: 'Oil leak (tank/gasket/valve)',
+        probability: 0.25,
+        warningSignals: ['Oil level decrease', 'Visible staining', 'Conservator level low', 'Pressure gauge anomaly'],
+        mtbf: 35000,
+      },
+    ],
+    maintenanceTasks: [
+      { task: 'Oil sampling and routine analysis', intervalMonths: 6, estimatedDuration: 1 },
+      { task: 'DGA analysis', intervalMonths: 6, estimatedDuration: 1 },
+      { task: 'Silica gel breather inspection/replacement', intervalMonths: 6, estimatedDuration: 1, requiredParts: ['Silica gel cartridge'] },
+      { task: 'Hot oil filtration and dehydration', intervalMonths: 60, estimatedDuration: 24, requiredParts: ['Filter elements', 'Vacuum pump oil'] },
+      { task: 'Full oil replacement', intervalMonths: 240, estimatedDuration: 72, requiredParts: ['Transformer oil (volume per unit)'] },
+    ],
+  },
+
+  surge_arrester: {
+    id: 'oem-surge-001',
+    componentType: 'surge_arrester',
+    manufacturer: 'ABB / Siemens',
+    model: 'PEXLIM Metal Oxide Arrester',
+    specs: {
+      expectedLifeYears: 25,
+      maintenanceIntervalHours: 8760,
+      mtbf: 100000,
+    },
+    wearCurve: [
+      { years: 0, healthPercent: 100 },
+      { years: 10, healthPercent: 90 },
+      { years: 15, healthPercent: 75 },
+      { years: 20, healthPercent: 55 },
+      { years: 25, healthPercent: 30 },
+    ],
+    failureModes: [
+      {
+        mode: 'MOV disc degradation from surge events',
+        probability: 0.40,
+        warningSignals: ['Leakage current increase', 'Surge counter high count', 'Third harmonic change', 'Thermal image anomaly'],
+        mtbf: 100000,
       },
       {
-        task: 'Full bearing replacement',
-        intervalHours: 40000,
-        estimatedDuration: 168,
-        requiredParts: ['Slew bearing assembly', 'Mounting hardware', 'Seals'],
+        mode: 'Moisture ingress (seal failure)',
+        probability: 0.30,
+        warningSignals: ['Leakage current increase', 'Visible seal damage', 'Partial discharge on housing'],
+        mtbf: 80000,
       },
+      {
+        mode: 'Porcelain housing failure',
+        probability: 0.15,
+        warningSignals: ['Visible cracks', 'Pollution flashover risk', 'Mechanical damage'],
+        mtbf: 120000,
+      },
+    ],
+    maintenanceTasks: [
+      { task: 'Visual inspection and surge counter reading', intervalMonths: 6, estimatedDuration: 0.5 },
+      { task: 'Leakage current measurement', intervalMonths: 12, estimatedDuration: 2 },
+      { task: 'IR thermography scan', intervalMonths: 12, estimatedDuration: 1 },
+      { task: 'Arrester replacement', intervalMonths: 300, estimatedDuration: 8, requiredParts: ['Metal oxide arrester assembly', 'Mounting hardware', 'Ground lead'] },
+    ],
+  },
+
+  current_transformer: {
+    id: 'oem-ct-001',
+    componentType: 'current_transformer',
+    manufacturer: 'Trench / ABB',
+    model: 'Oil-filled Metering CT',
+    specs: {
+      expectedLifeYears: 35,
+      maintenanceIntervalHours: 8760,
+      mtbf: 100000,
+    },
+    wearCurve: [
+      { years: 0, healthPercent: 100 },
+      { years: 10, healthPercent: 95 },
+      { years: 20, healthPercent: 82 },
+      { years: 30, healthPercent: 60 },
+      { years: 35, healthPercent: 35 },
+    ],
+    failureModes: [
+      { mode: 'CT ratio error / saturation', probability: 0.30, warningSignals: ['Ratio test deviation', 'Burden measurement change', 'Protection misoperation'], mtbf: 100000 },
+      { mode: 'Oil leak / moisture ingress', probability: 0.35, warningSignals: ['Oil level low', 'Visible leakage', 'Dielectric test failure'], mtbf: 80000 },
+      { mode: 'Internal insulation failure', probability: 0.20, warningSignals: ['DGA anomaly', 'Power factor change', 'Partial discharge'], mtbf: 120000 },
+    ],
+    maintenanceTasks: [
+      { task: 'Visual inspection', intervalMonths: 6, estimatedDuration: 0.5 },
+      { task: 'Ratio and burden test', intervalMonths: 60, estimatedDuration: 4 },
+      { task: 'Oil sampling (if oil-filled)', intervalMonths: 24, estimatedDuration: 1 },
+    ],
+  },
+
+  breaker: {
+    id: 'oem-breaker-001',
+    componentType: 'breaker',
+    manufacturer: 'ABB / Siemens / GE',
+    model: 'SF6 Circuit Breaker',
+    specs: {
+      expectedLifeYears: 30,
+      maintenanceIntervalHours: 4380,
+      mtbf: 50000,
+    },
+    wearCurve: [
+      { years: 0, healthPercent: 100 },
+      { years: 10, healthPercent: 90 },
+      { years: 20, healthPercent: 70 },
+      { years: 25, healthPercent: 50 },
+      { years: 30, healthPercent: 25 },
+    ],
+    failureModes: [
+      { mode: 'SF6 gas leak', probability: 0.30, warningSignals: ['SF6 pressure drop', 'Density alarm', 'Leak detection'], mtbf: 80000 },
+      { mode: 'Trip coil failure', probability: 0.25, warningSignals: ['Coil resistance change', 'Trip time increase', 'Trip test failure'], mtbf: 50000 },
+      { mode: 'Contact wear', probability: 0.25, warningSignals: ['Contact resistance increase', 'Arcing contact worn', 'Trip counter high'], mtbf: 60000 },
+      { mode: 'Operating mechanism failure', probability: 0.20, warningSignals: ['Slow operation', 'Mechanical binding', 'Spring charge failure'], mtbf: 70000 },
+    ],
+    maintenanceTasks: [
+      { task: 'SF6 gas pressure check', intervalMonths: 3, estimatedDuration: 0.5 },
+      { task: 'Trip and close test', intervalMonths: 12, estimatedDuration: 4 },
+      { task: 'Contact resistance measurement', intervalMonths: 12, estimatedDuration: 2 },
+      { task: 'Breaker timing test', intervalMonths: 24, estimatedDuration: 4 },
+      { task: 'Major overhaul', intervalMonths: 180, estimatedDuration: 48, requiredParts: ['Contact set', 'SF6 gas', 'Seal kit', 'Trip coils'] },
+    ],
+  },
+
+  relay: {
+    id: 'oem-relay-001',
+    componentType: 'relay',
+    manufacturer: 'SEL / GE / ABB',
+    model: 'Digital Protective Relay',
+    specs: {
+      expectedLifeYears: 20,
+      maintenanceIntervalHours: 8760,
+      mtbf: 60000,
+    },
+    wearCurve: [
+      { years: 0, healthPercent: 100 },
+      { years: 5, healthPercent: 95 },
+      { years: 10, healthPercent: 85 },
+      { years: 15, healthPercent: 65 },
+      { years: 20, healthPercent: 40 },
+    ],
+    failureModes: [
+      { mode: 'Settings drift / misoperation', probability: 0.35, warningSignals: ['Relay event log anomaly', 'Settings audit discrepancy', 'Trip test deviation'], mtbf: 60000 },
+      { mode: 'Communication failure', probability: 0.25, warningSignals: ['SCADA communication loss', 'IEC 61850 message errors', 'Ping timeout'], mtbf: 40000 },
+      { mode: 'Power supply failure', probability: 0.20, warningSignals: ['DC voltage fluctuation', 'Relay reboot events', 'Battery alarm'], mtbf: 50000 },
+      { mode: 'Hardware component failure', probability: 0.20, warningSignals: ['Self-test alarm', 'I/O board failure', 'Display malfunction'], mtbf: 70000 },
+    ],
+    maintenanceTasks: [
+      { task: 'Relay event log review', intervalMonths: 3, estimatedDuration: 1 },
+      { task: 'Trip test and calibration', intervalMonths: 12, estimatedDuration: 4 },
+      { task: 'Settings audit and verification', intervalMonths: 24, estimatedDuration: 2 },
+      { task: 'Firmware update', intervalMonths: 36, estimatedDuration: 2 },
+    ],
+  },
+
+  protection_system: {
+    id: 'oem-protection-001',
+    componentType: 'protection_system',
+    manufacturer: 'Various',
+    model: 'Integrated Protection System',
+    specs: {
+      expectedLifeYears: 25,
+      maintenanceIntervalHours: 8760,
+      mtbf: 80000,
+    },
+    wearCurve: [
+      { years: 0, healthPercent: 100 },
+      { years: 10, healthPercent: 88 },
+      { years: 15, healthPercent: 72 },
+      { years: 20, healthPercent: 55 },
+      { years: 25, healthPercent: 30 },
+    ],
+    failureModes: [
+      { mode: 'Protection coordination error', probability: 0.30, warningSignals: ['Miscoordination event', 'Settings change needed', 'Study results outdated'], mtbf: 80000 },
+      { mode: 'Backup protection failure', probability: 0.25, warningSignals: ['Trip test failure', 'Relay self-test alarm', 'DC supply issue'], mtbf: 90000 },
+    ],
+    maintenanceTasks: [
+      { task: 'Protection coordination study review', intervalMonths: 60, estimatedDuration: 16 },
+      { task: 'End-to-end trip test', intervalMonths: 12, estimatedDuration: 8 },
     ],
   },
 }
 
-export function getOEMProfile(equipmentType: PMEquipmentType): PMEquipmentProfile {
-  return OEM_EQUIPMENT_PROFILES[equipmentType]
+export function getOEMProfile(componentType: PMComponentType): PMEquipmentProfile {
+  return OEM_COMPONENT_PROFILES[componentType]
 }
 
-export function getWearPercentage(equipmentType: PMEquipmentType, currentCycles: number): number {
-  const profile = OEM_EQUIPMENT_PROFILES[equipmentType]
+export function getWearPercentage(componentType: PMComponentType, ageYears: number): number {
+  const profile = OEM_COMPONENT_PROFILES[componentType]
   if (!profile.wearCurve || profile.wearCurve.length === 0) return 100
 
   const curve = profile.wearCurve
-  
-  if (currentCycles <= curve[0].cycles) return curve[0].healthPercent
-  if (currentCycles >= curve[curve.length - 1].cycles) return curve[curve.length - 1].healthPercent
+  if (ageYears <= curve[0].years) return curve[0].healthPercent
+  if (ageYears >= curve[curve.length - 1].years) return curve[curve.length - 1].healthPercent
 
   for (let i = 0; i < curve.length - 1; i++) {
-    if (currentCycles >= curve[i].cycles && currentCycles < curve[i + 1].cycles) {
-      const ratio = (currentCycles - curve[i].cycles) / (curve[i + 1].cycles - curve[i].cycles)
+    if (ageYears >= curve[i].years && ageYears < curve[i + 1].years) {
+      const ratio = (ageYears - curve[i].years) / (curve[i + 1].years - curve[i].years)
       return curve[i].healthPercent - ratio * (curve[i].healthPercent - curve[i + 1].healthPercent)
     }
   }
-
   return 50
 }
 
 export function getNextMaintenanceTask(
-  equipmentType: PMEquipmentType, 
-  currentHours: number
-): { task: string; dueInHours: number; estimatedDuration: number; parts?: string[] } | null {
-  const profile = OEM_EQUIPMENT_PROFILES[equipmentType]
+  componentType: PMComponentType,
+  ageMonths: number
+): { task: string; dueInMonths: number; estimatedDuration: number; parts?: string[] } | null {
+  const profile = OEM_COMPONENT_PROFILES[componentType]
   if (!profile.maintenanceTasks || profile.maintenanceTasks.length === 0) return null
 
   let nearestTask = null
   let nearestDue = Infinity
 
   for (const task of profile.maintenanceTasks) {
-    const lastCompleted = Math.floor(currentHours / task.intervalHours) * task.intervalHours
-    const nextDue = lastCompleted + task.intervalHours
-    const dueInHours = nextDue - currentHours
+    const lastCompleted = Math.floor(ageMonths / task.intervalMonths) * task.intervalMonths
+    const nextDue = lastCompleted + task.intervalMonths
+    const dueInMonths = nextDue - ageMonths
 
-    if (dueInHours > 0 && dueInHours < nearestDue) {
-      nearestDue = dueInHours
+    if (dueInMonths > 0 && dueInMonths < nearestDue) {
+      nearestDue = dueInMonths
       nearestTask = {
         task: task.task,
-        dueInHours,
+        dueInMonths,
         estimatedDuration: task.estimatedDuration,
         parts: task.requiredParts,
       }
     }
   }
-
   return nearestTask
 }
 
 export function getMostLikelyFailureMode(
-  equipmentType: PMEquipmentType,
-  vibration?: number,
+  componentType: PMComponentType,
+  moisture?: number,
   temperature?: number
 ): { mode: string; probability: number; warningSignals: string[] } | null {
-  const profile = OEM_EQUIPMENT_PROFILES[equipmentType]
+  const profile = OEM_COMPONENT_PROFILES[componentType]
   if (!profile.failureModes || profile.failureModes.length === 0) return null
 
   let highestProbability = 0
@@ -694,16 +495,16 @@ export function getMostLikelyFailureMode(
   for (const fm of profile.failureModes) {
     let adjustedProbability = fm.probability
 
-    if (vibration && profile.specs.maxVibration) {
-      const vibrationRatio = vibration / profile.specs.maxVibration
-      if (vibrationRatio > 0.8 && fm.warningSignals.some(s => s.toLowerCase().includes('vibration'))) {
+    if (moisture && profile.specs.maxMoisture) {
+      const moistureRatio = moisture / profile.specs.maxMoisture
+      if (moistureRatio > 0.8 && fm.warningSignals.some(s => s.toLowerCase().includes('moisture') || s.toLowerCase().includes('dielectric'))) {
         adjustedProbability *= 1.5
       }
     }
 
     if (temperature && profile.specs.maxTemperature) {
       const tempRatio = temperature / profile.specs.maxTemperature
-      if (tempRatio > 0.8 && fm.warningSignals.some(s => s.toLowerCase().includes('temperature') || s.toLowerCase().includes('heat'))) {
+      if (tempRatio > 0.8 && fm.warningSignals.some(s => s.toLowerCase().includes('temperature') || s.toLowerCase().includes('hot') || s.toLowerCase().includes('thermal'))) {
         adjustedProbability *= 1.4
       }
     }
@@ -717,7 +518,5 @@ export function getMostLikelyFailureMode(
       }
     }
   }
-
   return mostLikely
 }
-

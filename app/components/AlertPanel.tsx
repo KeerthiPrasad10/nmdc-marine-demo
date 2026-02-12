@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { NMDCAlert } from '@/lib/nmdc/alerts';
+import type { NMDCAlert as LegacyAlert } from '@/lib/nmdc/alerts';
 import {
   AlertTriangle,
   AlertCircle,
@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 
 interface AlertPanelProps {
-  alerts: NMDCAlert[];
+  alerts: LegacyAlert[];
   onAcknowledge?: (alertId: string) => void;
   onResolve?: (alertId: string) => void;
 }

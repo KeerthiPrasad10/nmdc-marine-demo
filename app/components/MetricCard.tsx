@@ -36,17 +36,17 @@ export function MetricCard({
   
   // Muted color config - only subtle hints of color
   const isWarning = color === 'warning' || color === 'error';
-  const iconColor = isWarning ? 'text-white/50' : 'text-white/40';
-  const valueColor = isWarning ? 'text-amber-400' : 'text-white';
+  const iconColor = 'text-white/35';
+  const valueColor = isWarning ? 'text-white/70' : 'text-white/90';
   
   const sourceColors = {
-    live: 'text-green-400',
-    static: 'text-blue-400',
-    simulated: 'text-amber-400',
+    live: 'text-white/40',
+    static: 'text-white/35',
+    simulated: 'text-white/35',
   };
   
   const sourceLabels = {
-    live: 'Live AIS',
+    live: 'Live SCADA',
     static: 'Fleet Data',
     simulated: 'Simulated',
   };
@@ -114,7 +114,7 @@ export function MetricCard({
             <p className="mt-1 text-sm text-white/30">{subtitle}</p>
           )}
           {trend && (
-            <p className={`mt-2 text-sm font-medium ${trend.positive ? 'text-emerald-400' : 'text-rose-400'}`}>
+            <p className={`mt-2 text-sm font-medium ${trend.positive ? 'text-white/50' : 'text-white/45'}`}>
               {trend.positive ? '↑' : '↓'} {Math.abs(trend.value)}% {trend.label}
             </p>
           )}

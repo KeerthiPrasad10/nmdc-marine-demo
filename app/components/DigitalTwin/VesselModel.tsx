@@ -202,3 +202,6 @@ export function VesselModel({ vesselType, healthScore, isSelected = false }: Ves
 
 
 
+
+
+

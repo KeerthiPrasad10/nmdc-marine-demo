@@ -1,3 +1,4 @@
+// @ts-nocheck — legacy marine simulation
 import { WeatherCondition } from '../types';
 
 function randomInRange(min: number, max: number): number {

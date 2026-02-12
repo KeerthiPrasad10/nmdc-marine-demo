@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Fleet Ops",
-  description: "Real-time fleet monitoring and predictive maintenance dashboard for marine operations",
+  title: "Exelon GridIQ",
+  description: "AI-powered grid intelligence — predictive maintenance, digital twins, and operational orchestration for Exelon utilities",
 };
 
 export default function RootLayout({

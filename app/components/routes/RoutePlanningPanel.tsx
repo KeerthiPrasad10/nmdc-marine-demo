@@ -144,7 +144,7 @@ export function RoutePlanningPanel({
   // All Middle East ports with accurate coordinates from Datalastic API
   const commonPorts = [
     // === UAE Ports ===
-    { name: '🇦🇪 Musaffah (NMDC)', lat: 24.33506, lng: 54.43968 },
+    { name: '🇦🇪 Musaffah (Marine Base)', lat: 24.33506, lng: 54.43968 },
     { name: '🇦🇪 Abu Dhabi', lat: 24.4821, lng: 54.50214 },
     { name: '🇦🇪 Khalifa Port', lat: 24.78751, lng: 54.67621 },
     { name: '🇦🇪 Jebel Ali (Dubai)', lat: 25.00328, lng: 55.05206 },

@@ -7,7 +7,7 @@ import {
   ArrowLeft,
   Camera,
   Wrench,
-  Ship,
+  Zap,
   AlertTriangle,
   Loader2,
   ExternalLink,
@@ -91,7 +91,7 @@ function TroubleshootContent() {
         <div className="flex items-center gap-4">
           {vesselName && (
             <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
-              <Ship className="w-4 h-4 text-primary-400" />
+              <Zap className="w-4 h-4 text-primary-400" />
               <span className="text-sm text-white/70">{vesselName}</span>
             </div>
           )}

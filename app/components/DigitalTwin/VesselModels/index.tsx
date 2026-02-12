@@ -5,9 +5,41 @@ import { CraneBargeModel } from './CraneBargeModel';
 import { TugboatModel } from './TugboatModel';
 import { SupplyVesselModel } from './SupplyVesselModel';
 import { JackUpModel } from './JackUpModel';
+import { TransformerModel } from '../TransformerModel';
 
-export { DredgerModel, CraneBargeModel, TugboatModel, SupplyVesselModel, JackUpModel };
+export { DredgerModel, CraneBargeModel, TugboatModel, SupplyVesselModel, JackUpModel, TransformerModel };
 
+// =========================================
+// Grid Asset Model Selector (Exelon re-theme)
+// =========================================
+interface AssetModelSelectorProps {
+  assetType: string;
+  healthScore: number;
+  isSelected?: boolean;
+  voltageClass?: number;
+}
+
+export function AssetModelSelector({
+  assetType,
+  healthScore,
+  isSelected = false,
+  voltageClass = 230,
+}: AssetModelSelectorProps) {
+  // All grid assets currently render as a transformer model.
+  // As more 3-D models (circuit breaker, substation yard, etc.) are
+  // created, switch here on `assetType`.
+  return (
+    <TransformerModel
+      healthScore={healthScore}
+      isSelected={isSelected}
+      voltageClass={voltageClass}
+    />
+  );
+}
+
+// =========================================
+// Legacy Vessel Model Selector (kept for compatibility)
+// =========================================
 interface VesselModelSelectorProps {
   vesselType: string;
   vesselSubType?: string;
@@ -29,8 +61,26 @@ export function VesselModelSelector({
 }: VesselModelSelectorProps) {
   const normalizedType = vesselType.toLowerCase().replace(/[_\s-]/g, '');
   const normalizedSubType = (vesselSubType || '').toLowerCase();
-  
-  // Use subType first for more accurate matching (NMDC fleet data)
+
+  // ── Grid asset types → TransformerModel ──
+  if (
+    normalizedType.includes('transformer') ||
+    normalizedType.includes('substation') ||
+    normalizedType.includes('circuitbreaker') ||
+    normalizedType.includes('feeder') ||
+    normalizedType.includes('power_transformer') ||
+    normalizedType.includes('distribution')
+  ) {
+    return (
+      <TransformerModel
+        healthScore={healthScore}
+        isSelected={isSelected}
+        voltageClass={normalizedType.includes('distribution') ? 13 : 230}
+      />
+    );
+  }
+
+  // Use subType first for more accurate matching (fleet data)
   
   // Trailing Suction Hopper Dredgers
   if (normalizedSubType.includes('trailing suction hopper') || normalizedSubType.includes('hopper dredger')) {
@@ -65,7 +115,7 @@ export function VesselModelSelector({
     );
   }
   
-  // NMDC Energy - Derrick Lay Barges & Semi-Submersibles (heavy lift vessels)
+  // Derrick Lay Barges & Semi-Submersibles (heavy lift vessels)
   if (normalizedSubType.includes('derrick') || normalizedSubType.includes('semi-submersible')) {
     return (
       <CraneBargeModel 
@@ -76,7 +126,7 @@ export function VesselModelSelector({
     );
   }
   
-  // NMDC Energy - Pipelay Barges (conventional flat bottom)
+  // Pipelay Barges (conventional flat bottom)
   if (normalizedSubType.includes('pipelay') || normalizedSubType.includes('flat bottom')) {
     return (
       <CraneBargeModel 
@@ -87,7 +137,7 @@ export function VesselModelSelector({
     );
   }
   
-  // NMDC Energy - Self-Elevating Platforms (Jack-Up Barges)
+  // Self-Elevating Platforms (Jack-Up Barges)
   if (normalizedSubType.includes('self-elevating') || normalizedSubType.includes('jack-up') || normalizedSubType.includes('jackup')) {
     return (
       <JackUpModel 
@@ -144,7 +194,6 @@ export function VesselModelSelector({
   
   // ===== Fallback to vesselType-based matching =====
   
-  // Dredgers - NMDC Group dredging fleet
   if (normalizedType.includes('dredger') || normalizedType.includes('hopper') || normalizedType === 'csd') {
     const subType = normalizedType.includes('csd') || normalizedType.includes('cutter') 
       ? 'csd' 
@@ -160,7 +209,6 @@ export function VesselModelSelector({
     );
   }
   
-  // NMDC Energy - Pipelay and Derrick Barges (heavy lift vessels with cranes)
   if (normalizedType.includes('pipelay') || 
       normalizedType.includes('derrick') || 
       normalizedType.includes('dlb') || 
@@ -175,7 +223,6 @@ export function VesselModelSelector({
     );
   }
   
-  // NMDC Energy - Jack-Up Barges (self-elevating platforms)
   if (normalizedType.includes('jackup') || normalizedType.includes('sep')) {
     return (
       <JackUpModel 
@@ -186,7 +233,6 @@ export function VesselModelSelector({
     );
   }
   
-  // Generic crane/barge types
   if (normalizedType.includes('crane') || normalizedType.includes('barge')) {
     return (
       <CraneBargeModel 
@@ -197,7 +243,6 @@ export function VesselModelSelector({
     );
   }
   
-  // Tugs and AHTS vessels
   if (normalizedType.includes('tug') || normalizedType.includes('ahts') || normalizedType.includes('pusher')) {
     return (
       <TugboatModel 
@@ -208,7 +253,6 @@ export function VesselModelSelector({
     );
   }
   
-  // Supply, Support, Survey, and Cable Lay vessels
   if (normalizedType.includes('supply') || 
       normalizedType.includes('support') || 
       normalizedType.includes('survey') ||
@@ -222,24 +266,14 @@ export function VesselModelSelector({
     );
   }
   
-  // Default to crane barge for NMDC Energy vessels (most common)
+  // Default: Transformer model for Exelon demo
   return (
-    <CraneBargeModel 
-      healthScore={healthScore} 
+    <TransformerModel
+      healthScore={healthScore}
       isSelected={isSelected}
-      craneCapacity={500}
+      voltageClass={230}
     />
   );
 }
 
 export default VesselModelSelector;
-
-
-
-
-
-
-
-
-
-

@@ -35,7 +35,7 @@ const GUARDRAILS = {
 /**
  * GET /api/live-vessels
  * 
- * ⚠️ GUARDRAILS ACTIVE - Use /api/fleet for NMDC fleet tracking
+ * ⚠️ GUARDRAILS ACTIVE - Use /api/fleet for fleet tracking
  * 
  * This endpoint is for individual vessel lookups only.
  * Radius search is DISABLED to prevent accidental credit waste.
@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
           return NextResponse.json({
             success: false,
             error: 'Radius search is disabled',
-            message: 'Radius search can return 600+ vessels and waste API credits. Use /api/fleet for NMDC fleet tracking, or /api/live-vessels?action=single&mmsi=XXX for individual vessels.',
+            message: 'Radius search can return 600+ vessels and waste API credits. Use /api/fleet for fleet tracking, or /api/live-vessels?action=single&mmsi=XXX for individual vessels.',
             suggestion: 'If you need radius search, enable it in the API guardrails or use action=search with a specific query.',
           }, { status: 403 });
         }
@@ -247,7 +247,7 @@ export async function GET(request: NextRequest) {
             radiusSearchEnabled: GUARDRAILS.RADIUS_SEARCH_ENABLED,
             maxSearchResults: GUARDRAILS.MAX_SEARCH_RESULTS,
             maxBulkVessels: GUARDRAILS.MAX_BULK_VESSELS,
-            recommendation: 'Use /api/fleet for NMDC fleet tracking (17 vessels, ~15 credits per refresh)',
+            recommendation: 'Use /api/fleet for fleet tracking (17 vessels, ~15 credits per refresh)',
           },
           creditsUsed: 0,
         });
@@ -271,7 +271,7 @@ export async function GET(request: NextRequest) {
           return NextResponse.json({
             success: false,
             error: 'Too many vessels',
-            message: `Maximum ${GUARDRAILS.MAX_BULK_VESSELS} vessels per bulk request. You requested ${mmsiList.length}. Use /api/fleet for NMDC fleet tracking.`,
+            message: `Maximum ${GUARDRAILS.MAX_BULK_VESSELS} vessels per bulk request. You requested ${mmsiList.length}. Use /api/fleet for fleet tracking.`,
           }, { status: 400 });
         }
 

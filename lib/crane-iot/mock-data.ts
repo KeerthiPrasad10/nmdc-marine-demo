@@ -485,7 +485,7 @@ export function generateProductionTarget(): ProductionTarget {
 
 export function generateCraneAsset(): CraneAsset {
   return {
-    id: 'crane-nmdc-001',
+    id: 'crane-legacy-001',
     name: 'DELMA 2000 - Main Crane',
     model: 'Huisman 2000T Mast Crane',
     capacity: 2000,

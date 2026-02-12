@@ -1,5 +1,5 @@
 /**
- * Generate alerts based on NMDC fleet data
+ * Generate alerts based on legacy marine fleet data
  * These are derived from actual fleet health/fuel values
  */
 
@@ -138,6 +138,9 @@ export function getAlertCounts(alerts: NMDCAlert[]): {
     unacknowledged: alerts.filter(a => !a.acknowledged).length,
   };
 }
+
+
+
 
 
 

@@ -7,16 +7,16 @@ import {
   calculateDistanceNm,
 } from '@/lib/datalastic';
 import { 
-  NMDC_FLEET, 
-  getNMDCVesselByMMSI,
-  getNMDCActiveProjects,
-  NMDCVessel,
+  NMDC_FLEET as LEGACY_FLEET, 
+  getNMDCVesselByMMSI as getLegacyVesselByMMSI,
+  getNMDCActiveProjects as getLegacyActiveProjects,
+  NMDCVessel as LegacyVessel,
 } from '@/lib/nmdc/fleet';
 
 export const dynamic = 'force-dynamic';
 
-export interface NMDCEnrichedVessel extends SimplifiedVessel {
-  nmdc: NMDCVessel;
+export interface LegacyEnrichedVessel extends SimplifiedVessel {
+  legacyMarine: LegacyVessel;
   isOnline: boolean;
   distanceFromAbuDhabi?: number;
 }
@@ -25,9 +25,9 @@ export interface NMDCEnrichedVessel extends SimplifiedVessel {
 const ABU_DHABI_PORT = { lat: 24.4539, lng: 54.3773 };
 
 /**
- * GET /api/nmdc
+ * GET /api/nmdc  (legacy marine fleet endpoint)
  * 
- * Fetch NMDC fleet data with enrichment
+ * Fetch fleet data with enrichment
  * 
  * Query parameters:
  * - action: 'fleet' | 'vessel' | 'projects' | 'stats'
@@ -49,15 +49,15 @@ export async function GET(request: NextRequest) {
 
     switch (action) {
       case 'fleet': {
-        // Get all NMDC vessels with live positions
-        const mmsiList = NMDC_FLEET.map(v => v.mmsi);
+        // Get all fleet vessels with live positions
+        const mmsiList = LEGACY_FLEET.map(v => v.mmsi);
         const liveVessels = await client.getVesselsBulk(mmsiList);
         
-        const enrichedVessels: NMDCEnrichedVessel[] = [];
+        const enrichedVessels: LegacyEnrichedVessel[] = [];
         const now = Date.now();
 
-        for (const nmdcVessel of NMDC_FLEET) {
-          const liveData = liveVessels.find(v => v.mmsi === nmdcVessel.mmsi);
+        for (const legacyVessel of LEGACY_FLEET) {
+          const liveData = liveVessels.find(v => v.mmsi === legacyVessel.mmsi);
           
           if (liveData) {
             const simplified = convertToSimplifiedVessel(liveData);
@@ -75,23 +75,23 @@ export async function GET(request: NextRequest) {
 
             enrichedVessels.push({
               ...simplified,
-              name: nmdcVessel.name, // Use NMDC name (more accurate)
-              nmdc: nmdcVessel,
+              name: legacyVessel.name, // Use fleet-sourced name (more accurate)
+              legacyMarine: legacyVessel,
               isOnline,
               distanceFromAbuDhabi: Math.round(distanceFromAbuDhabi * 10) / 10,
             });
           } else {
             // Vessel not found in live data - create placeholder
             enrichedVessels.push({
-              id: nmdcVessel.mmsi,
-              mmsi: nmdcVessel.mmsi,
-              imo: nmdcVessel.imo,
-              name: nmdcVessel.name,
-              type: nmdcVessel.type,
-              subType: nmdcVessel.subType,
+              id: legacyVessel.mmsi,
+              mmsi: legacyVessel.mmsi,
+              imo: legacyVessel.imo,
+              name: legacyVessel.name,
+              type: legacyVessel.type,
+              subType: legacyVessel.subType,
               position: { lat: 0, lng: 0 },
               navStatus: 'Unknown',
-              nmdc: nmdcVessel,
+              legacyMarine: legacyVessel,
               isOnline: false,
             });
           }
@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
 
         // Calculate fleet stats
         const onlineCount = enrichedVessels.filter(v => v.isOnline).length;
-        const totalCrew = NMDC_FLEET.reduce((sum, v) => sum + (v.crewCount || 0), 0);
+        const totalCrew = LEGACY_FLEET.reduce((sum, v) => sum + (v.crewCount || 0), 0);
         const avgSpeed = enrichedVessels
           .filter(v => v.speed && v.speed > 0)
           .reduce((sum, v, _, arr) => sum + (v.speed || 0) / arr.length, 0);
@@ -114,12 +114,12 @@ export async function GET(request: NextRequest) {
           success: true,
           vessels: enrichedVessels,
           stats: {
-            totalVessels: NMDC_FLEET.length,
+            totalVessels: LEGACY_FLEET.length,
             onlineVessels: onlineCount,
-            offlineVessels: NMDC_FLEET.length - onlineCount,
+            offlineVessels: LEGACY_FLEET.length - onlineCount,
             totalCrew,
             avgSpeed: Math.round(avgSpeed * 10) / 10,
-            activeProjects: getNMDCActiveProjects().length,
+            activeProjects: getLegacyActiveProjects().length,
           },
           meta: {
             fetchedAt: new Date().toISOString(),
@@ -137,11 +137,11 @@ export async function GET(request: NextRequest) {
           }, { status: 400 });
         }
 
-        const nmdcVessel = getNMDCVesselByMMSI(mmsi);
-        if (!nmdcVessel) {
+        const legacyVessel = getLegacyVesselByMMSI(mmsi);
+        if (!legacyVessel) {
           return NextResponse.json({
             success: false,
-            error: 'Vessel not in NMDC fleet',
+            error: 'Vessel not found in fleet',
           }, { status: 404 });
         }
 
@@ -182,8 +182,8 @@ export async function GET(request: NextRequest) {
           success: true,
           vessel: {
             ...simplified,
-            name: nmdcVessel.name,
-            nmdc: nmdcVessel,
+            name: legacyVessel.name,
+            legacyMarine: legacyVessel,
             isOnline,
             distanceFromAbuDhabi: Math.round(distanceFromAbuDhabi * 10) / 10,
           },
@@ -193,7 +193,7 @@ export async function GET(request: NextRequest) {
       }
 
       case 'projects': {
-        const projects = getNMDCActiveProjects();
+        const projects = getLegacyActiveProjects();
         return NextResponse.json({
           success: true,
           projects,
@@ -202,8 +202,8 @@ export async function GET(request: NextRequest) {
 
       case 'stats': {
         // Quick stats without fetching live data
-        const projects = getNMDCActiveProjects();
-        const vesselsByType = NMDC_FLEET.reduce((acc, v) => {
+        const projects = getLegacyActiveProjects();
+        const vesselsByType = LEGACY_FLEET.reduce((acc, v) => {
           acc[v.type] = (acc[v.type] || 0) + 1;
           return acc;
         }, {} as Record<string, number>);
@@ -211,8 +211,8 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({
           success: true,
           stats: {
-            totalVessels: NMDC_FLEET.length,
-            totalCrew: NMDC_FLEET.reduce((sum, v) => sum + (v.crewCount || 0), 0),
+            totalVessels: LEGACY_FLEET.length,
+            totalCrew: LEGACY_FLEET.reduce((sum, v) => sum + (v.crewCount || 0), 0),
             activeProjects: projects.length,
             vesselsByType,
             projects: projects.map(p => ({
@@ -230,7 +230,7 @@ export async function GET(request: NextRequest) {
         }, { status: 400 });
     }
   } catch (error) {
-    console.error('NMDC API error:', error);
+    console.error('Fleet API error:', error);
     return NextResponse.json({
       success: false,
       error: 'API error',
@@ -238,6 +238,9 @@ export async function GET(request: NextRequest) {
     }, { status: 500 });
   }
 }
+
+
+
 
 
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env npx ts-node
 /**
- * Script to verify NMDC Energy vessel specs from Datalastic API
+ * Script to verify legacy marine energy vessel specs from Datalastic API
  * 
  * Run: npx ts-node scripts/verify-nmdc-energy-fleet.ts
  * 
@@ -12,8 +12,8 @@ import 'dotenv/config';
 const DATALASTIC_API_BASE = 'https://api.datalastic.com/api/v0';
 const API_KEY = process.env.DATALASTIC_API_KEY;
 
-// NMDC Energy vessels with known/estimated MMSIs
-const NMDC_ENERGY_VESSELS = [
+// Legacy marine energy vessels with known/estimated MMSIs
+const LEGACY_ENERGY_VESSELS = [
   { name: 'PLB-648', mmsi: '470285000', imo: '8758055' },
   { name: 'DLB-750', mmsi: '470339000', imo: '8758108' },
   { name: 'DLB-1000', mmsi: '470340000' },  // Estimated
@@ -95,12 +95,12 @@ async function main() {
     process.exit(1);
   }
 
-  console.log('🚢 Verifying NMDC Energy Fleet from Datalastic API\n');
+  console.log('🚢 Verifying Legacy Marine Energy Fleet from Datalastic API\n');
   console.log('=' .repeat(80));
 
   const results: { name: string; found: boolean; data?: DatalasticVesselInfo; searchResults?: any[] }[] = [];
 
-  for (const vessel of NMDC_ENERGY_VESSELS) {
+  for (const vessel of LEGACY_ENERGY_VESSELS) {
     console.log(`\n📍 ${vessel.name}`);
     console.log(`   MMSI: ${vessel.mmsi} | IMO: ${vessel.imo || 'N/A'}`);
     
@@ -178,6 +178,9 @@ async function main() {
 }
 
 main().catch(console.error);
+
+
+
 
 
 

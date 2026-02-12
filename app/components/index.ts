@@ -1,5 +1,6 @@
 export { MetricCard } from './MetricCard';
 export { VesselCard } from './VesselCard';
+export { AssetCard } from './AssetCard';
 export { VesselDetails } from './VesselDetails';
 export { AlertPanel } from './AlertPanel';
 export { WeatherWidget } from './WeatherWidget';

@@ -69,7 +69,7 @@ export function LiveVesselsPanel({
   const meta = fleetMeta ?? internalMeta;
   const isLoading = externalLoading ?? internalLoading;
 
-  // Fetch NMDC fleet (only if not using external data)
+  // Fetch fleet data (only if not using external data)
   const fetchFleet = useCallback(async (forceRefresh = false) => {
     if (fleetData) return; // Skip if using external data
     
@@ -203,7 +203,7 @@ export function LiveVesselsPanel({
     const vesselsWithPosition = vessels.filter(v => v.position?.lat && v.position?.lng);
 
     vesselsWithPosition.forEach(vessel => {
-      const color = getTypeColor(vessel.nmdc?.type || vessel.type);
+      const color = getTypeColor(vessel.legacyMarine?.type || vessel.type);
       const isSelected = selectedVessel?.mmsi === vessel.mmsi;
       const isOnline = vessel.isOnline;
 
@@ -264,7 +264,7 @@ export function LiveVesselsPanel({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Radio className={`h-4 w-4 ${meta?.rateLimited ? 'text-amber-400' : 'text-green-400'} ${!meta?.cached && !meta?.rateLimited ? 'animate-pulse' : ''}`} />
-            <span className="text-sm font-medium text-white">NMDC Fleet</span>
+            <span className="text-sm font-medium text-white">Grid Fleet</span>
             <span className="text-xs text-white/40">
               {onlineCount}/{vessels.length}
             </span>
@@ -344,9 +344,9 @@ export function LiveVesselsPanel({
           <div className="flex items-center gap-3">
             <div
               className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 relative"
-              style={{ backgroundColor: `${getTypeColor(selectedVessel.nmdc?.type || selectedVessel.type)}20` }}
+              style={{ backgroundColor: `${getTypeColor(selectedVessel.legacyMarine?.type || selectedVessel.type)}20` }}
             >
-              <Ship className="h-4 w-4" style={{ color: getTypeColor(selectedVessel.nmdc?.type || selectedVessel.type) }} />
+              <Ship className="h-4 w-4" style={{ color: getTypeColor(selectedVessel.legacyMarine?.type || selectedVessel.type) }} />
               {selectedVessel.isOnline && (
                 <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-[#0a0a0a]" />
               )}

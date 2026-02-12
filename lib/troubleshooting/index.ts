@@ -560,11 +560,266 @@ export const SUPPLY_VESSEL_TROUBLESHOOTING: VesselClassEquipment = {
 };
 
 // ========================================
+// POWER TRANSFORMER TROUBLESHOOTING
+// ========================================
+export const TRANSFORMER_TROUBLESHOOTING: VesselClassEquipment = {
+  vesselClass: 'transformer',
+  description: 'Power Transformers, Distribution Transformers, and Substation Equipment',
+  criticalSystems: [
+    'Winding & Core',
+    'Bushing System',
+    'Tap Changer',
+    'Cooling System',
+    'Oil System',
+    'Protection & Controls',
+  ],
+  troubleshootingGuides: {
+    'DGA Analysis': [
+      {
+        id: 'dga-001',
+        title: 'Elevated Dissolved Gas Levels (DGA Exceedance)',
+        severity: 'critical',
+        symptoms: [
+          'Hydrogen (H₂) > 500 ppm',
+          'Acetylene (C₂H₂) > 2 ppm',
+          'Ethylene (C₂H₄) > 150 ppm',
+          'Methane (CH₄) > 400 ppm',
+          'TDCG increasing > 30 ppm/day',
+        ],
+        possibleCauses: [
+          'Partial discharge in winding insulation',
+          'Hot spot in core or winding (overheating)',
+          'Arcing at loose connection or bad contact',
+          'Cellulose degradation from thermal aging',
+          'Oil degradation or contamination',
+        ],
+        steps: [
+          { step: 1, action: 'Increase DGA sampling frequency to daily', details: 'Track rate of gas generation per IEEE C57.104' },
+          { step: 2, action: 'Perform Duval Triangle analysis', details: 'Classify fault type: PD, T1/T2/T3, D1/D2' },
+          { step: 3, action: 'Check load profile for recent overloads', details: 'Correlate gas generation with load events' },
+          { step: 4, action: 'Perform turns ratio and winding resistance tests', tools: ['TTR tester', 'Micro-ohmmeter'] },
+          { step: 5, action: 'Schedule infrared thermography of external connections' },
+          { step: 6, action: 'If acetylene detected, consider de-energizing for internal inspection', safetyWarning: 'Acetylene indicates arcing - immediate risk assessment required' },
+        ],
+        estimatedTime: '2-8 hours (testing), 1-4 weeks (if internal inspection needed)',
+        requiredSkillLevel: 'engineer',
+        sparePartsNeeded: ['Oil sample kits', 'Filter elements', 'Desiccant'],
+        preventiveMeasures: [
+          'Regular DGA sampling per IEEE C57.104 schedule',
+          'Maintain oil quality with routine filtering',
+          'Monitor online DGA sensor trends',
+        ],
+      },
+      {
+        id: 'dga-002',
+        title: 'Rising CO/CO₂ Ratio – Cellulose Degradation',
+        severity: 'warning',
+        symptoms: [
+          'CO/CO₂ ratio > 10',
+          'Furan compounds detected in oil',
+          'Degree of polymerization (DP) declining',
+          'Paper insulation aging accelerating',
+        ],
+        possibleCauses: [
+          'Sustained overtemperature operation',
+          'Hot spot on core clamping or leads',
+          'Loss of cooling capacity',
+          'Excessive loading over time',
+        ],
+        steps: [
+          { step: 1, action: 'Perform furan analysis on oil sample', details: 'Correlate 2-FAL level with insulation condition' },
+          { step: 2, action: 'Review loading history for sustained overloads' },
+          { step: 3, action: 'Check cooling system effectiveness', details: 'Verify fan operation, radiator condition, oil pump flow' },
+          { step: 4, action: 'Estimate remaining insulation life', details: 'Use IEC 60076-7 thermal aging model' },
+          { step: 5, action: 'Consider load management strategy', details: 'Reduce peak loading to extend life' },
+        ],
+        estimatedTime: '4-8 hours (assessment)',
+        requiredSkillLevel: 'specialist',
+        sparePartsNeeded: ['Oil filter cartridges', 'Desiccant breather elements'],
+      },
+    ],
+    'Bushing': [
+      {
+        id: 'bush-001',
+        title: 'Bushing Power Factor Increase',
+        severity: 'warning',
+        symptoms: [
+          'Power factor > 0.5%',
+          'Capacitance change > 5%',
+          'Oil leakage at bushing base',
+          'Discoloration of porcelain',
+        ],
+        possibleCauses: [
+          'Moisture ingress into bushing condenser',
+          'Internal partial discharge',
+          'Deteriorating condenser layers',
+          'Cracked porcelain allowing contamination',
+        ],
+        steps: [
+          { step: 1, action: 'Perform Doble/power factor test', tools: ['Doble M4000', 'Power factor test set'], details: 'Compare against nameplate values' },
+          { step: 2, action: 'Check oil level in bushing sight glass' },
+          { step: 3, action: 'Inspect porcelain for cracks or contamination' },
+          { step: 4, action: 'Perform infrared scan of bushing connections', tools: ['IR camera'] },
+          { step: 5, action: 'If power factor exceeds limits, plan bushing replacement', safetyWarning: 'Bushing failure can cause tank rupture and fire' },
+        ],
+        estimatedTime: '4-8 hours (testing), 2-5 days (replacement)',
+        requiredSkillLevel: 'engineer',
+        sparePartsNeeded: ['Replacement bushing', 'Gaskets', 'Transformer oil'],
+        preventiveMeasures: [
+          'Annual power factor testing',
+          'Monthly visual inspection',
+          'Online bushing monitoring system',
+        ],
+      },
+    ],
+    'Tap Changer': [
+      {
+        id: 'tc-001',
+        title: 'OLTC Contact Wear / High Transition Resistance',
+        severity: 'warning',
+        symptoms: [
+          'DGA shows elevated gases in OLTC compartment',
+          'Voltage regulation inconsistency',
+          'Audible click without tap position change',
+          'Increased transition time',
+        ],
+        possibleCauses: [
+          'Contact erosion from arcing',
+          'Carbon buildup on contacts',
+          'Worn selector switch contacts',
+          'Oil contamination in OLTC compartment',
+        ],
+        steps: [
+          { step: 1, action: 'Check tap position indicator matches actual position' },
+          { step: 2, action: 'Perform DGA on OLTC compartment oil separately', details: 'Separate from main tank DGA' },
+          { step: 3, action: 'Measure contact resistance at each tap position', tools: ['DCRM tester'] },
+          { step: 4, action: 'Inspect contacts for pitting and erosion', safetyWarning: 'De-energize and ground before opening OLTC' },
+          { step: 5, action: 'Change OLTC oil and filter if contaminated' },
+        ],
+        estimatedTime: '8-16 hours',
+        requiredSkillLevel: 'specialist',
+        sparePartsNeeded: ['Arcing contacts', 'Selector contacts', 'OLTC oil', 'Gaskets'],
+        preventiveMeasures: [
+          'Count tap operations and service at OEM intervals',
+          'Regular OLTC oil analysis',
+          'Monitor transition time trends',
+        ],
+      },
+    ],
+    'Cooling System': [
+      {
+        id: 'cool-001',
+        title: 'Cooling Fan Failure / Inadequate Cooling',
+        severity: 'critical',
+        symptoms: [
+          'Top oil temperature exceeding alarm threshold (>85°C)',
+          'Winding hot-spot temperature exceeding limit',
+          'Fan not running or running at reduced speed',
+          'ONAN/ONAF stage not activating',
+        ],
+        possibleCauses: [
+          'Fan motor failure',
+          'Control relay malfunction',
+          'Temperature sensor fault giving false reading',
+          'Blocked radiator fins (debris, birds)',
+          'Oil pump failure (forced-oil cooled units)',
+        ],
+        steps: [
+          { step: 1, action: 'Verify fan motor power supply', tools: ['Multimeter'], details: 'Check fuses and contactors' },
+          { step: 2, action: 'Test temperature control relays and setpoints' },
+          { step: 3, action: 'Inspect radiator fins for blockage', details: 'Clean with compressed air or water wash' },
+          { step: 4, action: 'Check oil pump operation (if applicable)', details: 'Verify oil flow indicator shows movement' },
+          { step: 5, action: 'If unable to restore cooling, reduce load to ONAN rating', safetyWarning: 'Sustained overtemperature causes insulation damage' },
+        ],
+        estimatedTime: '2-8 hours',
+        requiredSkillLevel: 'technician',
+        sparePartsNeeded: ['Fan motors', 'Control relays', 'Temperature gauges', 'Oil pumps'],
+        preventiveMeasures: [
+          'Monthly fan operation check',
+          'Annual radiator cleaning',
+          'Test all cooling stages during seasonal checks',
+        ],
+      },
+    ],
+    'Oil System': [
+      {
+        id: 'oil-001',
+        title: 'Oil Leak / Low Oil Level',
+        severity: 'critical',
+        symptoms: [
+          'Visible oil stain below transformer',
+          'Oil level gauge below minimum mark',
+          'Buchholz relay gas alarm or trip',
+          'Conservator tank level dropping',
+        ],
+        possibleCauses: [
+          'Gasket deterioration',
+          'Weld fatigue crack',
+          'Radiator valve leak',
+          'Bushing gasket failure',
+          'Drain valve not fully closed',
+        ],
+        steps: [
+          { step: 1, action: 'Locate the source of the leak', tools: ['UV dye kit', 'Visual inspection'] },
+          { step: 2, action: 'Check Buchholz relay for accumulated gas', details: 'Collect gas sample for analysis' },
+          { step: 3, action: 'Monitor oil level trend', details: 'If dropping rapidly, prepare for de-energization' },
+          { step: 4, action: 'Temporary patch if minor leak', details: 'Use approved sealant compound for emergency repair' },
+          { step: 5, action: 'Schedule outage for permanent repair', safetyWarning: 'Low oil level exposes live parts - flash-over risk' },
+        ],
+        estimatedTime: '2-48 hours depending on severity',
+        requiredSkillLevel: 'technician',
+        sparePartsNeeded: ['Gaskets', 'Transformer oil', 'Sealant compound', 'Drain valve'],
+      },
+    ],
+    'Winding': [
+      {
+        id: 'wnd-001',
+        title: 'Winding Insulation Degradation',
+        severity: 'critical',
+        symptoms: [
+          'Low insulation resistance / power factor increase',
+          'DGA indicating thermal fault (ethylene, CO)',
+          'Winding resistance imbalance between phases',
+          'Reduced megger test values',
+        ],
+        possibleCauses: [
+          'Thermal aging from sustained overloading',
+          'Moisture ingress into insulation',
+          'Partial discharge activity eroding insulation',
+          'Manufacturing defect',
+        ],
+        steps: [
+          { step: 1, action: 'Perform insulation resistance test (megger)', tools: ['Megger / Insulation tester'], details: 'Min 5kV test, compare to baseline' },
+          { step: 2, action: 'Measure winding resistance all phases', tools: ['Micro-ohmmeter'], details: 'Phase imbalance > 2% indicates issue' },
+          { step: 3, action: 'Perform frequency response analysis (FRA)', details: 'Compare against factory fingerprint' },
+          { step: 4, action: 'Check moisture content of oil', details: 'Correlate with insulation condition' },
+          { step: 5, action: 'Assess remaining life based on DGA + furans + DP' },
+          { step: 6, action: 'If severe, plan transformer replacement', safetyWarning: 'Winding failure can result in explosion and fire' },
+        ],
+        estimatedTime: '8-24 hours (full diagnostic)',
+        requiredSkillLevel: 'specialist',
+        sparePartsNeeded: ['Replacement transformer (long lead - 12-24 months)'],
+        preventiveMeasures: [
+          'Manage loading within nameplate rating',
+          'Maintain oil quality and moisture levels',
+          'Regular insulation testing per NETA schedule',
+        ],
+      },
+    ],
+  },
+};
+
+// ========================================
 // HELPER FUNCTIONS
 // ========================================
 
 export function getTroubleshootingForVesselClass(vesselType: string): VesselClassEquipment | null {
   const normalizedType = vesselType.toLowerCase();
+  
+  // Grid / utility asset types
+  if (normalizedType.includes('transformer') || normalizedType.includes('substation') || normalizedType.includes('circuit_breaker') || normalizedType.includes('feeder') || normalizedType.includes('grid')) {
+    return TRANSFORMER_TROUBLESHOOTING;
+  }
   
   if (normalizedType.includes('dredger') || normalizedType.includes('hopper') || normalizedType === 'csd') {
     return DREDGER_TROUBLESHOOTING;
@@ -579,7 +834,8 @@ export function getTroubleshootingForVesselClass(vesselType: string): VesselClas
     return SUPPLY_VESSEL_TROUBLESHOOTING;
   }
   
-  return null;
+  // Default to transformer for Exelon demo
+  return TRANSFORMER_TROUBLESHOOTING;
 }
 
 export function getTroubleshootingGuide(
@@ -752,6 +1008,9 @@ export function getSensorTroubleshooting(
     urgency: 'Investigate as soon as possible',
   };
 }
+
+
+
 
 
 

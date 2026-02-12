@@ -231,7 +231,7 @@ export default function ProjectsPage() {
               </Link>
               <div>
                 <h1 className="text-xl font-bold">Project Sites</h1>
-                <p className="text-sm text-white/50">NMDC Active & Planned Projects</p>
+                <p className="text-sm text-white/50">Active & Planned Projects</p>
               </div>
             </div>
 

@@ -4,12 +4,11 @@ import {
   PMAnalysisRequest,
   PMDataSource,
   PMDegradationPoint,
-  PMEquipmentType,
+  PMComponentType,
   PMPrediction,
   PMPriority,
   PMReasoningStep,
   PMSourceContribution,
-  PMSourceType,
 } from './types'
 import {
   getOEMProfile,
@@ -18,24 +17,34 @@ import {
   getMostLikelyFailureMode,
 } from './oem-specs'
 import { getWorkOrderHistory, getFleetPatterns } from './history'
-import { getVesselIssues, type EquipmentIssue } from '../vessel-issues'
+import { getAssetIssues, type ComponentIssue } from '../asset-issues'
 
 const DATA_SOURCES: PMDataSource[] = [
   {
     id: 'src-telemetry',
     type: 'live_telemetry',
     name: 'Live Sensor Telemetry',
-    description: 'Real-time data from equipment sensors',
+    description: 'Real-time data from transformer sensors (temperature, load, moisture)',
     lastUpdated: new Date(),
     dataQuality: 95,
     isAvailable: true,
     iconName: 'Activity',
   },
   {
+    id: 'src-dga',
+    type: 'dga_analysis',
+    name: 'Dissolved Gas Analysis',
+    description: 'DGA trending per IEEE C57.104 — Duval Triangle, Rogers Ratio, Key Gas',
+    lastUpdated: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+    dataQuality: 98,
+    isAvailable: true,
+    iconName: 'FlaskConical',
+  },
+  {
     id: 'src-oem',
     type: 'oem_specs',
     name: 'OEM Specifications',
-    description: 'Manufacturer maintenance intervals and wear curves',
+    description: 'Manufacturer nameplate data, rated life curves, and maintenance schedules',
     lastUpdated: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
     dataQuality: 100,
     isAvailable: true,
@@ -45,7 +54,7 @@ const DATA_SOURCES: PMDataSource[] = [
     id: 'src-history',
     type: 'work_history',
     name: 'Work Order History',
-    description: 'Historical maintenance and repair records',
+    description: 'Historical maintenance, repair, and test records',
     lastUpdated: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
     dataQuality: 88,
     isAvailable: true,
@@ -55,17 +64,17 @@ const DATA_SOURCES: PMDataSource[] = [
     id: 'src-fleet',
     type: 'fleet_data',
     name: 'Fleet Intelligence',
-    description: 'Similar equipment patterns across NMDC fleet',
+    description: 'Pattern analysis across Exelon OpCo transformer fleet',
     lastUpdated: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
     dataQuality: 82,
     isAvailable: true,
-    iconName: 'Ship',
+    iconName: 'Zap',
   },
   {
     id: 'src-environment',
     type: 'environment',
     name: 'Operating Environment',
-    description: 'Weather, sea state, and operational conditions',
+    description: 'Ambient temperature, weather, load profile, and storm exposure',
     lastUpdated: new Date(),
     dataQuality: 90,
     isAvailable: true,
@@ -75,7 +84,7 @@ const DATA_SOURCES: PMDataSource[] = [
     id: 'src-inspection',
     type: 'inspection_records',
     name: 'Inspection Records',
-    description: 'Visual and NDT inspection findings',
+    description: 'Visual, IR thermography, and condition assessment findings',
     lastUpdated: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
     dataQuality: 85,
     isAvailable: true,
@@ -84,8 +93,8 @@ const DATA_SOURCES: PMDataSource[] = [
   {
     id: 'src-oil',
     type: 'oil_analysis',
-    name: 'Oil Analysis Reports',
-    description: 'Lubricant condition and wear debris analysis',
+    name: 'Oil Quality Analysis',
+    description: 'Transformer oil condition: moisture, acidity, dielectric strength, furans',
     lastUpdated: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000),
     dataQuality: 92,
     isAvailable: true,
@@ -95,7 +104,7 @@ const DATA_SOURCES: PMDataSource[] = [
     id: 'src-industry',
     type: 'industry_standards',
     name: 'Industry Standards',
-    description: 'DNV, ABS, and industry best practices',
+    description: 'IEEE C57.104, IEEE C57.106, NERC FAC, and utility best practices',
     lastUpdated: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000),
     dataQuality: 100,
     isAvailable: true,
@@ -104,48 +113,22 @@ const DATA_SOURCES: PMDataSource[] = [
 ]
 
 function calculateRemainingLife(
-  equipmentType: PMEquipmentType,
+  componentType: PMComponentType,
   currentHealth: number,
-  operatingHours: number,
-  cycleCount?: number
-): { value: number; unit: 'hours' | 'days' | 'cycles'; percentRemaining: number } {
-  const profile = getOEMProfile(equipmentType)
-  
-  if (cycleCount !== undefined && profile.specs.expectedLifeCycles) {
-    const remainingCycles = Math.max(0, profile.specs.expectedLifeCycles - cycleCount)
-    const percentRemaining = (remainingCycles / profile.specs.expectedLifeCycles) * 100
-    return {
-      value: Math.round(remainingCycles),
-      unit: 'cycles',
-      percentRemaining: Math.round(percentRemaining),
-    }
-  }
+  ageYears: number
+): { value: number; unit: 'months' | 'days'; percentRemaining: number } {
+  const profile = getOEMProfile(componentType)
+  const expectedLife = profile.specs.expectedLifeYears || 40
 
-  if (profile.specs.maxOperatingHours) {
-    const remainingHours = Math.max(0, profile.specs.maxOperatingHours - operatingHours)
-    const adjustedRemaining = remainingHours * (currentHealth / 100)
-    const percentRemaining = (adjustedRemaining / profile.specs.maxOperatingHours) * 100
-    
-    if (adjustedRemaining > 168) {
-      return {
-        value: Math.round(adjustedRemaining / 24),
-        unit: 'days',
-        percentRemaining: Math.round(percentRemaining),
-      }
-    }
-    return {
-      value: Math.round(adjustedRemaining),
-      unit: 'hours',
-      percentRemaining: Math.round(percentRemaining),
-    }
-  }
+  const remainingYears = Math.max(0, expectedLife - ageYears)
+  const adjustedRemaining = remainingYears * (currentHealth / 100)
+  const percentRemaining = (adjustedRemaining / expectedLife) * 100
 
-  const estimatedHours = (currentHealth / 100) * 1000
-  return {
-    value: Math.round(estimatedHours / 24),
-    unit: 'days',
-    percentRemaining: currentHealth,
+  const months = Math.round(adjustedRemaining * 12)
+  if (months > 6) {
+    return { value: months, unit: 'months', percentRemaining: Math.round(percentRemaining) }
   }
+  return { value: Math.max(1, Math.round(adjustedRemaining * 365)), unit: 'days', percentRemaining: Math.round(percentRemaining) }
 }
 
 function determinePriority(
@@ -153,49 +136,41 @@ function determinePriority(
   remainingLifePercent: number,
   hasActiveFailureMode: boolean
 ): PMPriority {
-  if (currentHealth < 30 || remainingLifePercent < 10 || hasActiveFailureMode) {
-    return 'critical'
-  }
-  if (currentHealth < 50 || remainingLifePercent < 25) {
-    return 'high'
-  }
-  if (currentHealth < 70 || remainingLifePercent < 50) {
-    return 'medium'
-  }
+  if (currentHealth < 30 || remainingLifePercent < 10 || hasActiveFailureMode) return 'critical'
+  if (currentHealth < 50 || remainingLifePercent < 25) return 'high'
+  if (currentHealth < 70 || remainingLifePercent < 50) return 'medium'
   return 'low'
 }
 
 function generateDegradationCurve(
   currentHealth: number,
-  operatingHours: number,
-  equipmentType: PMEquipmentType
+  ageYears: number,
+  componentType: PMComponentType
 ): PMDegradationPoint[] {
   const points: PMDegradationPoint[] = []
-  const profile = getOEMProfile(equipmentType)
-  const maxHours = profile.specs.maxOperatingHours || 20000
+  const profile = getOEMProfile(componentType)
+  const expectedLife = profile.specs.expectedLifeYears || 40
 
-  const historyPoints = 10
-  const hoursPerPoint = operatingHours / historyPoints
-  
+  const historyPoints = 8
+  const yearsPerPoint = ageYears / historyPoints
+
   for (let i = 0; i <= historyPoints; i++) {
-    const pointHours = hoursPerPoint * i
     const healthAtPoint = 100 - ((100 - currentHealth) * (i / historyPoints))
     points.push({
-      timestamp: new Date(Date.now() - (historyPoints - i) * 24 * 60 * 60 * 1000),
+      timestamp: new Date(Date.now() - (historyPoints - i) * 365 * 24 * 60 * 60 * 1000),
       healthScore: Math.round(healthAtPoint * 10) / 10,
       isProjected: false,
     })
   }
 
   const futurePoints = 5
-  const degradationRate = (100 - currentHealth) / operatingHours
-  const futureHoursPerPoint = (maxHours - operatingHours) / futurePoints / 2
+  const degradationRate = (100 - currentHealth) / Math.max(ageYears, 1)
 
   for (let i = 1; i <= futurePoints; i++) {
-    const projectedHours = operatingHours + (futureHoursPerPoint * i)
-    const projectedHealth = Math.max(0, currentHealth - (degradationRate * futureHoursPerPoint * i * 1.2))
+    const projectedYears = i * 2
+    const projectedHealth = Math.max(0, currentHealth - (degradationRate * projectedYears * 1.3))
     points.push({
-      timestamp: new Date(Date.now() + i * 30 * 24 * 60 * 60 * 1000),
+      timestamp: new Date(Date.now() + i * 2 * 365 * 24 * 60 * 60 * 1000),
       healthScore: Math.round(projectedHealth * 10) / 10,
       isProjected: true,
     })
@@ -205,7 +180,7 @@ function generateDegradationCurve(
 }
 
 function buildReasoningChain(
-  equipment: PMAnalysisRequest['equipmentList'][0],
+  component: PMAnalysisRequest['componentList'][0],
   profile: ReturnType<typeof getOEMProfile>,
   workHistory: ReturnType<typeof getWorkOrderHistory>,
   fleetPatterns: ReturnType<typeof getFleetPatterns>,
@@ -215,34 +190,46 @@ function buildReasoningChain(
 
   steps.push({
     id: uuidv4(),
-    text: `Current operating hours: ${equipment.operatingHours?.toLocaleString() || 'N/A'}h with health score at ${equipment.currentHealth || 'N/A'}%`,
+    text: `Component age: ${component.ageYears || 'N/A'} years. Current health index: ${component.currentHealth || 'N/A'}%`,
     sourceType: 'live_telemetry',
     confidence: 95,
     isKey: true,
   })
 
-  if (equipment.cycleCount) {
-    const expectedCycles = profile.specs.expectedLifeCycles || 15000
-    const usagePercent = ((equipment.cycleCount / expectedCycles) * 100).toFixed(1)
+  if (component.ageYears) {
+    const expectedLife = profile.specs.expectedLifeYears || 40
+    const lifeUsed = ((component.ageYears / expectedLife) * 100).toFixed(1)
     steps.push({
       id: uuidv4(),
-      text: `Cycle count at ${equipment.cycleCount.toLocaleString()} (${usagePercent}% of OEM rated ${expectedCycles.toLocaleString()} cycles)`,
+      text: `${lifeUsed}% of OEM expected ${expectedLife}-year service life consumed (${profile.manufacturer})`,
       sourceType: 'oem_specs',
       confidence: 100,
       isKey: true,
     })
   }
 
-  if (profile.specs.maintenanceIntervalHours && equipment.operatingHours) {
-    const nextTask = getNextMaintenanceTask(equipment.type, equipment.operatingHours)
-    if (nextTask) {
-      steps.push({
-        id: uuidv4(),
-        text: `OEM recommends "${nextTask.task}" in ${nextTask.dueInHours.toLocaleString()} operating hours`,
-        sourceType: 'oem_specs',
-        confidence: 100,
-      })
-    }
+  if (component.temperature) {
+    const maxTemp = profile.specs.maxTemperature || 95
+    const tempPercent = ((component.temperature / maxTemp) * 100).toFixed(0)
+    steps.push({
+      id: uuidv4(),
+      text: `Operating temperature: ${component.temperature}°C (${tempPercent}% of max rated ${maxTemp}°C)`,
+      sourceType: 'live_telemetry',
+      confidence: 92,
+      isKey: component.temperature > maxTemp * 0.85,
+    })
+  }
+
+  if (component.moisture) {
+    const maxMoisture = profile.specs.maxMoisture || 35
+    const moistPercent = ((component.moisture / maxMoisture) * 100).toFixed(0)
+    steps.push({
+      id: uuidv4(),
+      text: `Moisture content: ${component.moisture} ppm (${moistPercent}% of limit ${maxMoisture} ppm per IEEE C57.106)`,
+      sourceType: 'oil_analysis',
+      confidence: 90,
+      isKey: component.moisture > maxMoisture * 0.8,
+    })
   }
 
   if (workHistory.length > 0) {
@@ -250,7 +237,7 @@ function buildReasoningChain(
     if (recentCM.length > 0) {
       steps.push({
         id: uuidv4(),
-        text: `${recentCM.length} corrective maintenance events in past 6 months - most recent: "${recentCM[0].issue}"`,
+        text: `${recentCM.length} corrective maintenance events in past 12 months — most recent: "${recentCM[0].issue}"`,
         sourceType: 'work_history',
         confidence: 88,
         isKey: recentCM.length >= 2,
@@ -258,39 +245,15 @@ function buildReasoningChain(
     }
   }
 
-  const relevantPatterns = fleetPatterns.filter(p => p.equipmentType === equipment.type)
+  const relevantPatterns = fleetPatterns.filter(p => p.componentType === component.type)
   if (relevantPatterns.length > 0) {
     const pattern = relevantPatterns[0]
     steps.push({
       id: uuidv4(),
-      text: `Fleet analysis: ${pattern.occurrences} similar ${equipment.type.replace('_', ' ')}s showed "${pattern.pattern}" - avg failure at ${pattern.averageFailurePoint.value.toLocaleString()} ${pattern.averageFailurePoint.unit}`,
+      text: `Fleet analysis: ${pattern.occurrences} similar ${component.type.replace('_', ' ')}s across Exelon OpCos showed "${pattern.pattern}" — avg failure at ${pattern.averageFailurePoint.value} ${pattern.averageFailurePoint.unit}`,
       sourceType: 'fleet_data',
       confidence: 82,
       isKey: true,
-    })
-  }
-
-  if (equipment.vibration) {
-    const maxVib = profile.specs.maxVibration || 5
-    const vibPercent = ((equipment.vibration / maxVib) * 100).toFixed(0)
-    const status = equipment.vibration > maxVib * 0.8 ? 'elevated' : equipment.vibration > maxVib * 0.6 ? 'moderate' : 'normal'
-    steps.push({
-      id: uuidv4(),
-      text: `Vibration at ${equipment.vibration} mm/s (${vibPercent}% of threshold) - ${status} level indicates ${status === 'elevated' ? 'bearing or alignment concern' : 'acceptable wear pattern'}`,
-      sourceType: 'live_telemetry',
-      confidence: 90,
-      isKey: status === 'elevated',
-    })
-  }
-
-  if (equipment.temperature) {
-    const maxTemp = profile.specs.maxTemperature || 80
-    const tempPercent = ((equipment.temperature / maxTemp) * 100).toFixed(0)
-    steps.push({
-      id: uuidv4(),
-      text: `Operating temperature ${equipment.temperature}°C (${tempPercent}% of max rated ${maxTemp}°C)`,
-      sourceType: 'live_telemetry',
-      confidence: 92,
     })
   }
 
@@ -308,7 +271,7 @@ function buildReasoningChain(
 }
 
 function buildSourceContributions(
-  equipment: PMAnalysisRequest['equipmentList'][0],
+  component: PMAnalysisRequest['componentList'][0],
   profile: ReturnType<typeof getOEMProfile>,
   workHistory: ReturnType<typeof getWorkOrderHistory>
 ): PMSourceContribution[] {
@@ -316,24 +279,33 @@ function buildSourceContributions(
 
   contributions.push({
     source: DATA_SOURCES.find(s => s.type === 'live_telemetry')!,
-    contribution: 'Real-time health score, vibration, and temperature readings',
+    contribution: 'Real-time health index, temperature, moisture, and load readings',
     relevanceScore: 95,
     dataPoints: [
-      { label: 'Health Score', value: equipment.currentHealth || 0, unit: '%' },
-      { label: 'Vibration', value: equipment.vibration || 0, unit: 'mm/s' },
-      { label: 'Temperature', value: equipment.temperature || 0, unit: '°C' },
-      { label: 'Operating Hours', value: equipment.operatingHours || 0, unit: 'h' },
+      { label: 'Health Index', value: component.currentHealth || 0, unit: '%' },
+      { label: 'Temperature', value: component.temperature || 0, unit: '°C' },
+      { label: 'Moisture', value: component.moisture || 0, unit: 'ppm' },
+      { label: 'Load', value: component.loadPercent || 0, unit: '%' },
+    ],
+  })
+
+  contributions.push({
+    source: DATA_SOURCES.find(s => s.type === 'dga_analysis')!,
+    contribution: 'DGA trending per IEEE C57.104 — gas generation rates and fault type identification',
+    relevanceScore: 98,
+    dataPoints: [
+      { label: 'Analysis Method', value: 'Duval Triangle + Key Gas' },
+      { label: 'Standard', value: 'IEEE C57.104-2019' },
     ],
   })
 
   contributions.push({
     source: DATA_SOURCES.find(s => s.type === 'oem_specs')!,
-    contribution: `${profile.manufacturer} ${profile.model} maintenance specifications and wear curve`,
+    contribution: `${profile.manufacturer} maintenance specs and life expectancy curves`,
     relevanceScore: 100,
     dataPoints: [
-      { label: 'Max Hours', value: profile.specs.maxOperatingHours || 'N/A' },
-      { label: 'PM Interval', value: profile.specs.maintenanceIntervalHours || 'N/A', unit: 'h' },
-      { label: 'MTBF', value: profile.specs.mtbf || 'N/A', unit: 'h' },
+      { label: 'Expected Life', value: profile.specs.expectedLifeYears || 'N/A', unit: 'years' },
+      { label: 'MTBF', value: profile.specs.mtbf || 'N/A', unit: 'hrs' },
     ],
   })
 
@@ -341,7 +313,7 @@ function buildSourceContributions(
   const pmCount = workHistory.filter(wo => wo.type === 'PM').length
   contributions.push({
     source: DATA_SOURCES.find(s => s.type === 'work_history')!,
-    contribution: `${workHistory.length} historical records analyzed (${cmCount} CM, ${pmCount} PM)`,
+    contribution: `${workHistory.length} historical records analyzed (${cmCount} corrective, ${pmCount} preventive)`,
     relevanceScore: 88,
     dataPoints: [
       { label: 'Total Records', value: workHistory.length },
@@ -352,38 +324,38 @@ function buildSourceContributions(
 
   contributions.push({
     source: DATA_SOURCES.find(s => s.type === 'fleet_data')!,
-    contribution: 'Cross-referenced with 12 similar equipment units across NMDC fleet',
+    contribution: 'Cross-referenced with similar transformers across all 6 Exelon OpCos',
     relevanceScore: 82,
     dataPoints: [
-      { label: 'Fleet Units', value: 12 },
-      { label: 'Avg Health', value: 74, unit: '%' },
-      { label: 'Common Issues', value: 3 },
+      { label: 'Fleet Units', value: 24 },
+      { label: 'Avg Health', value: 65, unit: '%' },
+      { label: 'Common Issues', value: 5 },
     ],
   })
 
   contributions.push({
     source: DATA_SOURCES.find(s => s.type === 'environment')!,
-    contribution: 'Operating environment factors: offshore conditions, salt exposure, load severity',
+    contribution: 'Service territory weather, seasonal load profile, storm exposure history',
     relevanceScore: 75,
     dataPoints: [
-      { label: 'Exposure', value: 'High Salt' },
-      { label: 'Load Factor', value: 68, unit: '%' },
+      { label: 'Summer Peak Load', value: component.loadPercent || 0, unit: '%' },
+      { label: 'Storm Exposure', value: 'Moderate' },
     ],
   })
 
   return contributions
 }
 
-function findMatchingVesselIssue(assetId: string, equipmentName: string): EquipmentIssue | null {
-  const vesselIssues = getVesselIssues(assetId)
-  if (!vesselIssues) return null
-  
-  const nameLower = equipmentName.toLowerCase()
-  return vesselIssues.issues.find(issue => {
-    const issueNameLower = issue.equipmentName.toLowerCase()
+function findMatchingAssetIssue(assetId: string, componentName: string): ComponentIssue | null {
+  const assetIssues = getAssetIssues(assetId)
+  if (!assetIssues) return null
+
+  const nameLower = componentName.toLowerCase()
+  return assetIssues.issues.find(issue => {
+    const issueNameLower = issue.componentName.toLowerCase()
     const issueFirstWord = issueNameLower.split(' ')[0]
-    const equipFirstWord = nameLower.split(' ')[0]
-    return nameLower.includes(issueFirstWord) || issueNameLower.includes(equipFirstWord)
+    const compFirstWord = nameLower.split(' ')[0]
+    return nameLower.includes(issueFirstWord) || issueNameLower.includes(compFirstWord)
   }) || null
 }
 
@@ -393,59 +365,58 @@ export function analyzeEquipment(request: PMAnalysisRequest): PMAnalysis {
   const allContributions: PMSourceContribution[] = []
   let overallHealth = 0
 
-  for (const equipment of request.equipmentList) {
-    const profile = getOEMProfile(equipment.type)
-    const workHistory = getWorkOrderHistory(request.assetId, equipment.id)
-    const fleetPatterns = getFleetPatterns(equipment.type)
-    
-    const vesselIssue = findMatchingVesselIssue(request.assetId, equipment.name)
-    
-    const failureMode = vesselIssue 
-      ? { 
-          mode: vesselIssue.pmPrediction.predictedIssue, 
-          probability: vesselIssue.status === 'critical' ? 0.85 : vesselIssue.status === 'warning' ? 0.65 : 0.45,
-          warningSignals: vesselIssue.pmPrediction.warningSignals 
-        }
-      : getMostLikelyFailureMode(equipment.type, equipment.vibration, equipment.temperature)
+  for (const component of request.componentList) {
+    const profile = getOEMProfile(component.type)
+    const workHistory = getWorkOrderHistory(request.assetId, component.id)
+    const fleetPatterns = getFleetPatterns(component.type)
 
-    const currentHealth = vesselIssue?.healthScore || equipment.currentHealth || 
-      getWearPercentage(equipment.type, equipment.cycleCount || equipment.operatingHours || 0)
-    
+    const assetIssue = findMatchingAssetIssue(request.assetId, component.name)
+
+    const failureMode = assetIssue
+      ? {
+          mode: assetIssue.pmPrediction.predictedIssue,
+          probability: assetIssue.status === 'critical' ? 0.85 : assetIssue.status === 'warning' ? 0.65 : 0.45,
+          warningSignals: assetIssue.pmPrediction.warningSignals,
+        }
+      : getMostLikelyFailureMode(component.type, component.moisture, component.temperature)
+
+    const currentHealth = assetIssue?.healthScore || component.currentHealth ||
+      getWearPercentage(component.type, component.ageYears || 0)
+
     overallHealth += currentHealth
 
     const remainingLife = calculateRemainingLife(
-      equipment.type,
+      component.type,
       currentHealth,
-      equipment.operatingHours || 0,
-      equipment.cycleCount
+      component.ageYears || 0
     )
 
-    const effectivePriority: PMPriority = vesselIssue 
-      ? vesselIssue.pmPrediction.priority
+    const effectivePriority: PMPriority = assetIssue
+      ? assetIssue.pmPrediction.priority
       : determinePriority(currentHealth, remainingLife.percentRemaining, failureMode !== null && failureMode.probability > 0.5)
 
     const reasoningChain = buildReasoningChain(
-      { ...equipment, currentHealth },
+      { ...component, currentHealth },
       profile,
       workHistory,
       fleetPatterns,
       failureMode
     )
-    
-    if (vesselIssue) {
+
+    if (assetIssue) {
       reasoningChain.unshift({
         id: uuidv4(),
-        text: `Known issue detected: ${vesselIssue.issue}. Status: ${vesselIssue.status.toUpperCase()}.`,
+        text: `Known issue: ${assetIssue.issue}. Status: ${assetIssue.status.toUpperCase()}.`,
         sourceType: 'live_telemetry',
         confidence: 95,
         isKey: true,
       })
     }
-    
+
     allReasoningSteps.push(...reasoningChain)
 
     const contributions = buildSourceContributions(
-      { ...equipment, currentHealth },
+      { ...component, currentHealth },
       profile,
       workHistory
     )
@@ -453,78 +424,80 @@ export function analyzeEquipment(request: PMAnalysisRequest): PMAnalysis {
       allContributions.push(...contributions)
     }
 
-    const nextTask = getNextMaintenanceTask(equipment.type, equipment.operatingHours || 0)
+    const nextTask = getNextMaintenanceTask(component.type, (component.ageYears || 0) * 12)
 
     let costMultiplier = 1
-    if (effectivePriority === 'critical') costMultiplier = 3
-    else if (effectivePriority === 'high') costMultiplier = 2
+    if (effectivePriority === 'critical') costMultiplier = 5
+    else if (effectivePriority === 'high') costMultiplier = 3
     else if (effectivePriority === 'medium') costMultiplier = 1.5
 
-    const baseCost = profile.maintenanceTasks[profile.maintenanceTasks.length - 1]?.estimatedDuration * 500 || 10000
+    const baseCost = profile.maintenanceTasks[profile.maintenanceTasks.length - 1]?.estimatedDuration * 2000 || 50000
 
-    const predictionDescription = vesselIssue
-      ? `Primary concern: ${vesselIssue.pmPrediction.predictedIssue}. Warning signs include: ${vesselIssue.pmPrediction.warningSignals.join(', ')}.`
-      : failureMode 
-        ? `Primary concern: ${failureMode.mode}. Warning signs include: ${failureMode.warningSignals.slice(0, 2).join(', ')}.`
-        : `Equipment operating within parameters but approaching maintenance threshold.`
+    const predictionDescription = assetIssue
+      ? `Primary concern: ${assetIssue.pmPrediction.predictedIssue}. Warning signs: ${assetIssue.pmPrediction.warningSignals.join('; ')}.`
+      : failureMode
+        ? `Primary concern: ${failureMode.mode}. Warning signs: ${failureMode.warningSignals.slice(0, 3).join('; ')}.`
+        : `Component operating within parameters but approaching maintenance threshold.`
 
-    const recommendedAction = vesselIssue
-      ? vesselIssue.pmPrediction.recommendedAction
-      : nextTask 
-        ? `Schedule "${nextTask.task}" within ${nextTask.dueInHours} operating hours. ${nextTask.parts ? `Parts required: ${nextTask.parts.join(', ')}` : ''}`
-        : `Continue monitoring. Next inspection recommended in ${Math.round(remainingLife.value * 0.3)} ${remainingLife.unit}.`
+    const recommendedAction = assetIssue
+      ? assetIssue.pmPrediction.recommendedAction
+      : nextTask
+        ? `Schedule "${nextTask.task}" within ${nextTask.dueInMonths} months. ${nextTask.parts ? `Parts required: ${nextTask.parts.join(', ')}` : ''}`
+        : `Continue monitoring. Next assessment in ${Math.max(1, Math.round(remainingLife.value * 0.2))} ${remainingLife.unit}.`
 
     predictions.push({
       id: uuidv4(),
-      equipmentId: equipment.id,
-      equipmentName: equipment.name,
-      equipmentType: equipment.type,
+      componentId: component.id,
+      componentName: component.name,
+      componentType: component.type,
       assetType: request.assetType,
       assetId: request.assetId,
       assetName: request.assetName,
       priority: effectivePriority,
-      title: `${equipment.name} - ${effectivePriority === 'critical' ? 'Immediate Action Required' : effectivePriority === 'high' ? 'Maintenance Due Soon' : effectivePriority === 'medium' ? 'Schedule Maintenance' : 'Monitor Condition'}`,
+      title: `${component.name} — ${effectivePriority === 'critical' ? 'Immediate Action Required' : effectivePriority === 'high' ? 'Maintenance Due Soon' : effectivePriority === 'medium' ? 'Schedule Maintenance' : 'Monitor Condition'}`,
       description: predictionDescription,
-      predictedIssue: vesselIssue?.pmPrediction.predictedIssue || failureMode?.mode || 'General wear progression',
+      predictedIssue: assetIssue?.pmPrediction.predictedIssue || failureMode?.mode || 'General aging progression',
       remainingLife,
-      confidence: vesselIssue ? 92 : Math.round(85 + Math.random() * 10),
+      confidence: assetIssue ? (assetIssue.pmPrediction.confidence ?? 92) : Math.round(80 + Math.random() * 15),
       recommendedAction,
       alternativeActions: [
         'Increase monitoring frequency',
-        'Order spare parts preemptively',
-        'Coordinate with operations for maintenance window',
+        'Order spare parts — note transformer lead time 18-24 months',
+        'Coordinate with system operations for maintenance outage window',
+        'Deploy mobile substation as contingency',
       ],
       costOfInaction: {
-        amount: Math.round(baseCost * costMultiplier * 2),
+        amount: Math.round(baseCost * costMultiplier * 3),
         currency: 'USD',
-        description: `Unplanned failure could result in ${Math.round(24 * costMultiplier)}-${Math.round(72 * costMultiplier)} hours downtime`,
+        description: `Unplanned failure could result in ${Math.round(24 * costMultiplier)}-${Math.round(168 * costMultiplier)} hour outage affecting ${assetIssue?.pmPrediction.customersAtRisk?.toLocaleString() || '25,000+'} customers`,
       },
       estimatedRepairCost: {
         min: Math.round(baseCost * 0.8),
-        max: Math.round(baseCost * 1.5),
+        max: Math.round(baseCost * 2),
         currency: 'USD',
       },
       estimatedDowntime: {
-        min: Math.round(8 * costMultiplier),
-        max: Math.round(24 * costMultiplier),
+        min: Math.round(24 * costMultiplier),
+        max: Math.round(72 * costMultiplier),
         unit: 'hours',
       },
       partsRequired: nextTask?.parts || [],
+      customersAtRisk: assetIssue?.pmPrediction.customersAtRisk,
       optimalMaintenanceWindow: {
-        start: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        end: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+        start: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+        end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       },
     })
   }
 
-  const avgHealth = request.equipmentList.length > 0 ? overallHealth / request.equipmentList.length : 100
+  const avgHealth = request.componentList.length > 0 ? overallHealth / request.componentList.length : 100
 
-  const primaryEquipment = request.equipmentList[0]
-  const degradationCurve = primaryEquipment 
+  const primaryComponent = request.componentList[0]
+  const degradationCurve = primaryComponent
     ? generateDegradationCurve(
-        primaryEquipment.currentHealth || 75,
-        primaryEquipment.operatingHours || 5000,
-        primaryEquipment.type
+        primaryComponent.currentHealth || 75,
+        primaryComponent.ageYears || 20,
+        primaryComponent.type
       )
     : []
 
@@ -545,9 +518,8 @@ export function analyzeEquipment(request: PMAnalysisRequest): PMAnalysis {
     degradationCurve,
     overallHealthScore: Math.round(avgHealth),
     nextAnalysisRecommended: new Date(Date.now() + 24 * 60 * 60 * 1000),
-    analysisVersion: '2.1.0',
+    analysisVersion: '3.0.0-grid',
   }
 }
 
 export { DATA_SOURCES }
-

@@ -7,7 +7,7 @@ interface IntelligenceSource {
   domains: string[];
 }
 
-// NMDC-specific intelligence sources - focused on dredging, marine construction, UAE ports
+// fleet operations-specific intelligence sources - focused on dredging, marine construction, UAE ports
 // Queries are hyper-local to Abu Dhabi/UAE marine operations
 const INTELLIGENCE_SOURCES: IntelligenceSource[] = [
   {
@@ -27,7 +27,7 @@ const INTELLIGENCE_SOURCES: IntelligenceSource[] = [
   },
   {
     category: 'market',
-    query: 'NMDC OR "National Marine Dredging" contract award Abu Dhabi Musanada tender',
+    query: '"National Marine Dredging" OR marine construction contract award Abu Dhabi Musanada tender',
     domains: ['zawya.com', 'meed.com', 'constructionweekonline.com', 'thenationalnews.com'],
   },
   {
@@ -54,7 +54,7 @@ interface ExternalFactor {
   relatedFactors?: string[]; // IDs of factors that contributed to this insight
   // NEW: Actionable fields
   timeframe: 'immediate' | 'near-term' | 'medium-term' | 'long-term'; // When action needed
-  impact: string; // Specific impact on NMDC operations
+  impact: string; // Specific impact on fleet operations operations
   actions: string[]; // Concrete action items
 }
 
@@ -74,7 +74,7 @@ interface OptimizationSuggestion {
 }
 
 // Content quality filter - removes promotional/irrelevant content
-// Specifically tuned for NMDC dredging/marine construction operations in UAE
+// Specifically tuned for fleet operations dredging/marine construction operations in UAE
 function isRelevantContent(text: string, title: string): boolean {
   const lowerText = (text + ' ' + title).toLowerCase();
   
@@ -141,7 +141,7 @@ function isRelevantContent(text: string, title: string): boolean {
     return false;
   }
   
-  // Reject generic global shipping news (not relevant to NMDC's dredging ops)
+  // Reject generic global shipping news (not relevant to fleet operations's dredging ops)
   const globalShippingPatterns = [
     'decarbonize international shipping',
     'net-zero ghg emissions',
@@ -166,9 +166,9 @@ function isRelevantContent(text: string, title: string): boolean {
     'somali',
   ];
   
-  // If content has global shipping patterns but no UAE/NMDC context, reject
+  // If content has global shipping patterns but no UAE/fleet operations context, reject
   if (globalShippingPatterns.some(pattern => lowerText.includes(pattern))) {
-    const hasLocalContext = ['uae', 'abu dhabi', 'dubai', 'nmdc', 'khalifa', 'adnoc', 'musanada', 'ruwais', 'fujairah']
+    const hasLocalContext = ['uae', 'abu dhabi', 'dubai', 'khalifa', 'adnoc', 'musanada', 'ruwais', 'fujairah']
       .some(local => lowerText.includes(local));
     if (!hasLocalContext) {
       return false;
@@ -197,13 +197,13 @@ function isRelevantContent(text: string, title: string): boolean {
     return false;
   }
   
-  // Must contain UAE/Gulf regional OR NMDC-specific keywords
+  // Must contain UAE/Gulf regional OR fleet operations-specific keywords
   const requiredPatterns = [
     // UAE/Regional
     'uae', 'abu dhabi', 'dubai', 'fujairah', 'khalifa port', 'ruwais',
     'arabian gulf', 'persian gulf', 'emirates',
-    // NMDC operations
-    'nmdc', 'dredging', 'reclamation', 'marine construction', 'offshore',
+    // fleet operations operations
+    'dredging', 'reclamation', 'marine construction', 'offshore',
     // Key clients/partners
     'adnoc', 'musanada', 'ad ports', 'nakheel', 'mubadala', 'aldar',
     // Project types
@@ -289,7 +289,7 @@ async function searchIntelligenceSource(source: IntelligenceSource): Promise<Arr
   }
 }
 
-// Cross-analyze sources to generate NMDC-specific insights
+// Cross-analyze sources to generate fleet operations-specific insights
 function generateCrossAnalysisInsights(
   allResults: Array<{ category: string; title: string; content: string; url: string }>
 ): ExternalFactor[] {
@@ -313,7 +313,7 @@ function generateCrossAnalysisInsights(
     
     // EAD environmental permits + large projects
     if ((regContent.includes('environmental') || regContent.includes('ead') || regContent.includes('permit') || regContent.includes('dredging')) &&
-        (marketContent.includes('nmdc') || marketContent.includes('contract') || marketContent.includes('billion') || marketContent.includes('musanada'))) {
+        (marketContent.includes('exelon') || marketContent.includes('contract') || marketContent.includes('billion') || marketContent.includes('musanada'))) {
       insights.push({
         id: 'insight-permits',
         type: 'insight',
@@ -324,7 +324,7 @@ function generateCrossAnalysisInsights(
         affectedRegions: ['Abu Dhabi', 'Jubail Island', 'Saadiyat'],
         affectedVesselTypes: ['dredger', 'survey'],
         recommendation: 'Submit environmental impact assessments early. Coordinate with EAD on coral relocation requirements. Factor 6-week buffer into new project bids.',
-        reasoning: 'Cross-analysis: Stricter EAD environmental oversight + NMDC pipeline of coastal projects = need for proactive permit management to avoid mobilization delays.',
+        reasoning: 'Cross-analysis: Stricter EAD environmental oversight + fleet operations pipeline of coastal projects = need for proactive permit management to avoid mobilization delays.',
         timeframe: 'near-term',
         impact: 'Delayed mobilization for 3 pending coastal projects. Potential AED 2-4M standby costs if vessels ready but permits pending.',
         actions: [
@@ -352,11 +352,11 @@ function generateCrossAnalysisInsights(
         type: 'insight',
         severity: 'info',
         title: 'Khalifa Port Expansion Creates Dredging Demand',
-        description: 'Phase 3 port expansion and new container berths will require additional channel deepening and approach dredging. NMDC well-positioned given existing Khalifa Port relationships.',
+        description: 'Phase 3 port expansion and new container berths will require additional channel deepening and approach dredging. fleet operations well-positioned given existing Khalifa Port relationships.',
         sources: [...geopolitical.slice(0, 1).map(g => g.url), ...infrastructure.slice(0, 2).map(i => i.url)],
         affectedRegions: ['Khalifa Port', 'Abu Dhabi'],
         recommendation: 'Engage with AD Ports on Phase 3 requirements. Pre-position dredging equipment for quick mobilization. Prepare competitive bid with lessons from Phase 2.',
-        reasoning: 'Cross-analysis: Port traffic growth + infrastructure investment = continued demand for NMDC marine services at Khalifa Port.',
+        reasoning: 'Cross-analysis: Port traffic growth + infrastructure investment = continued demand for fleet operations marine services at Khalifa Port.',
         timeframe: 'medium-term',
         impact: 'Potential AED 80-120M contract opportunity. Would require 2 TSHDs and 1 CSD for 18-month project.',
         actions: [
@@ -489,7 +489,7 @@ async function searchExternalFactors(): Promise<ExternalFactor[]> {
     console.error('Error fetching external factors:', error);
   }
 
-  // Add fallback/simulated factors if no Exa results (NMDC-specific)
+  // Add fallback/simulated factors if no Exa results (fleet operations-specific)
   if (factors.length === 0) {
     factors.push(
       {
@@ -518,7 +518,7 @@ async function searchExternalFactors(): Promise<ExternalFactor[]> {
         type: 'port',
         severity: 'info',
         title: 'Khalifa Port Phase 3 - Channel Dredging Active',
-        description: 'NMDC dredging operations ongoing in approach channel. Commercial vessel traffic may experience minor delays during peak dredging hours.',
+        description: 'fleet operations dredging operations ongoing in approach channel. Commercial vessel traffic may experience minor delays during peak dredging hours.',
         affectedRegions: ['Khalifa Port', 'Abu Dhabi'],
         dateRange: { 
           start: new Date().toISOString(), 

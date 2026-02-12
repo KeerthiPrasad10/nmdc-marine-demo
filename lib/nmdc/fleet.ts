@@ -1,10 +1,7 @@
 /**
- * NMDC Fleet Configuration
+ * Legacy Marine Fleet Configuration
  * 
- * National Marine Dredging Company - UAE's leading marine contractor
- * Specialized in dredging, marine construction, and offshore services
- * 
- * This module contains NMDC's vessel fleet data for demo purposes.
+ * Legacy marine vessel fleet data retained for demo compatibility.
  * Real-time positions are fetched from Datalastic API using MMSI numbers.
  */
 
@@ -15,7 +12,7 @@ export interface NMDCVessel {
   type: 'dredger' | 'hopper_dredger' | 'csd' | 'tug' | 'supply' | 'barge' | 'survey' 
       | 'pipelay_barge' | 'jack_up' | 'accommodation_barge' | 'work_barge' | 'derrick_barge';
   subType: string;
-  company: 'nmdc_group' | 'nmdc_energy';  // Track which NMDC entity
+  company: 'nmdc_group' | 'nmdc_energy';  // Legacy entity tracking
   project?: string;
   captain?: string;
   crewCount?: number;
@@ -34,13 +31,13 @@ export interface NMDCVessel {
 }
 
 /**
- * NMDC Fleet - UAE Dredging & Offshore Vessels
+ * Legacy Marine Fleet - UAE Dredging & Offshore Vessels
  * MMSIs verified against Datalastic API (country_iso: AE, type: dredger/offshore)
  */
 export const NMDC_FLEET: NMDCVessel[] = [
   // ============================================================================
-  // NMDC GROUP - Dredging & Marine Construction
-  // Source: https://nmdc-group.com/en/about-us/fleet-and-equipment
+  // Legacy Marine Group - Dredging & Marine Construction
+  // Source: legacy marine fleet data
   // ============================================================================
   
   // === TRAILING SUCTION HOPPER DREDGERS ===
@@ -243,8 +240,8 @@ export const NMDC_FLEET: NMDCVessel[] = [
   },
 
   // ============================================================================
-  // NMDC ENERGY - Offshore EPC, Pipelaying & Heavy Lift
-  // Source: https://www.nmdc-energy.com/en/about-us/fleet/
+  // Legacy Marine Energy - Offshore EPC, Pipelaying & Heavy Lift
+  // Source: legacy marine energy fleet data
   // ALL MMSIs VERIFIED from Datalastic, MarineTraffic, VesselFinder
   // ============================================================================
   
@@ -266,7 +263,7 @@ export const NMDC_FLEET: NMDCVessel[] = [
       accommodation: 350,
       yearBuilt: 2015,
     },
-    datasheetUrl: 'https://www.nmdc-energy.com/assets/files/fleet/derrick%20barges/DLS-4200.pdf',
+    datasheetUrl: 'https://example.com/legacy-marine-energy/assets/files/fleet/derrick%20barges/DLS-4200.pdf',
   },
   {
     mmsi: '471026000',  // ✅ Verified: Datalastic, MarineTraffic
@@ -283,7 +280,7 @@ export const NMDC_FLEET: NMDCVessel[] = [
       craneCapacity: 2000,
       yearBuilt: 2010,
     },
-    datasheetUrl: 'https://www.nmdc-energy.com/assets/files/fleet/derrick%20barges/Delma%202000.pdf',
+    datasheetUrl: 'https://example.com/legacy-marine-energy/assets/files/fleet/derrick%20barges/Delma%202000.pdf',
   },
   
   // === CONVENTIONAL FLAT BOTTOM BARGES (Pipelay) ===
@@ -305,7 +302,7 @@ export const NMDC_FLEET: NMDCVessel[] = [
       deckArea: 1600,
       yearBuilt: 1979,
     },
-    datasheetUrl: 'https://www.nmdc-energy.com/assets/files/fleet/conventional%20flat%20bottom%20barges/PLB-648.pdf',
+    datasheetUrl: 'https://example.com/legacy-marine-energy/assets/files/fleet/conventional%20flat%20bottom%20barges/PLB-648.pdf',
   },
   {
     mmsi: '470339000',  // ✅ Verified: Datalastic, MarineTraffic
@@ -324,7 +321,7 @@ export const NMDC_FLEET: NMDCVessel[] = [
       deckArea: 4500,
       yearBuilt: 1985,
     },
-    datasheetUrl: 'https://www.nmdc-energy.com/assets/files/fleet/conventional%20flat%20bottom%20barges/DLB-750.pdf',
+    datasheetUrl: 'https://example.com/legacy-marine-energy/assets/files/fleet/conventional%20flat%20bottom%20barges/DLB-750.pdf',
   },
   {
     mmsi: '470284000',  // ✅ Verified: MarineTraffic, VesselFinder
@@ -343,7 +340,7 @@ export const NMDC_FLEET: NMDCVessel[] = [
       deckArea: 1500,
       yearBuilt: 1983,
     },
-    datasheetUrl: 'https://www.nmdc-energy.com/assets/files/fleet/conventional%20flat%20bottom%20barges/DLB-1000.pdf',
+    datasheetUrl: 'https://example.com/legacy-marine-energy/assets/files/fleet/conventional%20flat%20bottom%20barges/DLB-1000.pdf',
   },
   
   // === JACK-UP BARGES (Self-Elevating Platforms) ===
@@ -365,7 +362,7 @@ export const NMDC_FLEET: NMDCVessel[] = [
       deckArea: 800,
       yearBuilt: 2012,
     },
-    datasheetUrl: 'https://www.nmdc-energy.com/assets/files/fleet/jack-up%20barges/SEP-450.pdf',
+    datasheetUrl: 'https://example.com/legacy-marine-energy/assets/files/fleet/jack-up%20barges/SEP-450.pdf',
   },
   {
     mmsi: '470114000',  // ✅ Verified: VesselFinder
@@ -384,7 +381,7 @@ export const NMDC_FLEET: NMDCVessel[] = [
       deckArea: 800,
       yearBuilt: 2014,
     },
-    datasheetUrl: 'https://www.nmdc-energy.com/assets/files/fleet/jack-up%20barges/SEP-550.pdf',
+    datasheetUrl: 'https://example.com/legacy-marine-energy/assets/files/fleet/jack-up%20barges/SEP-550.pdf',
   },
   {
     mmsi: '470426000',  // ✅ Verified: MarineTraffic
@@ -422,7 +419,7 @@ export const NMDC_FLEET: NMDCVessel[] = [
       deckArea: 800,
       yearBuilt: 2016,
     },
-    datasheetUrl: 'https://www.nmdc-energy.com/assets/files/fleet/jack-up%20barges/SEP-750.pdf',
+    datasheetUrl: 'https://example.com/legacy-marine-energy/assets/files/fleet/jack-up%20barges/SEP-750.pdf',
   },
   
   // === OFFSHORE SUPPORT & CABLE LAY ===
@@ -444,7 +441,7 @@ export const NMDC_FLEET: NMDCVessel[] = [
       deckArea: 1615,
       yearBuilt: 2009,
     },
-    datasheetUrl: 'https://www.nmdc-energy.com/assets/files/fleet/offshore%20support%20and%20cable%20lay/Umm%20Shaif.pdf',
+    datasheetUrl: 'https://example.com/legacy-marine-energy/assets/files/fleet/offshore%20support%20and%20cable%20lay/Umm%20Shaif.pdf',
   },
   
   // === ANCHOR HANDLING TUG SUPPLY (AHTS) ===
@@ -463,7 +460,7 @@ export const NMDC_FLEET: NMDCVessel[] = [
       depth: 4.8,
       yearBuilt: 2010,
     },
-    datasheetUrl: 'https://www.nmdc-energy.com/assets/files/fleet/anchor%20handling%20tug%20supply/Saadiyat.pdf',
+    datasheetUrl: 'https://example.com/legacy-marine-energy/assets/files/fleet/anchor%20handling%20tug%20supply/Saadiyat.pdf',
   },
   {
     mmsi: '470642000',  // ✅ Verified: VesselFinder, MagicPort
@@ -480,7 +477,7 @@ export const NMDC_FLEET: NMDCVessel[] = [
       depth: 4.8,
       yearBuilt: 2011,
     },
-    datasheetUrl: 'https://www.nmdc-energy.com/assets/files/fleet/anchor%20handling%20tug%20supply/Yas.pdf',
+    datasheetUrl: 'https://example.com/legacy-marine-energy/assets/files/fleet/anchor%20handling%20tug%20supply/Yas.pdf',
   },
 ];
 
@@ -489,7 +486,7 @@ export const NMDC_FLEET: NMDCVessel[] = [
  */
 export function getNMDCVesselColor(type: NMDCVessel['type']): string {
   const colors: Record<NMDCVessel['type'], string> = {
-    // NMDC Group - Dredging
+    // Legacy Marine Group - Dredging
     dredger: '#f97316',           // Orange
     hopper_dredger: '#ef4444',    // Red
     csd: '#a855f7',               // Purple
@@ -497,7 +494,7 @@ export function getNMDCVesselColor(type: NMDCVessel['type']): string {
     supply: '#3b82f6',            // Blue
     barge: '#f59e0b',             // Amber
     survey: '#06b6d4',            // Cyan
-    // NMDC Energy - Offshore
+    // Legacy Marine Energy - Offshore
     pipelay_barge: '#ec4899',     // Pink
     derrick_barge: '#dc2626',     // Dark Red
     jack_up: '#8b5cf6',           // Violet
@@ -512,7 +509,7 @@ export function getNMDCVesselColor(type: NMDCVessel['type']): string {
  */
 export function getNMDCVesselTypeName(type: NMDCVessel['type']): string {
   const names: Record<NMDCVessel['type'], string> = {
-    // NMDC Group - Dredging
+    // Legacy Marine Group - Dredging
     dredger: 'Dredger',
     hopper_dredger: 'Hopper Dredger',
     csd: 'Cutter Suction Dredger',
@@ -520,7 +517,7 @@ export function getNMDCVesselTypeName(type: NMDCVessel['type']): string {
     supply: 'Supply Vessel',
     barge: 'Barge',
     survey: 'Survey Vessel',
-    // NMDC Energy - Offshore
+    // Legacy Marine Energy - Offshore
     pipelay_barge: 'Pipelay Barge',
     derrick_barge: 'Derrick Lay Barge',
     jack_up: 'Jack-Up Barge',
@@ -534,7 +531,7 @@ export function getNMDCVesselTypeName(type: NMDCVessel['type']): string {
  * Get company display name
  */
 export function getNMDCCompanyName(company: NMDCVessel['company']): string {
-  return company === 'nmdc_group' ? 'NMDC Group' : 'NMDC Energy';
+  return company === 'nmdc_group' ? 'Legacy Marine Group' : 'Legacy Marine Energy';
 }
 
 /**
@@ -545,8 +542,8 @@ export function getVesselsByCompany(company: NMDCVessel['company']): NMDCVessel[
 }
 
 /**
- * NMDC Energy Fleet Only (for NMDC Energy demo)
- * Filters out NMDC Group dredging vessels
+ * Legacy Marine Energy Fleet Only
+ * Filters out legacy marine group dredging vessels
  */
 export const NMDC_ENERGY_FLEET: NMDCVessel[] = NMDC_FLEET.filter(
   v => v.company === 'nmdc_energy'
@@ -560,7 +557,7 @@ export function getNMDCFleetMMSIs(): string[] {
 }
 
 /**
- * Get NMDC Energy MMSI numbers only
+ * Get legacy energy fleet MMSI numbers only
  */
 export function getNMDCEnergyFleetMMSIs(): string[] {
   return NMDC_ENERGY_FLEET.map(v => v.mmsi);

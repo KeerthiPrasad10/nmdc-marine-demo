@@ -546,10 +546,10 @@ export const FAILURE_MODE_PROFILES: Record<FailureMode, FailureModeProfile> = {
 };
 
 // ============================================================================
-// NMDC VESSEL FLEET
+// LEGACY MARINE VESSEL FLEET
 // ============================================================================
 
-export type NMDCVesselClass =
+export type LegacyVesselClass =
   | 'heavy_duty_csd'      // Al Sadr, Al Yassat, Al Khatem, Al Hamra, Al Mirfa, Kattouf
   | 'derrick_barge'       // Heavy lift derrick barges
   | 'hopper_dredger'      // Trailing suction hopper dredgers
@@ -559,9 +559,9 @@ export type NMDCVesselClass =
   | 'crane_barge'         // Floating cranes
   | 'accommodation_barge'; // Floatels
 
-export interface NMDCVesselProfile {
+export interface LegacyVesselProfile {
   name: string;
-  class: NMDCVesselClass;
+  class: LegacyVesselClass;
   imoNumber: string;
   yearBuilt: number;
   grossTonnage: number;
@@ -578,7 +578,7 @@ export interface NMDCVesselProfile {
   pdmFocus: FailureMode[];      // Key failure modes to monitor
 }
 
-export const NMDC_FLEET: NMDCVesselProfile[] = [
+export const LEGACY_MARINE_FLEET: LegacyVesselProfile[] = [
   // Heavy Duty Cutter Suction Dredgers
   {
     name: 'Al Sadr',
@@ -691,7 +691,7 @@ export const NMDC_FLEET: NMDCVesselProfile[] = [
   
   // Derrick Barges
   {
-    name: 'NMDC Lifter I',
+    name: 'Heavy Lifter I',
     class: 'derrick_barge',
     imoNumber: '9345678',
     yearBuilt: 2005,
@@ -708,7 +708,7 @@ export const NMDC_FLEET: NMDCVesselProfile[] = [
     pdmFocus: ['wire_rope_fatigue', 'crane_boom_fatigue', 'winch_brake_wear', 'hydraulic_leak'],
   },
   {
-    name: 'NMDC Lifter II',
+    name: 'Heavy Lifter II',
     class: 'derrick_barge',
     imoNumber: '9345679',
     yearBuilt: 2012,
