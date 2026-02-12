@@ -160,16 +160,30 @@ function buildIssuesList(
   }
 
   if (weather && weather.severity !== 'normal') {
+    const zoneToOpCo: Record<string, string> = {
+      'BGE Service Territory': 'BGE',
+      'ComEd Chicago Metro': 'ComEd',
+      'PECO Philadelphia': 'PECO',
+      'Pepco DC Metro': 'Pepco',
+      'ACE Atlantic Coast': 'ACE',
+      'DPL Delaware Valley': 'DPL',
+    };
+    const affectedOpCo = zoneToOpCo[weather.zone];
+    const weatherAffectedAssets = affectedOpCo
+      ? EXELON_ASSETS.filter(a => a.opCo === affectedOpCo).map(a => a.name)
+      : EXELON_ASSETS.slice(0, 5).map(a => a.name);
+
     issues.push({
       type: 'WEATHER_IMPACT',
       severity: weather.severity === 'severe' ? 'critical' : 'warning',
-      assets: overloadedAssets.map(a => a.name).slice(0, 5),
+      assets: weatherAffectedAssets,
       details: {
         zone: weather.zone,
         condition: weather.condition,
         temperature: weather.temperature,
         windSpeed: weather.windSpeed,
         stormRisk: weather.stormRisk,
+        affectedOpCo: affectedOpCo || 'multiple',
       },
     });
   }
