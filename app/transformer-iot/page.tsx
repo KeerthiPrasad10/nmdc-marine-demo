@@ -571,7 +571,7 @@ function TransformerIoTDashboard() {
               </div>
               <div className="flex items-center gap-4">
                 <span className="text-xs text-emerald-400/50 font-medium">{scenario.outcome.costAvoided} avoided</span>
-                <Link href="/scenarios" className="text-xs font-medium text-amber-400/50 hover:text-amber-400/70 flex items-center gap-1 transition-colors">
+                <Link href={`/scenarios?id=${scenario.id}`} className="text-xs font-medium text-amber-400/50 hover:text-amber-400/70 flex items-center gap-1 transition-colors">
                   Full Story <ChevronRight className="w-3 h-3" />
                 </Link>
               </div>
