@@ -1,8 +1,9 @@
 // @ts-nocheck — Demo Scenarios Page: Hero narratives for Exelon GridIQ
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
   ArrowLeft,
   Shield,
@@ -350,8 +351,17 @@ function ScenarioDetail({ scenario, onBack }: { scenario: DemoScenario; onBack: 
 // MAIN PAGE
 // ============================================================================
 
-export default function ScenariosPage() {
+function ScenariosContent() {
+  const searchParams = useSearchParams();
   const [selectedScenario, setSelectedScenario] = useState<DemoScenario | null>(null);
+
+  useEffect(() => {
+    const id = searchParams.get('id');
+    if (id) {
+      const match = DEMO_SCENARIOS.find(s => s.id === id);
+      if (match) setSelectedScenario(match);
+    }
+  }, [searchParams]);
 
   // Aggregate totals
   const totalCostAvoided = '$31.7M';
@@ -472,3 +482,10 @@ export default function ScenariosPage() {
   );
 }
 
+export default function ScenariosPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-black" />}>
+      <ScenariosContent />
+    </Suspense>
+  );
+}
