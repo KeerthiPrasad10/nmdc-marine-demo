@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { EXELON_ASSETS, getExelonAssetByTag, type ExelonAsset } from '@/lib/exelon/fleet';
 import { generateAlertsFromAssets, getAlertCounts, type GridAlert } from '@/lib/exelon/alerts';
 import { 
@@ -78,6 +79,7 @@ export default function Dashboard() {
   const alertCounts = useMemo(() => getAlertCounts(alerts), [alerts]);
   const programStats = getProgramStats();
   
+  const router = useRouter();
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
   const [leftPanel, setLeftPanel] = useState<'assets' | 'programs'>('assets');
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
@@ -115,9 +117,9 @@ export default function Dashboard() {
 
   const handleSelectAsset = useCallback(
     (tag: string) => {
-      setSelectedAssetTag(prev => (prev === tag ? null : tag));
+      router.push(`/transformer-iot?asset=${tag}`);
     },
-    [],
+    [router],
   );
 
   const selectedAsset = selectedAssetTag ? getExelonAssetByTag(selectedAssetTag) ?? null : null;
