@@ -48,7 +48,46 @@ import { getScenarioForAsset, type DemoScenario, type ScenarioEvent } from '@/li
 // ──────────────────── Scenario Investigation Panel ────────────────────
 function ScenarioInvestigation({ scenario }: { scenario: DemoScenario }) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [activeStep, setActiveStep] = useState(0);
+  const [activeStep, setActiveStep] = useState(-1);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [showOutcome, setShowOutcome] = useState(false);
+  const totalSteps = scenario.timeline.length;
+
+  useEffect(() => {
+    if (!isPlaying) return;
+    if (activeStep >= totalSteps - 1) {
+      setShowOutcome(true);
+      setIsPlaying(false);
+      return;
+    }
+    const delay = activeStep === -1 ? 600 : 2800;
+    const timer = setTimeout(() => setActiveStep(prev => prev + 1), delay);
+    return () => clearTimeout(timer);
+  }, [isPlaying, activeStep, totalSteps]);
+
+  const handleExpand = () => {
+    if (!isExpanded) {
+      setIsExpanded(true);
+      setActiveStep(-1);
+      setShowOutcome(false);
+      setIsPlaying(true);
+    } else {
+      setIsExpanded(false);
+      setIsPlaying(false);
+    }
+  };
+
+  const handleReplay = () => {
+    setActiveStep(-1);
+    setShowOutcome(false);
+    setTimeout(() => setIsPlaying(true), 100);
+  };
+
+  const handleStepClick = (i: number) => {
+    setIsPlaying(false);
+    setActiveStep(i);
+    setShowOutcome(false);
+  };
 
   const catConfig: Record<string, { accent: string; bg: string; border: string; label: string }> = {
     aging_asset: { accent: 'text-orange-400/60', bg: 'bg-orange-500/[0.04]', border: 'border-orange-500/10', label: 'Aging Asset' },
@@ -65,14 +104,12 @@ function ScenarioInvestigation({ scenario }: { scenario: DemoScenario }) {
   };
 
   const cfg = catConfig[scenario.category] || catConfig.aging_asset;
+  const progress = activeStep >= 0 ? ((activeStep + 1) / totalSteps) * 100 : 0;
 
   return (
     <div className={`rounded-2xl border transition-all ${isExpanded ? cfg.border + ' ' + cfg.bg : 'bg-white/[0.02] border-white/[0.06]'}`}>
-      {/* Collapsed Header — always visible */}
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full p-4 flex items-start gap-3 text-left"
-      >
+      {/* Header — always visible */}
+      <button onClick={handleExpand} className="w-full p-4 flex items-start gap-3 text-left">
         <div className={`mt-0.5 w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${cfg.bg} border ${cfg.border}`}>
           <Shield className={`w-4 h-4 ${cfg.accent}`} />
         </div>
@@ -86,12 +123,46 @@ function ScenarioInvestigation({ scenario }: { scenario: DemoScenario }) {
             <p className="text-xs text-white/35 mt-0.5 truncate">{scenario.subtitle}</p>
           )}
         </div>
-        <ChevronRight className={`w-4 h-4 text-white/25 transition-transform flex-shrink-0 mt-1 ${isExpanded ? 'rotate-90' : ''}`} />
+        <div className="flex items-center gap-2 flex-shrink-0 mt-1">
+          {!isExpanded && (
+            <span className="text-[10px] text-white/25 flex items-center gap-1">
+              <Play className="w-3 h-3" /> Run
+            </span>
+          )}
+          <ChevronRight className={`w-4 h-4 text-white/25 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+        </div>
       </button>
 
-      {/* Expanded Content */}
+      {/* Expanded — auto-playing investigation */}
       {isExpanded && (
         <div className="px-4 pb-4 space-y-4">
+          {/* Progress bar */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-white/35">
+                {isPlaying ? 'Executing investigation…' : showOutcome ? 'Investigation complete' : `Step ${activeStep + 1} of ${totalSteps}`}
+              </span>
+              <div className="flex items-center gap-2">
+                {!isPlaying && activeStep >= 0 && (
+                  <button onClick={(e) => { e.stopPropagation(); setIsPlaying(true); }} className="text-[10px] text-cyan-400/50 hover:text-cyan-400/70 flex items-center gap-1 transition-colors">
+                    <Play className="w-3 h-3" /> Resume
+                  </button>
+                )}
+                {(showOutcome || activeStep >= totalSteps - 1) && (
+                  <button onClick={(e) => { e.stopPropagation(); handleReplay(); }} className="text-[10px] text-white/30 hover:text-white/50 flex items-center gap-1 transition-colors">
+                    <RefreshCw className="w-3 h-3" /> Replay
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="h-1 bg-white/[0.06] rounded-full overflow-hidden">
+              <div
+                className="h-full bg-cyan-500/30 rounded-full transition-all duration-700 ease-out"
+                style={{ width: `${showOutcome ? 100 : progress}%` }}
+              />
+            </div>
+          </div>
+
           {/* Description */}
           <p className="text-xs text-white/50 leading-relaxed">{scenario.description}</p>
 
@@ -100,36 +171,45 @@ function ScenarioInvestigation({ scenario }: { scenario: DemoScenario }) {
             {scenario.timeline.map((event, i) => {
               const step = stepIcons[event.type] || stepIcons.detection;
               const isActive = i === activeStep;
-              const isPast = i < activeStep;
+              const isPast = i < activeStep || showOutcome;
+              const isVisible = i <= activeStep || showOutcome;
 
               return (
-                <div key={event.id} className="flex gap-3">
+                <div
+                  key={event.id}
+                  className={`flex gap-3 transition-all duration-500 ${isVisible ? 'opacity-100' : 'opacity-20'}`}
+                >
                   {/* Connector Line + Icon */}
                   <div className="flex flex-col items-center">
                     <button
-                      onClick={(e) => { e.stopPropagation(); setActiveStep(i); }}
-                      className={`w-7 h-7 rounded-full border flex items-center justify-center flex-shrink-0 transition-all ${
-                        isActive ? step.color + ' ring-1 ring-white/10' :
+                      onClick={(e) => { e.stopPropagation(); handleStepClick(i); }}
+                      className={`w-7 h-7 rounded-full border flex items-center justify-center flex-shrink-0 transition-all duration-500 ${
+                        isActive ? step.color + ' ring-1 ring-white/10 scale-110' :
                         isPast ? 'text-emerald-400/40 bg-emerald-500/[0.06] border-emerald-500/10' :
                         'text-white/25 bg-white/[0.03] border-white/[0.06]'
                       }`}
                     >
                       {isPast && !isActive ? <CheckCircle className="w-3.5 h-3.5" /> : step.icon}
                     </button>
-                    {i < scenario.timeline.length - 1 && (
-                      <div className={`w-px flex-1 min-h-[16px] ${isPast ? 'bg-emerald-500/15' : 'bg-white/[0.06]'}`} />
+                    {i < totalSteps - 1 && (
+                      <div className={`w-px flex-1 min-h-[16px] transition-colors duration-500 ${isPast ? 'bg-emerald-500/15' : 'bg-white/[0.06]'}`} />
                     )}
                   </div>
 
                   {/* Content */}
-                  <div className={`pb-4 flex-1 ${i === scenario.timeline.length - 1 ? 'pb-0' : ''}`}>
+                  <div className={`pb-4 flex-1 ${i === totalSteps - 1 ? 'pb-0' : ''}`}>
                     <div className="flex items-center gap-2 mb-0.5">
-                      <span className={`text-xs font-medium ${isActive ? 'text-white/80' : 'text-white/50'}`}>{event.title}</span>
+                      <span className={`text-xs font-medium transition-colors duration-300 ${isActive ? 'text-white/80' : isPast ? 'text-white/55' : 'text-white/30'}`}>
+                        {event.title}
+                      </span>
+                      {isActive && isPlaying && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-cyan-400/60 animate-pulse" />
+                      )}
                     </div>
-                    {isActive && (
-                      <div className="mt-1.5 space-y-2">
+                    {(isActive || (isPast && showOutcome)) && (
+                      <div className={`mt-1.5 space-y-2 transition-all duration-300 ${isActive ? 'opacity-100' : 'opacity-60'}`}>
                         <p className="text-xs text-white/45 leading-relaxed">{event.description}</p>
-                        {event.data && (
+                        {event.data && isActive && (
                           <div className="flex flex-wrap gap-1.5">
                             {Object.entries(event.data).slice(0, 4).map(([key, val]) => (
                               <span key={key} className="text-[10px] px-2 py-0.5 rounded bg-white/[0.04] border border-white/[0.06] text-white/40">
@@ -146,39 +226,43 @@ function ScenarioInvestigation({ scenario }: { scenario: DemoScenario }) {
             })}
           </div>
 
-          {/* Outcome Card */}
-          <div className="p-3 rounded-lg bg-emerald-500/[0.04] border border-emerald-500/10">
-            <div className="flex items-center gap-2 mb-1.5">
-              <CheckCircle className="w-4 h-4 text-emerald-400/50" />
-              <span className="text-xs font-semibold text-emerald-400/60">{scenario.outcome.title}</span>
+          {/* Outcome Card — slides in after final step */}
+          {showOutcome && (
+            <div className="p-3 rounded-lg bg-emerald-500/[0.04] border border-emerald-500/10 animate-in fade-in slide-in-from-bottom-2 duration-500">
+              <div className="flex items-center gap-2 mb-1.5">
+                <CheckCircle className="w-4 h-4 text-emerald-400/50" />
+                <span className="text-xs font-semibold text-emerald-400/60">{scenario.outcome.title}</span>
+              </div>
+              <p className="text-xs text-white/40 leading-relaxed mb-2">{scenario.outcome.description}</p>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="text-center">
+                  <p className="text-sm font-bold text-emerald-400/60">{scenario.outcome.costAvoided}</p>
+                  <p className="text-[10px] text-white/30">Cost Avoided</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-bold text-white/60">{scenario.outcome.customersProtected.toLocaleString()}</p>
+                  <p className="text-[10px] text-white/30">Customers</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-bold text-white/60">{scenario.outcome.outageHoursAvoided}h</p>
+                  <p className="text-[10px] text-white/30">Outage Avoided</p>
+                </div>
+              </div>
             </div>
-            <p className="text-xs text-white/40 leading-relaxed mb-2">{scenario.outcome.description}</p>
-            <div className="grid grid-cols-3 gap-2">
-              <div className="text-center">
-                <p className="text-sm font-bold text-emerald-400/60">{scenario.outcome.costAvoided}</p>
-                <p className="text-[10px] text-white/30">Cost Avoided</p>
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-bold text-white/60">{scenario.outcome.customersProtected.toLocaleString()}</p>
-                <p className="text-[10px] text-white/30">Customers</p>
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-bold text-white/60">{scenario.outcome.outageHoursAvoided}h</p>
-                <p className="text-[10px] text-white/30">Outage Avoided</p>
-              </div>
-            </div>
-          </div>
+          )}
 
-          {/* Key Metrics */}
-          <div className="grid grid-cols-2 gap-2">
-            {scenario.metrics.map(m => (
-              <div key={m.label} className="p-2 rounded-lg bg-white/[0.03] border border-white/[0.05]">
-                <span className="text-[10px] text-white/30">{m.label}</span>
-                <p className="text-xs font-semibold text-white/70">{m.value}</p>
-                <span className="text-[9px] text-white/25">{m.context}</span>
-              </div>
-            ))}
-          </div>
+          {/* Key Metrics — visible after completion */}
+          {showOutcome && (
+            <div className="grid grid-cols-2 gap-2 animate-in fade-in duration-700">
+              {scenario.metrics.map(m => (
+                <div key={m.label} className="p-2 rounded-lg bg-white/[0.03] border border-white/[0.05]">
+                  <span className="text-[10px] text-white/30">{m.label}</span>
+                  <p className="text-xs font-semibold text-white/70">{m.value}</p>
+                  <span className="text-[9px] text-white/25">{m.context}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
