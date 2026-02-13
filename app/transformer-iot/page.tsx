@@ -1262,17 +1262,65 @@ function TransformerIoTDashboard() {
             </div>
           </div>
 
-          {/* ── Right: AI Intelligence ── */}
+          {/* ── Right: Thermal + Grid IQ link ── */}
           <div className="col-span-7 space-y-5">
-            {/* Scenario Investigation */}
+            {/* Grid IQ link banner — if this asset has an active investigation */}
             {(() => {
               const scenario = getScenarioForAsset(assetTag);
-              if (!scenario) return null;
-              return <ScenarioInvestigation scenario={scenario} />;
+              const branch = BRANCH_DATA[assetTag];
+              if (!scenario || !branch) return null;
+              return (
+                <Link
+                  href={`/grid-iq?id=${branch.scenarioId}`}
+                  className="block rounded-lg border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.04] transition-all group overflow-hidden"
+                >
+                  <div className="px-4 py-3 flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-cyan-500/[0.08] border border-cyan-500/15 flex items-center justify-center flex-shrink-0">
+                      <Brain className="w-4.5 h-4.5 text-cyan-400/60" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-xs font-semibold text-white/75">Grid IQ Active Investigation</h3>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400/60 border border-rose-500/15 font-medium">
+                          {branch.rootCause.confidence}% confidence
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-white/40 mt-0.5 truncate">
+                        Root cause: <span className="text-white/55 font-medium">{branch.rootCause.label}</span>
+                        <span className="text-white/25 mx-1.5">—</span>
+                        {branch.rootCause.detail}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[10px] text-cyan-400/50 group-hover:text-cyan-400/70 transition-colors flex-shrink-0">
+                      View Analysis <ChevronRight className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+                  <div className="px-4 pb-3 flex gap-2 flex-wrap">
+                    {branch.agents.map((a, i) => (
+                      <span
+                        key={i}
+                        className={`text-[9px] px-2 py-0.5 rounded border ${
+                          a.sev === 'critical'
+                            ? 'text-rose-400/60 border-rose-500/15 bg-rose-500/[0.04]'
+                            : 'text-amber-400/60 border-amber-500/15 bg-amber-500/[0.04]'
+                        }`}
+                      >
+                        {a.name}: {a.finding}
+                      </span>
+                    ))}
+                  </div>
+                </Link>
+              );
             })()}
 
-            {/* Grid IQ Branch Summary — relevant analysis for this asset */}
-            <GridIQBranchSummary assetTag={assetTag} />
+            {/* Thermal Diagram */}
+            <div className="rounded-xl bg-white/[0.02] border border-white/[0.06] p-4">
+              <h2 className="text-xs font-semibold text-white/60 flex items-center gap-2 mb-3">
+                <Thermometer className="w-3.5 h-3.5 text-amber-400/40" />
+                Thermal Profile
+              </h2>
+              <ThermalDiagram transformer={transformer} />
+            </div>
           </div>
         </div>
       </main>
