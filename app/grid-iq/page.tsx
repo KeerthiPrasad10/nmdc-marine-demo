@@ -52,7 +52,18 @@ import { getProgramsByAsset } from '@/lib/exelon/projects';
 
 type FlowPhase = 'analysis' | 'scenarios' | 'impact' | 'dispatch';
 
-interface AgentNode {
+type ParamSeverity = 'normal' | 'warning' | 'critical' | 'info';
+
+interface AnalysisParam {
+  id: string;
+  label: string;
+  value: string;
+  unit?: string;
+  severity: ParamSeverity;
+  note: string;
+}
+
+interface DetailedAgent {
   id: string;
   name: string;
   shortName: string;
@@ -60,54 +71,120 @@ interface AgentNode {
   color: string;
   borderColor: string;
   bgColor: string;
-  thinkingMessages: string[];
+  dotColor: string;
+  parameters: AnalysisParam[];
   finding: string;
+  findingSeverity: ParamSeverity;
 }
 
 type AgentStatus = 'queued' | 'thinking' | 'complete';
 
-const ANALYSIS_AGENTS: AgentNode[] = [
+const DETAILED_AGENTS: DetailedAgent[] = [
   {
-    id: 'dga', name: 'DGA Analysis Agent', shortName: 'DGA',
+    id: 'dga', name: 'Dissolved Gas Analysis Agent', shortName: 'DGA Oil Chemistry',
     icon: <FlaskConical className="w-4 h-4" />, color: 'text-amber-400',
-    borderColor: 'border-amber-500/30', bgColor: 'bg-amber-500/10',
-    thinkingMessages: ['Reading dissolved gas concentrations…', 'Computing Duval Triangle classification…', 'Evaluating Rogers Ratio patterns…', 'Mapping to IEEE C57.104 thresholds…'],
-    finding: 'TDCG trending above Condition 2 threshold',
+    borderColor: 'border-amber-500/20', bgColor: 'bg-amber-500/[0.06]', dotColor: 'rgba(251,191,36,0.5)',
+    finding: 'TDCG at Condition 3 — thermal fault signature detected via Duval T2 zone + Rogers Ratio confirmation',
+    findingSeverity: 'critical',
+    parameters: [
+      { id: 'h2', label: 'Hydrogen (H₂)', value: '142', unit: 'ppm', severity: 'warning', note: 'Above normal; partial discharge indicator' },
+      { id: 'ch4', label: 'Methane (CH₄)', value: '86', unit: 'ppm', severity: 'normal', note: 'Within IEEE C57.104 Condition 1' },
+      { id: 'c2h6', label: 'Ethane (C₂H₆)', value: '47', unit: 'ppm', severity: 'normal', note: 'Stable — no thermal decomposition' },
+      { id: 'c2h4', label: 'Ethylene (C₂H₄)', value: '201', unit: 'ppm', severity: 'critical', note: 'Thermal fault >300°C — primary concern' },
+      { id: 'c2h2', label: 'Acetylene (C₂H₂)', value: '18', unit: 'ppm', severity: 'warning', note: 'Arcing threshold approach — partial discharge' },
+      { id: 'co', label: 'Carbon Monoxide (CO)', value: '890', unit: 'ppm', severity: 'warning', note: 'Cellulose (paper insulation) degradation' },
+      { id: 'co2', label: 'Carbon Dioxide (CO₂)', value: '4,200', unit: 'ppm', severity: 'normal', note: 'CO₂/CO ratio 4.7 — within normal range' },
+      { id: 'tdcg', label: 'Total Dissolved Combustible Gas', value: '1,384', unit: 'ppm', severity: 'critical', note: 'IEEE Condition 3 — action required' },
+      { id: 'duval', label: 'Duval Triangle Classification', value: 'T2', unit: 'zone', severity: 'critical', note: 'Low-energy thermal fault 300-700°C' },
+      { id: 'rogers', label: 'Rogers Ratio Analysis', value: '2.1 / 0.4', unit: 'ratio', severity: 'warning', note: 'Confirms thermal fault, 150-300°C range' },
+    ],
   },
   {
-    id: 'thermal', name: 'Thermal Modeling Agent', shortName: 'Thermal',
+    id: 'thermal', name: 'Thermal & Aging Model Agent', shortName: 'Thermal Profile',
     icon: <Thermometer className="w-4 h-4" />, color: 'text-rose-400',
-    borderColor: 'border-rose-500/30', bgColor: 'bg-rose-500/10',
-    thinkingMessages: ['Analyzing winding hot-spot temperatures…', 'Running IEEE C57.91 aging model…', 'Correlating ambient vs load profile…', 'Estimating insulation DP degradation…'],
-    finding: 'Hot-spot 12°C above design limit at peak load',
+    borderColor: 'border-rose-500/20', bgColor: 'bg-rose-500/[0.06]', dotColor: 'rgba(251,113,133,0.5)',
+    finding: 'Winding hot-spot 12°C above design limit — IEEE C57.91 aging factor 4.2× accelerated, DP below 300',
+    findingSeverity: 'critical',
+    parameters: [
+      { id: 'top_oil', label: 'Top Oil Temperature', value: '78.3', unit: '°C', severity: 'normal', note: 'Within rated 85°C top-oil rise' },
+      { id: 'hot_spot', label: 'Winding Hot-Spot', value: '112.4', unit: '°C', severity: 'critical', note: '12°C above 100°C design limit' },
+      { id: 'bottom_oil', label: 'Bottom Oil Temperature', value: '52.1', unit: '°C', severity: 'normal', note: 'Normal gradient — no circulation issue' },
+      { id: 'ambient_delta', label: 'Ambient Correlation Δ', value: '+8.2', unit: '°C', severity: 'warning', note: 'Abnormal rise vs expected thermal model' },
+      { id: 'aging_factor', label: 'IEEE C57.91 Aging Factor', value: '4.2×', unit: '', severity: 'critical', note: 'Insulation aging 4.2× faster than normal' },
+      { id: 'dp_value', label: 'Insulation DP Value (est.)', value: '285', unit: '', severity: 'warning', note: 'Below 300 threshold — end-of-life approaching' },
+      { id: 'cooling_eff', label: 'Cooling System Efficiency', value: '72%', unit: '', severity: 'warning', note: 'Fan bank A degraded — 28% loss' },
+      { id: 'load_thermal', label: 'Load vs Thermal Curve', value: 'Non-linear', unit: '', severity: 'warning', note: 'Divergence begins at 85% load — abnormal' },
+      { id: 'temp_rise_delta', label: 'Temperature Rise Test Δ', value: '+14.3', unit: '°C', severity: 'critical', note: 'vs factory test — significant degradation' },
+    ],
   },
   {
-    id: 'fleet', name: 'Fleet Intelligence Agent', shortName: 'Fleet',
+    id: 'fleet', name: 'Fleet Intelligence Agent', shortName: 'Fleet Comparison',
     icon: <Building className="w-4 h-4" />, color: 'text-blue-400',
-    borderColor: 'border-blue-500/30', bgColor: 'bg-blue-500/10',
-    thinkingMessages: ['Querying similar assets across fleet…', 'Matching failure patterns by vintage…', 'Cross-referencing manufacturer batch…', 'Computing fleet-wide failure probability…'],
-    finding: '3 similar units failed within 18 months of this profile',
+    borderColor: 'border-blue-500/20', bgColor: 'bg-blue-500/[0.06]', dotColor: 'rgba(96,165,250,0.5)',
+    finding: '3 identical GE batch-1989 units failed within 18mo at this DGA profile — 67% probability within 24mo',
+    findingSeverity: 'critical',
+    parameters: [
+      { id: 'vintage', label: 'Vintage Cohort Match', value: '14 units', unit: '', severity: 'info', note: '1987-1992 GE units across fleet' },
+      { id: 'fail_rate', label: 'Cohort Failure Rate (5yr)', value: '23%', unit: '', severity: 'critical', note: 'At this DGA + thermal profile' },
+      { id: 'batch', label: 'Manufacturer Batch B-1989', value: '3 of 8 failed', unit: '', severity: 'critical', note: '37.5% batch failure rate' },
+      { id: 'climate', label: 'Geographic Climate Factor', value: '7.2 / 10', unit: '', severity: 'warning', note: 'Mid-Atlantic humidity accelerates corrosion' },
+      { id: 'load_sim', label: 'Loading Pattern Similarity', value: '87%', unit: 'match', severity: 'warning', note: 'Matches failed unit PE-TF-012 profile' },
+      { id: 'mttf', label: 'Mean Time to Failure (est.)', value: '18 ± 6', unit: 'months', severity: 'critical', note: 'At current degradation trajectory' },
+      { id: 'fleet_prob', label: 'Fleet Failure Probability', value: '67%', unit: '', severity: 'critical', note: 'Within 24 months at current state' },
+      { id: 'cross_opco', label: 'Cross-OpCo Intelligence', value: 'PECO match', unit: '', severity: 'warning', note: 'PE-TF-012 showed identical DGA 14mo before failure' },
+    ],
   },
   {
-    id: 'oem', name: 'OEM Specs Agent', shortName: 'OEM',
+    id: 'oem', name: 'OEM Specifications Agent', shortName: 'OEM & Design Limits',
     icon: <FileText className="w-4 h-4" />, color: 'text-cyan-400',
-    borderColor: 'border-cyan-500/30', bgColor: 'bg-cyan-500/10',
-    thinkingMessages: ['Loading manufacturer service bulletins…', 'Checking design-life parameters…', 'Evaluating overhaul intervals…', 'Reviewing known failure modes…'],
-    finding: 'Operating beyond OEM recommended service life',
+    borderColor: 'border-cyan-500/20', bgColor: 'bg-cyan-500/[0.06]', dotColor: 'rgba(34,211,238,0.5)',
+    finding: 'Design life exceeded by 3.2 years — SB-2019-047 bushing recall unaddressed, 38 months overdue for overhaul',
+    findingSeverity: 'critical',
+    parameters: [
+      { id: 'design_life', label: 'Design Life Remaining', value: '-3.2', unit: 'years', severity: 'critical', note: 'Exceeded rated service life' },
+      { id: 'sb_047', label: 'Service Bulletin SB-2019-047', value: 'Open', unit: '', severity: 'critical', note: 'Bushing porcelain seal recall — unaddressed' },
+      { id: 'overhaul', label: 'Overhaul Interval Compliance', value: '38 mo overdue', unit: '', severity: 'critical', note: 'Major overhaul last performed 2016' },
+      { id: 'nameplate', label: 'Nameplate vs Actual Load', value: '94%', unit: 'MVA', severity: 'normal', note: 'Within rated capacity — no overloading' },
+      { id: 'bil', label: 'BIL Margin', value: '150 kV', unit: '', severity: 'normal', note: 'Operating at 138 kV — adequate margin' },
+      { id: 'defect', label: 'Known Defect Pattern', value: 'Type-U bushing', unit: '', severity: 'warning', note: 'GE Type-U porcelain cracking pattern documented' },
+      { id: 'cooling_rate', label: 'Cooling System Rating', value: 'ONAN/ONAF', unit: '', severity: 'warning', note: 'Fan bank A degraded — reduced ONAF capacity' },
+      { id: 'eos', label: 'Manufacturer End-of-Support', value: '2019', unit: '', severity: 'warning', note: 'No further OEM parts guarantee' },
+    ],
   },
   {
-    id: 'history', name: 'Work Order History Agent', shortName: 'History',
+    id: 'history', name: 'Work Order & Maintenance Agent', shortName: 'Work Order History',
     icon: <ClipboardList className="w-4 h-4" />, color: 'text-violet-400',
-    borderColor: 'border-violet-500/30', bgColor: 'bg-violet-500/10',
-    thinkingMessages: ['Scanning corrective maintenance records…', 'Analyzing PM compliance gaps…', 'Correlating repeat failure modes…', 'Evaluating repair effectiveness…'],
-    finding: 'Repeat bushing repairs — 3 CMs in 24 months',
+    borderColor: 'border-violet-500/20', bgColor: 'bg-violet-500/[0.06]', dotColor: 'rgba(167,139,250,0.5)',
+    finding: 'Repeat bushing seal failure (3× in 24mo), PM compliance 72%, repair costs escalating 2.2× year-over-year',
+    findingSeverity: 'critical',
+    parameters: [
+      { id: 'pm_compliance', label: 'PM Compliance Rate', value: '72%', unit: '', severity: 'warning', note: 'Below 85% target — gaps in scheduled PM' },
+      { id: 'cm_count', label: 'Corrective MOs (24 months)', value: '7', unit: '', severity: 'critical', note: 'Repeat-issue pattern exceeds threshold' },
+      { id: 'repeat_code', label: 'Repeat Failure Code', value: 'BUSH-SEAL', unit: '', severity: 'critical', note: '3 occurrences in 24 months — systemic issue' },
+      { id: 'mttr', label: 'Mean Repair Duration', value: '14.3', unit: 'hrs', severity: 'warning', note: 'Increasing +22% trend — complexity rising' },
+      { id: 'parts_hist', label: 'Parts Replaced (24mo)', value: '6 items', unit: '', severity: 'warning', note: 'Bushing gasket ×3, oil seal ×2, fan motor ×1' },
+      { id: 'outage_hrs', label: 'Total Outage Hours (12mo)', value: '127', unit: 'hrs', severity: 'critical', note: 'Well above fleet average of 24 hrs' },
+      { id: 'cost_trend', label: 'Cost Per Repair Trend', value: '$18K→$41K', unit: '', severity: 'critical', note: 'Escalating 2.2× YoY — diminishing returns' },
+      { id: 'last_overhaul', label: 'Last Major Overhaul', value: '2016', unit: '', severity: 'warning', note: '10 years ago — exceeds 7-year cycle' },
+    ],
   },
   {
-    id: 'inspection', name: 'Inspection Records Agent', shortName: 'Inspect',
+    id: 'inspection', name: 'Field Inspection Records Agent', shortName: 'Inspection & Environment',
     icon: <Eye className="w-4 h-4" />, color: 'text-emerald-400',
-    borderColor: 'border-emerald-500/30', bgColor: 'bg-emerald-500/10',
-    thinkingMessages: ['Reviewing latest field inspection notes…', 'Flagging condition deterioration trends…', 'Correlating visual findings with DGA…', 'Checking environmental exposure factors…'],
-    finding: 'Oil seepage noted at bushing gasket — progressive',
+    borderColor: 'border-emerald-500/20', bgColor: 'bg-emerald-500/[0.06]', dotColor: 'rgba(52,211,153,0.5)',
+    finding: 'Visual condition 4.1/10 — active oil seepage B-phase bushing, porcelain hairline crack, salt-air corrosion zone',
+    findingSeverity: 'critical',
+    parameters: [
+      { id: 'visual', label: 'Visual Condition Score', value: '4.1 / 10', unit: '', severity: 'critical', note: 'Below 5.0 replacement threshold' },
+      { id: 'oil_leak', label: 'Oil Leak Detection', value: 'Active', unit: '', severity: 'critical', note: 'Seepage at B-phase bushing gasket — progressive' },
+      { id: 'bushing_cond', label: 'Bushing Porcelain Condition', value: 'Hairline crack', unit: '', severity: 'critical', note: 'B-phase — risk of catastrophic flashover' },
+      { id: 'tank_corrosion', label: 'Tank Corrosion Index', value: '3.7 / 10', unit: '', severity: 'warning', note: 'Moderate surface rust — coating failure' },
+      { id: 'foundation', label: 'Foundation & Leveling', value: '2mm δ', unit: '', severity: 'normal', note: 'Within acceptable tolerance' },
+      { id: 'grounding', label: 'Grounding Resistance', value: '0.8', unit: 'Ω', severity: 'normal', note: 'Below 1.0Ω limit — acceptable' },
+      { id: 'surge', label: 'Surge Arrester Status', value: 'Good', unit: '', severity: 'normal', note: 'MOV tested 2024-Q3 — pass' },
+      { id: 'cabinet', label: 'Control Cabinet', value: 'Moisture ingress', unit: '', severity: 'warning', note: 'Door seal degraded — electronics at risk' },
+      { id: 'environment', label: 'Environmental Exposure', value: 'Salt-air zone', unit: '', severity: 'warning', note: 'Coastal proximity — accelerated corrosion' },
+    ],
   },
 ];
 
@@ -130,152 +207,303 @@ const EVENT_TYPE_STYLES: Record<string, { color: string; bg: string; lineColor: 
 };
 
 // ════════════════════════════════════════════════════════════════════════
-// PHASE 1 — Beanstalk Orchestration
+// PHASE 1 — Deep Beanstalk Orchestration (52+ parameters)
 // ════════════════════════════════════════════════════════════════════════
 
+const SEV_STYLES: Record<ParamSeverity, { dot: string; text: string; bg: string; label: string }> = {
+  normal:   { dot: 'bg-emerald-500', text: 'text-emerald-400/70', bg: 'bg-emerald-500/8', label: 'OK' },
+  warning:  { dot: 'bg-amber-500',   text: 'text-amber-400/70',   bg: 'bg-amber-500/8',   label: 'WARN' },
+  critical: { dot: 'bg-rose-500',    text: 'text-rose-400/70',    bg: 'bg-rose-500/8',    label: 'CRIT' },
+  info:     { dot: 'bg-blue-500',    text: 'text-blue-400/60',    bg: 'bg-blue-500/8',    label: 'INFO' },
+};
+
+function AgentPanel({ agent, status, revealedCount }: {
+  agent: DetailedAgent;
+  status: AgentStatus;
+  revealedCount: number; // how many params have been revealed
+}) {
+  const isThinking = status === 'thinking';
+  const isDone = status === 'complete';
+  const isQueued = status === 'queued';
+
+  // Count severities for summary badges
+  const critCount = agent.parameters.filter(p => p.severity === 'critical').length;
+  const warnCount = agent.parameters.filter(p => p.severity === 'warning').length;
+
+  return (
+    <div className={`rounded-xl border transition-all duration-500 overflow-hidden ${
+      isThinking ? `${agent.bgColor} ${agent.borderColor} shadow-lg` :
+      isDone ? 'bg-white/[0.015] border-emerald-500/15' :
+      'bg-white/[0.01] border-white/[0.05]'
+    }`}>
+      {/* Agent header */}
+      <div className="px-4 py-3 flex items-center gap-3 border-b border-white/[0.04]">
+        <span className={`flex-shrink-0 transition-colors duration-300 ${
+          isThinking ? agent.color : isDone ? 'text-emerald-400/60' : 'text-white/15'
+        }`}>
+          {isDone ? <CheckCircle className="w-4 h-4" /> : agent.icon}
+        </span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className={`text-xs font-semibold transition-colors ${isThinking ? 'text-white/80' : isDone ? 'text-white/50' : 'text-white/20'}`}>
+              {agent.shortName}
+            </span>
+            {isThinking && <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: agent.dotColor }} />}
+          </div>
+          <span className={`text-[10px] ${isThinking ? 'text-white/30' : isDone ? 'text-white/25' : 'text-white/10'}`}>
+            {agent.name}
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {isDone && critCount > 0 && (
+            <span className="text-[9px] px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-400/70 font-bold">{critCount} CRIT</span>
+          )}
+          {isDone && warnCount > 0 && (
+            <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400/70 font-bold">{warnCount} WARN</span>
+          )}
+          <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${
+            isThinking ? 'bg-white/10 text-white/50' : isDone ? 'bg-emerald-500/10 text-emerald-400/50' : 'bg-white/[0.03] text-white/15'
+          }`}>
+            {isQueued ? 'Queued' : isThinking ? `${revealedCount}/${agent.parameters.length}` : `${agent.parameters.length}/${agent.parameters.length}`}
+          </span>
+        </div>
+      </div>
+
+      {/* Parameter rows — only visible when thinking or done */}
+      {(isThinking || isDone) && (
+        <div className="divide-y divide-white/[0.03]">
+          {agent.parameters.map((param, pIdx) => {
+            const isRevealed = isDone || pIdx < revealedCount;
+            const isCurrentlyAnalyzing = isThinking && pIdx === revealedCount - 1;
+            const sev = SEV_STYLES[param.severity];
+            return (
+              <div key={param.id} className={`px-4 py-1.5 flex items-center gap-3 transition-all duration-300 ${
+                !isRevealed ? 'opacity-0 max-h-0 py-0 overflow-hidden' : 'opacity-100 max-h-24'
+              } ${isCurrentlyAnalyzing ? 'bg-white/[0.03]' : ''}`}>
+                {/* Severity dot */}
+                <span className={`flex-shrink-0 w-1.5 h-1.5 rounded-full ${isRevealed ? sev.dot : 'bg-white/10'} ${isCurrentlyAnalyzing ? 'animate-pulse' : ''}`} />
+                {/* Parameter name */}
+                <span className="text-[10px] text-white/50 w-[160px] flex-shrink-0 truncate">{param.label}</span>
+                {/* Value */}
+                <span className={`text-[11px] font-mono font-bold w-[80px] flex-shrink-0 text-right ${isRevealed ? sev.text : 'text-white/10'}`}>
+                  {isRevealed ? param.value : '—'}
+                </span>
+                {/* Unit */}
+                <span className="text-[9px] text-white/25 w-[36px] flex-shrink-0">{param.unit}</span>
+                {/* Note */}
+                <span className="text-[9px] text-white/30 flex-1 truncate">{isRevealed ? param.note : ''}</span>
+                {/* Severity badge */}
+                {isRevealed && param.severity !== 'normal' && param.severity !== 'info' && (
+                  <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${sev.bg} ${sev.text}`}>{sev.label}</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Finding summary — visible when done */}
+      {isDone && (
+        <div className={`px-4 py-2.5 border-t border-white/[0.04] ${agent.bgColor}`}>
+          <div className="flex items-start gap-2">
+            <Target className={`w-3 h-3 flex-shrink-0 mt-0.5 ${agent.color}`} />
+            <p className={`text-[10px] leading-relaxed ${agent.color}`}>{agent.finding}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Queued placeholder */}
+      {isQueued && (
+        <div className="px-4 py-6 text-center">
+          <span className="text-[10px] text-white/15">{agent.parameters.length} parameters queued for analysis…</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function BeanstalkAnalysis({ onComplete }: { onComplete: () => void }) {
-  const [agentStates, setAgentStates] = useState<Record<string, { status: AgentStatus; messageIdx: number }>>({});
+  const [agentStates, setAgentStates] = useState<Record<string, { status: AgentStatus; revealedParams: number }>>({});
   const [synthStatus, setSynthStatus] = useState<'waiting' | 'synthesizing' | 'complete'>('waiting');
+  const [totalAnalyzed, setTotalAnalyzed] = useState(0);
   const timerRefs = useRef<NodeJS.Timeout[]>([]);
   const completeFired = useRef(false);
 
+  const totalParams = DETAILED_AGENTS.reduce((s, a) => s + a.parameters.length, 0);
+
   useEffect(() => {
-    const initial: Record<string, { status: AgentStatus; messageIdx: number }> = {};
-    ANALYSIS_AGENTS.forEach(a => { initial[a.id] = { status: 'queued', messageIdx: 0 }; });
+    const initial: Record<string, { status: AgentStatus; revealedParams: number }> = {};
+    DETAILED_AGENTS.forEach(a => { initial[a.id] = { status: 'queued', revealedParams: 0 }; });
     setAgentStates(initial);
     timerRefs.current.forEach(clearTimeout);
     timerRefs.current = [];
     completeFired.current = false;
+    setTotalAnalyzed(0);
 
-    const startAgent = (agent: AgentNode, delay: number) => {
+    let runningTotal = 0;
+    const PARAM_INTERVAL = 180; // ms per parameter reveal
+    const AGENT_STAGGER = 400; // ms between agent starts
+
+    const startAgent = (agent: DetailedAgent, delay: number) => {
+      // Start thinking
       timerRefs.current.push(setTimeout(() => {
-        setAgentStates(prev => ({ ...prev, [agent.id]: { status: 'thinking', messageIdx: 0 } }));
+        setAgentStates(prev => ({ ...prev, [agent.id]: { status: 'thinking', revealedParams: 0 } }));
       }, delay));
-      agent.thinkingMessages.forEach((_, mIdx) => {
-        if (mIdx === 0) return;
+
+      // Reveal each parameter one by one
+      agent.parameters.forEach((_, pIdx) => {
         timerRefs.current.push(setTimeout(() => {
-          setAgentStates(prev => ({ ...prev, [agent.id]: { status: 'thinking', messageIdx: mIdx } }));
-        }, delay + mIdx * 400));
+          setAgentStates(prev => ({ ...prev, [agent.id]: { status: 'thinking', revealedParams: pIdx + 1 } }));
+          runningTotal++;
+          setTotalAnalyzed(runningTotal);
+        }, delay + (pIdx + 1) * PARAM_INTERVAL));
       });
-      const completeDelay = delay + agent.thinkingMessages.length * 400 + 150;
+
+      // Complete
+      const completeTime = delay + agent.parameters.length * PARAM_INTERVAL + 200;
       timerRefs.current.push(setTimeout(() => {
-        setAgentStates(prev => ({ ...prev, [agent.id]: { status: 'complete', messageIdx: agent.thinkingMessages.length - 1 } }));
-      }, completeDelay));
+        setAgentStates(prev => ({ ...prev, [agent.id]: { status: 'complete', revealedParams: agent.parameters.length } }));
+      }, completeTime));
+
+      return completeTime;
     };
 
-    ANALYSIS_AGENTS.forEach((a, i) => startAgent(a, 200 + i * 300));
+    // Start agents with stagger — first 3 in parallel (left column), then next 3 (right column)
+    // Actually, stagger them sequentially for better drama: each starts as previous reaches ~60%
+    let lastComplete = 0;
+    DETAILED_AGENTS.forEach((a, i) => {
+      const delay = i * AGENT_STAGGER + (i > 0 ? DETAILED_AGENTS[i-1].parameters.length * PARAM_INTERVAL * 0.5 : 0);
+      lastComplete = startAgent(a, delay);
+    });
 
-    const maxAgentTime = 200 + 5 * 300 + 4 * 400 + 150;
-    timerRefs.current.push(setTimeout(() => setSynthStatus('synthesizing'), maxAgentTime + 300));
+    // Synthesis
+    timerRefs.current.push(setTimeout(() => setSynthStatus('synthesizing'), lastComplete + 400));
+    timerRefs.current.push(setTimeout(() => setSynthStatus('complete'), lastComplete + 1600));
     timerRefs.current.push(setTimeout(() => {
-      setSynthStatus('complete');
-    }, maxAgentTime + 1200));
-    timerRefs.current.push(setTimeout(() => {
-      if (!completeFired.current) {
-        completeFired.current = true;
-        onComplete();
-      }
-    }, maxAgentTime + 2000));
+      if (!completeFired.current) { completeFired.current = true; onComplete(); }
+    }, lastComplete + 2400));
 
     return () => timerRefs.current.forEach(clearTimeout);
   }, [onComplete]);
 
   const allDone = synthStatus === 'complete';
-  const stemColor = !allDone ? 'bg-violet-500/25' : 'bg-emerald-500/15';
+
+  // Split agents into left (0,2,4) and right (1,3,5) columns
+  const leftAgents = DETAILED_AGENTS.filter((_, i) => i % 2 === 0);
+  const rightAgents = DETAILED_AGENTS.filter((_, i) => i % 2 === 1);
 
   return (
-    <div className="relative py-2">
-      {/* Orchestrator */}
-      <div className="flex justify-center mb-0">
-        <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border transition-all duration-500 ${
-          !allDone ? 'bg-violet-500/10 border-violet-500/25 shadow-md shadow-violet-500/10' : 'bg-emerald-500/[0.06] border-emerald-500/20'
-        }`}>
-          <Brain className={`w-4 h-4 transition-colors duration-500 ${!allDone ? 'text-violet-400' : 'text-emerald-400/70'}`} />
-          <span className="text-[11px] font-semibold text-white/50">GridIQ Orchestrator</span>
-          {!allDone && <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />}
-          {allDone && <CheckCircle className="w-3.5 h-3.5 text-emerald-400/60" />}
-        </div>
-      </div>
-
-      {/* Vertical Stem + Branches */}
-      <div className="relative ml-[50%]">
-        <div className={`absolute left-0 top-0 bottom-0 w-px ${stemColor} transition-all duration-500`} />
-
-        {ANALYSIS_AGENTS.map((agent, i) => {
-          const state = agentStates[agent.id] || { status: 'queued', messageIdx: 0 };
-          const isThinking = state.status === 'thinking';
-          const isDone = state.status === 'complete';
-          const isLeft = i % 2 === 0;
-          const branchColor = isThinking ? agent.borderColor.replace('border-', 'bg-') : isDone ? 'bg-emerald-500/20' : 'bg-white/[0.06]';
-
-          return (
-            <div key={agent.id} className="relative" style={{ height: 68 }}>
-              <div className={`absolute top-[34px] h-px transition-all duration-500 ${branchColor}`}
-                style={isLeft ? { right: '0', width: '40px', left: 'auto', transform: 'translateX(-1px)' } : { left: '1px', width: '40px' }}
-              />
-              {isThinking && (
-                <div className="absolute top-[32px] w-2 h-2 rounded-full"
-                  style={{
-                    ...(isLeft ? { right: '0', animation: 'pulseLeft 1.2s ease-in-out infinite' } : { left: '1px', animation: 'pulseRight 1.2s ease-in-out infinite' }),
-                    background: agent.color.includes('amber') ? 'rgba(251,191,36,0.6)' :
-                      agent.color.includes('rose') ? 'rgba(251,113,133,0.6)' :
-                      agent.color.includes('blue') ? 'rgba(96,165,250,0.6)' :
-                      agent.color.includes('cyan') ? 'rgba(34,211,238,0.6)' :
-                      agent.color.includes('violet') ? 'rgba(167,139,250,0.6)' : 'rgba(52,211,153,0.6)',
-                  }}
-                />
-              )}
-              <div className={`absolute top-[31px] left-0 -translate-x-1/2 w-2.5 h-2.5 rounded-full border-2 transition-all duration-500 ${
-                isThinking ? `${agent.borderColor} ${agent.bgColor}` : isDone ? 'border-emerald-500/40 bg-emerald-500/25' : 'border-white/10 bg-white/[0.04]'
-              }`} />
-              <div className={`absolute top-[10px] transition-all duration-500 ${isLeft ? 'right-[calc(50%+52px)]' : 'left-[52px]'}`} style={{ width: 'calc(50% - 64px)' }}>
-                <div className={`p-2.5 rounded-lg border transition-all duration-500 ${
-                  isThinking ? `${agent.bgColor} ${agent.borderColor}` : isDone ? 'bg-emerald-500/[0.03] border-emerald-500/15' : 'bg-white/[0.015] border-white/[0.06]'
-                }`}>
-                  <div className="flex items-center gap-2">
-                    <span className={`flex-shrink-0 transition-colors ${isThinking ? agent.color : isDone ? 'text-emerald-400/60' : 'text-white/15'}`}>
-                      {isDone ? <CheckCircle className="w-3.5 h-3.5" /> : agent.icon}
-                    </span>
-                    <span className={`text-[11px] font-medium truncate ${isThinking ? 'text-white/70' : isDone ? 'text-white/45' : 'text-white/20'}`}>
-                      {agent.shortName}
-                    </span>
-                    {isThinking && <span className={`ml-auto w-1.5 h-1.5 rounded-full animate-pulse flex-shrink-0 ${agent.bgColor.replace('/10', '/50')}`} />}
-                  </div>
-                  <p className={`text-[10px] mt-1 leading-snug line-clamp-1 ${isThinking ? 'text-white/35' : isDone ? 'text-emerald-400/35' : 'text-white/10'}`}>
-                    {isThinking ? agent.thinkingMessages[state.messageIdx] : isDone ? `→ ${agent.finding}` : 'Waiting…'}
-                  </p>
-                </div>
-              </div>
+    <div className="space-y-4">
+      {/* Orchestrator bar */}
+      <div className="flex items-center justify-between px-4 py-3 rounded-xl border transition-all duration-500 ${
+        !allDone ? 'bg-violet-500/[0.04] border-violet-500/15' : 'bg-emerald-500/[0.03] border-emerald-500/15'
+      }">
+        <div className="flex items-center gap-3">
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
+            !allDone ? 'bg-violet-500/15' : 'bg-emerald-500/15'
+          }`}>
+            <Brain className={`w-4 h-4 transition-colors ${!allDone ? 'text-violet-400' : 'text-emerald-400'}`} />
+          </div>
+          <div>
+            <div className="text-xs font-semibold text-white/60">GridIQ Orchestrator</div>
+            <div className="text-[10px] text-white/30">
+              {allDone ? 'Analysis complete — cross-correlating 6 agents' : `Analyzing ${totalAnalyzed} of ${totalParams} parameters across 6 agents…`}
             </div>
-          );
-        })}
-
-        {/* Synthesis node */}
-        <div className="relative" style={{ height: 48 }}>
-          <div className={`absolute top-[24px] left-0 -translate-x-1/2 w-3 h-3 rounded-full border-2 transition-all duration-500 ${
-            synthStatus === 'synthesizing' ? 'border-cyan-500/50 bg-cyan-500/30 animate-pulse' : allDone ? 'border-emerald-500/40 bg-emerald-500/30' : 'border-white/10 bg-white/[0.04]'
-          }`} />
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          {/* Live counter */}
+          <div className="text-right">
+            <div className={`text-lg font-bold font-mono ${allDone ? 'text-emerald-400/70' : 'text-white/50'}`}>
+              {totalAnalyzed}<span className="text-xs text-white/20">/{totalParams}</span>
+            </div>
+            <div className="text-[9px] text-white/25">parameters</div>
+          </div>
+          {/* Progress ring */}
+          <div className="relative w-10 h-10">
+            <svg className="w-10 h-10 -rotate-90" viewBox="0 0 36 36">
+              <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="3" />
+              <circle cx="18" cy="18" r="15" fill="none"
+                stroke={allDone ? 'rgba(52,211,153,0.5)' : 'rgba(167,139,250,0.4)'}
+                strokeWidth="3" strokeDasharray={`${(totalAnalyzed / totalParams) * 94.2} 94.2`}
+                strokeLinecap="round" className="transition-all duration-300" />
+            </svg>
+            <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white/40">
+              {Math.round((totalAnalyzed / totalParams) * 100)}%
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Synthesis label */}
-      <div className="flex justify-center mt-0">
-        <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border transition-all duration-500 ${
-          synthStatus === 'synthesizing' ? 'bg-cyan-500/10 border-cyan-500/25 shadow-md shadow-cyan-500/10' : allDone ? 'bg-emerald-500/[0.06] border-emerald-500/20' : 'bg-white/[0.02] border-white/[0.06]'
+      {/* Two-column agent panels with central stem */}
+      <div className="grid grid-cols-2 gap-4 relative">
+        {/* Central stem line */}
+        <div className={`absolute left-1/2 top-0 bottom-0 w-px transition-colors duration-500 ${!allDone ? 'bg-violet-500/15' : 'bg-emerald-500/10'}`} />
+
+        {/* Left column */}
+        <div className="space-y-4 pr-3">
+          {leftAgents.map(agent => {
+            const state = agentStates[agent.id] || { status: 'queued' as AgentStatus, revealedParams: 0 };
+            return (
+              <div key={agent.id} className="relative">
+                {/* Branch connector */}
+                <div className={`absolute -right-3 top-5 w-3 h-px transition-colors duration-500 ${
+                  state.status === 'thinking' ? agent.borderColor.replace('border-', 'bg-') :
+                  state.status === 'complete' ? 'bg-emerald-500/20' : 'bg-white/[0.06]'
+                }`} />
+                <div className={`absolute -right-[16px] top-[17px] w-2 h-2 rounded-full border-2 transition-all duration-500 ${
+                  state.status === 'thinking' ? `${agent.borderColor} ${agent.bgColor}` :
+                  state.status === 'complete' ? 'border-emerald-500/30 bg-emerald-500/20' :
+                  'border-white/[0.08] bg-white/[0.03]'
+                }`} />
+                <AgentPanel agent={agent} status={state.status} revealedCount={state.revealedParams} />
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Right column */}
+        <div className="space-y-4 pl-3">
+          {rightAgents.map(agent => {
+            const state = agentStates[agent.id] || { status: 'queued' as AgentStatus, revealedParams: 0 };
+            return (
+              <div key={agent.id} className="relative">
+                {/* Branch connector */}
+                <div className={`absolute -left-3 top-5 w-3 h-px transition-colors duration-500 ${
+                  state.status === 'thinking' ? agent.borderColor.replace('border-', 'bg-') :
+                  state.status === 'complete' ? 'bg-emerald-500/20' : 'bg-white/[0.06]'
+                }`} />
+                <div className={`absolute -left-[16px] top-[17px] w-2 h-2 rounded-full border-2 transition-all duration-500 ${
+                  state.status === 'thinking' ? `${agent.borderColor} ${agent.bgColor}` :
+                  state.status === 'complete' ? 'border-emerald-500/30 bg-emerald-500/20' :
+                  'border-white/[0.08] bg-white/[0.03]'
+                }`} />
+                <AgentPanel agent={agent} status={state.status} revealedCount={state.revealedParams} />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Synthesis bar */}
+      <div className={`flex items-center justify-center gap-3 px-4 py-3 rounded-xl border transition-all duration-500 ${
+        synthStatus === 'synthesizing' ? 'bg-cyan-500/[0.04] border-cyan-500/15 shadow-lg shadow-cyan-500/5' :
+        allDone ? 'bg-emerald-500/[0.04] border-emerald-500/15' :
+        'bg-white/[0.01] border-white/[0.05]'
+      }`}>
+        {allDone ? <CheckCircle className="w-4 h-4 text-emerald-400/60" /> :
+         synthStatus === 'synthesizing' ? <Sparkles className="w-4 h-4 text-cyan-400 animate-pulse" /> :
+         <Sparkles className="w-4 h-4 text-white/15" />}
+        <span className={`text-xs font-semibold ${
+          synthStatus === 'synthesizing' ? 'text-cyan-400/60' :
+          allDone ? 'text-emerald-400/50' : 'text-white/15'
         }`}>
-          {allDone ? <CheckCircle className="w-4 h-4 text-emerald-400/60" /> :
-           synthStatus === 'synthesizing' ? <Sparkles className="w-4 h-4 text-cyan-400 animate-pulse" /> :
-           <Sparkles className="w-4 h-4 text-white/20" />}
-          <span className={`text-[11px] font-semibold ${synthStatus === 'synthesizing' ? 'text-cyan-400/60' : allDone ? 'text-emerald-400/50' : 'text-white/20'}`}>
-            {synthStatus === 'synthesizing' ? 'Synthesizing findings…' : allDone ? 'Analysis complete — 3 scenarios identified' : 'Synthesis Engine'}
-          </span>
-        </div>
+          {synthStatus === 'synthesizing' ? 'Cross-correlating agent findings… Generating scenario hypotheses…' :
+           allDone ? `Analysis complete — ${totalParams} parameters evaluated → 3 scenarios identified` :
+           'Synthesis Engine — awaiting agent convergence'}
+        </span>
+        {synthStatus === 'synthesizing' && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />}
       </div>
-
-      <style jsx>{`
-        @keyframes pulseLeft { 0% { transform: translateX(0); opacity: 0; } 30% { opacity: 1; } 100% { transform: translateX(-38px); opacity: 0; } }
-        @keyframes pulseRight { 0% { transform: translateX(0); opacity: 0; } 30% { opacity: 1; } 100% { transform: translateX(38px); opacity: 0; } }
-      `}</style>
     </div>
   );
 }
@@ -866,11 +1094,7 @@ function GridIQContent() {
       {/* Content */}
       <main className="max-w-7xl mx-auto px-6 py-6">
         {phase === 'analysis' && (
-          <div className="max-w-4xl mx-auto">
-            <div className="text-center mb-4">
-              <h2 className="text-xl font-bold text-white mb-1">Multi-Agent Fleet Analysis</h2>
-              <p className="text-sm text-white/40">6 specialized AI agents analyzing your grid fleet in parallel</p>
-            </div>
+          <div className="max-w-6xl mx-auto">
             <BeanstalkAnalysis onComplete={handleAnalysisComplete} />
           </div>
         )}
