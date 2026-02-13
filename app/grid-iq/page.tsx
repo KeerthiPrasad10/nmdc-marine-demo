@@ -362,19 +362,19 @@ function UnifiedTree() {
 
                   return (
                     <g key={`${cluster.id}-${bi}`}>
-                      {/* Trigger → Agent */}
-                      <AnimatedPath d={`M ${bx},${ROW.trigger + 32 + st} C ${bx},${ROW.trigger + 60 + st} ${bx},${ROW.agent - 30} ${bx},${ROW.agent - 10}`} visible={reveal >= 2} delay={ci * 120 + bi * 60} color="rgba(255,255,255,0.35)" width={1.5} />
+                      {/* Trigger → Agent (trigger bottom ≈ +14+st, agent top ≈ -16) */}
+                      <AnimatedPath d={`M ${bx},${ROW.trigger + 14 + st} C ${bx},${ROW.trigger + 40 + st} ${bx},${ROW.agent - 40} ${bx},${ROW.agent - 16}`} visible={reveal >= 2} delay={ci * 120 + bi * 60} color="rgba(255,255,255,0.35)" width={1.5} />
 
-                      {/* Agent → Finding */}
-                      <AnimatedPath d={`M ${bx},${ROW.agent + 48} C ${bx},${ROW.agent + 70} ${bx},${ROW.finding - 30 + st} ${bx},${ROW.finding - 8 + st}`} visible={reveal >= 3} delay={ci * 150 + bi * 60} color="rgba(255,255,255,0.35)" width={1.5} />
+                      {/* Agent → Finding (agent bottom ≈ +28, finding top ≈ -10+st) */}
+                      <AnimatedPath d={`M ${bx},${ROW.agent + 28} C ${bx},${ROW.agent + 60} ${bx},${ROW.finding - 35 + st} ${bx},${ROW.finding - 10 + st}`} visible={reveal >= 3} delay={ci * 150 + bi * 60} color="rgba(255,255,255,0.35)" width={1.5} />
 
-                      {/* Finding → Deep Analysis */}
-                      <AnimatedPath d={`M ${bx},${ROW.finding + 22 + st} L ${bx},${ROW.deep - 8 + st}`} visible={reveal >= 4} delay={ci * 150 + bi * 80} color={agent?.dotColor || 'rgba(255,255,255,0.2)'} width={2} />
+                      {/* Finding → Deep (finding bottom ≈ +22+st, deep top ≈ -14+st) */}
+                      <AnimatedPath d={`M ${bx},${ROW.finding + 22 + st} L ${bx},${ROW.deep - 14 + st}`} visible={reveal >= 4} delay={ci * 150 + bi * 80} color={agent?.dotColor || 'rgba(255,255,255,0.2)'} width={2} />
 
-                      {/* Deep Analysis → Root Cause convergence curves */}
+                      {/* Deep → Root Cause (deep bottom ≈ +28+st, root top ≈ -18) */}
                       <AnimatedPath
                         id={convId}
-                        d={`M ${bx},${ROW.deep + 40 + st} C ${bx},${ROW.deep + 80 + st} ${cx},${ROW.crossVal - 60} ${cx},${ROW.crossVal - 10}`}
+                        d={`M ${bx},${ROW.deep + 28 + st} C ${bx},${ROW.deep + 60 + st} ${cx},${ROW.crossVal - 50} ${cx},${ROW.crossVal - 18}`}
                         visible={reveal >= 5} delay={ci * 200 + bi * 100}
                         color={agent?.dotColor} width={2.5}
                       />
@@ -387,13 +387,13 @@ function UnifiedTree() {
                   );
                 })}
 
-                {/* Root Cause → Scenario */}
-                <AnimatedPath d={`M ${cx},${ROW.crossVal + 40} L ${cx},${ROW.scenario - 10}`} visible={reveal >= 6} delay={ci * 150} color="rgba(255,255,255,0.4)" width={2} />
+                {/* Root Cause → Scenario (root bottom ≈ +44, scenario top ≈ -20) */}
+                <AnimatedPath d={`M ${cx},${ROW.crossVal + 44} L ${cx},${ROW.scenario - 20}`} visible={reveal >= 6} delay={ci * 150} color="rgba(255,255,255,0.4)" width={2} />
 
                 {/* Selected expansion connector */}
                 {selectedId === cluster.scenarioId && (
-                  <line x1={cx} y1={ROW.scenario + 52} x2={cx} y2={TREE_H}
-                    stroke="rgba(255,255,255,0.08)" strokeWidth="2" strokeDasharray="4,4" />
+                  <line x1={cx} y1={ROW.scenario + 46} x2={cx} y2={TREE_H}
+                    stroke="rgba(255,255,255,0.12)" strokeWidth="2" strokeDasharray="4,4" />
                 )}
               </g>
             );
