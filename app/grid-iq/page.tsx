@@ -207,7 +207,7 @@ const EVENT_TYPE_STYLES: Record<string, { color: string; bg: string; lineColor: 
 };
 
 // ════════════════════════════════════════════════════════════════════════
-// PHASE 1 — Beanstalk Event Stream (clean, terminal-style agent cards)
+// PHASE 1 — Analysis Tree (visual branch graph → root causes)
 // ════════════════════════════════════════════════════════════════════════
 
 const SEV_STYLES: Record<ParamSeverity, { dot: string; text: string; bg: string; label: string; icon: string }> = {
@@ -217,341 +217,327 @@ const SEV_STYLES: Record<ParamSeverity, { dot: string; text: string; bg: string;
   info:     { dot: 'bg-blue-400',    text: 'text-blue-400/70',    bg: 'bg-blue-400/10',    label: 'INFO', icon: 'ℹ' },
 };
 
-// Tool-call operation names per agent (cycle through these)
-const AGENT_OPS: Record<string, string[]> = {
-  dga:        ['read_sensor', 'correlate', 'classify', 'cross_check', 'duval_map', 'rogers_calc', 'trend', 'threshold', 'compare', 'flag'],
-  thermal:    ['read_sensor', 'model_ieee', 'compare', 'extrapolate', 'calc_dp', 'check_cooling', 'load_curve', 'delta_test', 'aging_calc'],
-  fleet:      ['query_fleet', 'match_cohort', 'calc_rate', 'geo_factor', 'load_match', 'predict_mttf', 'bayes_prob', 'cross_opco'],
-  oem:        ['lookup_spec', 'check_sb', 'overhaul_gap', 'load_check', 'bil_margin', 'defect_scan', 'cooling_spec', 'eos_check'],
-  history:    ['query_wo', 'calc_pm', 'flag_repeat', 'mean_repair', 'parts_audit', 'outage_sum', 'cost_trend', 'overhaul_gap'],
-  inspection: ['read_report', 'score_visual', 'leak_detect', 'porcelain_check', 'corrosion_idx', 'foundation', 'ground_test', 'surge_test', 'cabinet_check'],
+/* ── Key findings per agent (compact, for tree nodes) ── */
+const KEY_FINDINGS: Record<string, { text: string; sev: ParamSeverity }[]> = {
+  dga:        [{ text: 'TDCG Condition 3', sev: 'critical' }, { text: 'Duval T2 fault', sev: 'critical' }],
+  thermal:    [{ text: 'Hot-spot +12°C', sev: 'critical' }, { text: 'Aging 4.2×', sev: 'critical' }],
+  fleet:      [{ text: '67% fail prob (24mo)', sev: 'critical' }, { text: 'Batch 3/8 failed', sev: 'critical' }],
+  oem:        [{ text: 'Life exceeded 3.2yr', sev: 'critical' }, { text: 'SB-047 unaddressed', sev: 'warning' }],
+  history:    [{ text: 'Repeat 3×/24mo', sev: 'critical' }, { text: 'Cost ↑2.2× YoY', sev: 'warning' }],
+  inspection: [{ text: 'Visual 4.1/10', sev: 'critical' }, { text: 'Oil seepage B-phase', sev: 'critical' }],
 };
 
-/* ── Agent event stream card (Beanstalk-style) ────────────────────── */
-function AgentEventStream({ agent, status, revealedCount }: {
-  agent: DetailedAgent;
-  status: AgentStatus;
-  revealedCount: number;
+/* ── Root causes (where branches converge) ── */
+const ROOT_CAUSES = [
+  { id: 'rc1', x: 16, label: 'Thermal Insulation Failure',  detail: 'T2 thermal fault + winding hot-spot degradation confirmed by oil & IR', sources: ['dga', 'thermal'],     color: 'rose',   icon: Thermometer },
+  { id: 'rc2', x: 50, label: 'End-of-Life Fleet Risk',      detail: '67% failure probability — design life exceeded, GE batch defect pattern',  sources: ['fleet', 'oem'],       color: 'amber',  icon: AlertTriangle },
+  { id: 'rc3', x: 84, label: 'Systemic Maintenance Gap',    detail: 'Repeat bushing failures, low PM compliance, escalating repair costs',      sources: ['history', 'inspection'], color: 'violet', icon: Wrench },
+];
+
+/* ── Agent layout positions (x as % of width) ── */
+const AGENT_LAYOUT = [
+  { id: 'dga',        x: 8  },
+  { id: 'thermal',    x: 24 },
+  { id: 'fleet',      x: 40 },
+  { id: 'oem',        x: 60 },
+  { id: 'history',    x: 76 },
+  { id: 'inspection', x: 92 },
+];
+
+/* ── SVG coordinate constants ── */
+const VB_W = 1000, VB_H = 520;
+const ORCH_Y = 40;
+const AGENT_Y = 145;
+const FINDING_Y = 255;
+const ROOT_Y = 395;
+
+/* ── Animated SVG path (line-draw effect) ── */
+function AnimatedPath({ d, visible, color = 'rgba(255,255,255,0.12)', width = 1.5, delay = 0 }: {
+  d: string; visible: boolean; color?: string; width?: number; delay?: number;
 }) {
-  const isThinking = status === 'thinking';
-  const isDone = status === 'complete';
-  const isQueued = status === 'queued';
-  const critCount = agent.parameters.filter(p => p.severity === 'critical').length;
-  const warnCount = agent.parameters.filter(p => p.severity === 'warning').length;
-  const ops = AGENT_OPS[agent.id] || [];
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  // Auto-scroll to bottom as new events appear
-  useEffect(() => {
-    if (scrollRef.current && isThinking) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [revealedCount, isThinking]);
-
+  const ref = useRef<SVGPathElement>(null);
+  const [len, setLen] = useState(400);
+  useEffect(() => { if (ref.current) setLen(ref.current.getTotalLength()); }, [d]);
   return (
-    <div className={`rounded-lg border overflow-hidden transition-colors duration-500 ${
-      isThinking ? 'border-white/[0.08] bg-[#0a0a0a]' :
-      isDone ? 'border-white/[0.06] bg-[#080808]' :
-      'border-white/[0.04] bg-[#060606]'
-    }`}>
-      {/* ── Card header (like Beanstalk dashboard) ── */}
-      <div className="px-3 py-2.5 flex items-center gap-2.5 border-b border-white/[0.05]">
-        {/* Status indicator */}
-        <div className={`w-2 h-2 rounded-full flex-shrink-0 transition-colors duration-300 ${
-          isThinking ? 'bg-emerald-400 animate-pulse' :
-          isDone ? 'bg-white/20' :
-          'bg-white/[0.06]'
-        }`} />
-        {/* Agent icon */}
-        <span className={`flex-shrink-0 transition-colors duration-300 ${
-          isThinking ? agent.color : isDone ? 'text-white/40' : 'text-white/10'
-        }`}>
-          {agent.icon}
-        </span>
-        {/* Agent name */}
-        <span className={`text-xs font-semibold flex-1 truncate transition-colors ${
-          isThinking ? 'text-white/80' : isDone ? 'text-white/50' : 'text-white/15'
-        }`}>
-          {agent.shortName}
-        </span>
-        {/* Status badge */}
-        {isThinking && (
-          <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-400/10 text-emerald-400/80 uppercase tracking-wider">
-            Running
-          </span>
-        )}
-        {isDone && (
-          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/[0.04] text-white/30 uppercase tracking-wider">
-            Done
-          </span>
-        )}
-        {isQueued && (
-          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/[0.02] text-white/10 uppercase tracking-wider">
-            Queued
-          </span>
-        )}
-        {/* Event count */}
-        <span className={`text-[10px] font-mono tabular-nums transition-colors ${
-          isThinking ? 'text-white/40' : isDone ? 'text-white/25' : 'text-white/8'
-        }`}>
-          {isDone ? agent.parameters.length : revealedCount}/{agent.parameters.length}
-        </span>
-      </div>
-
-      {/* ── Event stream (like Beanstalk Live Event Stream) ── */}
-      {(isThinking || isDone) && (
-        <div ref={scrollRef} className="max-h-[220px] overflow-y-auto beanstalk-scrollbar">
-          {agent.parameters.map((param, pIdx) => {
-            const isRevealed = isDone || pIdx < revealedCount;
-            const isActive = isThinking && pIdx === revealedCount - 1;
-            const sev = SEV_STYLES[param.severity];
-            const opName = ops[pIdx % ops.length] || 'analyze';
-
-            if (!isRevealed) return null;
-
-            return (
-              <div
-                key={param.id}
-                className={`group flex items-center gap-2 px-3 py-[5px] border-b border-white/[0.02] transition-all duration-200 ${
-                  isActive ? 'bg-white/[0.03]' : 'hover:bg-white/[0.015]'
-                }`}
-              >
-                {/* Severity dot */}
-                <span className={`flex-shrink-0 w-[6px] h-[6px] rounded-full transition-all ${sev.dot} ${
-                  isActive ? 'animate-pulse' : 'opacity-70'
-                }`} />
-                {/* Tool call name (monospace, muted) */}
-                <span className={`text-[10px] font-mono w-[90px] flex-shrink-0 truncate ${
-                  isActive ? 'text-white/50' : 'text-white/25'
-                }`}>
-                  {opName}
-                </span>
-                {/* Parameter label */}
-                <span className={`text-[10px] flex-1 truncate ${
-                  isActive ? 'text-white/60' : 'text-white/35'
-                }`}>
-                  {param.label}
-                </span>
-                {/* Value */}
-                <span className={`text-[10px] font-mono font-bold flex-shrink-0 text-right min-w-[60px] ${sev.text}`}>
-                  {param.value}{param.unit ? ` ${param.unit}` : ''}
-                </span>
-                {/* Severity badge (only warn/crit) */}
-                {(param.severity === 'warning' || param.severity === 'critical') && (
-                  <span className={`text-[8px] font-bold font-mono px-1 py-[1px] rounded flex-shrink-0 ${sev.bg} ${sev.text}`}>
-                    {sev.label}
-                  </span>
-                )}
-                {/* Duration (simulated) */}
-                <span className={`text-[9px] font-mono flex-shrink-0 w-[32px] text-right ${
-                  isActive ? 'text-white/30' : 'text-white/15'
-                }`}>
-                  {isActive ? '...' : `${(0.2 + pIdx * 0.15).toFixed(1)}s`}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* ── Queued placeholder ── */}
-      {isQueued && (
-        <div className="px-3 py-4 text-center">
-          <span className="text-[10px] text-white/10 font-mono">{agent.parameters.length} checks queued</span>
-        </div>
-      )}
-
-      {/* ── Finding summary (appears after completion) ── */}
-      {isDone && (
-        <div className="px-3 py-2 border-t border-white/[0.05] flex items-start gap-2">
-          <Target className={`w-3 h-3 flex-shrink-0 mt-0.5 ${agent.color}`} />
-          <p className="text-[10px] leading-relaxed text-white/40">{agent.finding}</p>
-          <div className="flex items-center gap-1 flex-shrink-0 ml-auto">
-            {critCount > 0 && (
-              <span className="text-[8px] font-bold px-1 py-[1px] rounded bg-rose-400/10 text-rose-400/70">{critCount} CRIT</span>
-            )}
-            {warnCount > 0 && (
-              <span className="text-[8px] font-bold px-1 py-[1px] rounded bg-amber-400/10 text-amber-400/70">{warnCount} WARN</span>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
+    <path ref={ref} d={d} fill="none" stroke={color} strokeWidth={width}
+      strokeDasharray={len} strokeDashoffset={visible ? 0 : len}
+      style={{ transition: `stroke-dashoffset 900ms ease-out ${delay}ms, stroke 400ms ease ${delay}ms` }} />
   );
 }
 
-/* ── Main Beanstalk component (clean event-stream dashboard) ────────── */
+/* ── Pulse dot traveling along a path ── */
+function PulseDot({ d, visible, color, delay = 0, duration = 2000 }: {
+  d: string; visible: boolean; color: string; delay?: number; duration?: number;
+}) {
+  if (!visible) return null;
+  return (
+    <circle r="2.5" fill={color} opacity="0.6">
+      <animateMotion dur={`${duration}ms`} repeatCount="indefinite" begin={`${delay}ms`} path={d} />
+    </circle>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   AnalysisTree — visual tree graph: Orchestrator → Agents → Findings → Root Causes
+   ══════════════════════════════════════════════════════════════════ */
 function BeanstalkAnalysis({ onComplete }: { onComplete: () => void }) {
-  const [agentStates, setAgentStates] = useState<Record<string, { status: AgentStatus; revealedParams: number }>>({});
-  const [synthStatus, setSynthStatus] = useState<'waiting' | 'synthesizing' | 'complete'>('waiting');
-  const [totalAnalyzed, setTotalAnalyzed] = useState(0);
-  const timerRefs = useRef<NodeJS.Timeout[]>([]);
+  // Animation state
+  const [showOrch, setShowOrch] = useState(false);
+  const [branchesDrawn, setBranchesDrawn] = useState(false);
+  const [activeAgents, setActiveAgents] = useState<Set<string>>(new Set());
+  const [doneAgents, setDoneAgents] = useState<Set<string>>(new Set());
+  const [showFindings, setShowFindings] = useState<Set<string>>(new Set());
+  const [convergeDrawn, setConvergeDrawn] = useState(false);
+  const [showRoots, setShowRoots] = useState<Set<string>>(new Set());
+  const [synthPhase, setSynthPhase] = useState<'waiting'|'running'|'done'>('waiting');
   const completeFired = useRef(false);
 
-  const totalParams = DETAILED_AGENTS.reduce((s, a) => s + a.parameters.length, 0);
-
   useEffect(() => {
-    const initial: Record<string, { status: AgentStatus; revealedParams: number }> = {};
-    DETAILED_AGENTS.forEach(a => { initial[a.id] = { status: 'queued', revealedParams: 0 }; });
-    setAgentStates(initial);
-    timerRefs.current.forEach(clearTimeout);
-    timerRefs.current = [];
-    completeFired.current = false;
-    setTotalAnalyzed(0);
-    setSynthStatus('waiting');
+    const t: NodeJS.Timeout[] = [];
+    const ids = AGENT_LAYOUT.map(a => a.id);
 
-    let runningTotal = 0;
-    const PARAM_INTERVAL = 140;   // ms per parameter reveal
-    const AGENT_STAGGER = 300;    // ms between agent starts
+    // Phase 1: Orchestrator appears
+    t.push(setTimeout(() => setShowOrch(true), 200));
 
-    const startAgent = (agent: DetailedAgent, delay: number) => {
-      timerRefs.current.push(setTimeout(() => {
-        setAgentStates(prev => ({ ...prev, [agent.id]: { status: 'thinking', revealedParams: 0 } }));
-      }, delay));
-      agent.parameters.forEach((_, pIdx) => {
-        timerRefs.current.push(setTimeout(() => {
-          setAgentStates(prev => ({ ...prev, [agent.id]: { status: 'thinking', revealedParams: pIdx + 1 } }));
-          runningTotal++;
-          setTotalAnalyzed(runningTotal);
-        }, delay + (pIdx + 1) * PARAM_INTERVAL));
-      });
-      const completeTime = delay + agent.parameters.length * PARAM_INTERVAL + 200;
-      timerRefs.current.push(setTimeout(() => {
-        setAgentStates(prev => ({ ...prev, [agent.id]: { status: 'complete', revealedParams: agent.parameters.length } }));
-      }, completeTime));
-      return completeTime;
-    };
+    // Phase 2: Branch lines draw
+    t.push(setTimeout(() => setBranchesDrawn(true), 600));
 
-    // Stagger agents so they overlap — looks like parallel processing
-    let lastComplete = 0;
-    DETAILED_AGENTS.forEach((a, i) => {
-      const delay = i * AGENT_STAGGER + (i > 0 ? DETAILED_AGENTS[i - 1].parameters.length * PARAM_INTERVAL * 0.4 : 0);
-      lastComplete = startAgent(a, delay);
+    // Phase 3: Agents activate (staggered)
+    ids.forEach((id, i) => {
+      t.push(setTimeout(() => setActiveAgents(p => new Set([...p, id])), 900 + i * 200));
     });
 
-    timerRefs.current.push(setTimeout(() => setSynthStatus('synthesizing'), lastComplete + 400));
-    timerRefs.current.push(setTimeout(() => setSynthStatus('complete'), lastComplete + 1800));
-    timerRefs.current.push(setTimeout(() => {
-      if (!completeFired.current) { completeFired.current = true; onComplete(); }
-    }, lastComplete + 2600));
+    // Phase 4: Agents complete with findings (staggered)
+    ids.forEach((id, i) => {
+      t.push(setTimeout(() => {
+        setDoneAgents(p => new Set([...p, id]));
+        setShowFindings(p => new Set([...p, id]));
+      }, 2200 + i * 350));
+    });
 
-    return () => timerRefs.current.forEach(clearTimeout);
+    // Phase 5: Convergence lines draw
+    t.push(setTimeout(() => setConvergeDrawn(true), 4500));
+
+    // Phase 6: Root cause nodes appear
+    ROOT_CAUSES.forEach((rc, i) => {
+      t.push(setTimeout(() => setShowRoots(p => new Set([...p, rc.id])), 5200 + i * 400));
+    });
+
+    // Synthesis
+    t.push(setTimeout(() => setSynthPhase('running'), 6400));
+    t.push(setTimeout(() => setSynthPhase('done'), 7400));
+    t.push(setTimeout(() => {
+      if (!completeFired.current) { completeFired.current = true; onComplete(); }
+    }, 8200));
+
+    return () => t.forEach(clearTimeout);
   }, [onComplete]);
 
-  const allDone = synthStatus === 'complete';
-  const activeCount = Object.values(agentStates).filter(s => s.status === 'thinking').length;
-  const doneCount = Object.values(agentStates).filter(s => s.status === 'complete').length;
+  const allDone = synthPhase === 'done';
+  const totalFindings = Object.values(KEY_FINDINGS).flat().length; // 12
 
   return (
     <div className="space-y-3">
-      {/* ── Orchestrator bar ── */}
-      <div className={`flex items-center justify-between px-4 py-3 rounded-lg border transition-all duration-500 ${
-        allDone ? 'border-white/[0.06] bg-[#080808]' : 'border-white/[0.08] bg-[#0a0a0a]'
+      {/* ── Orchestrator status bar ── */}
+      <div className={`flex items-center justify-between px-4 py-2.5 rounded-lg border transition-all duration-500 ${
+        allDone ? 'border-emerald-500/10 bg-[#080808]' : 'border-violet-500/10 bg-[#0a0a0a]'
       }`}>
         <div className="flex items-center gap-3">
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-            allDone ? 'bg-emerald-400/10' : 'bg-violet-400/10'
-          }`}>
-            <Brain className={`w-4 h-4 ${allDone ? 'text-emerald-400/70' : 'text-violet-400/70'}`} />
+          <div className={`w-7 h-7 rounded-md flex items-center justify-center ${allDone ? 'bg-emerald-400/10' : 'bg-violet-400/10'}`}>
+            <Brain className={`w-3.5 h-3.5 ${allDone ? 'text-emerald-400/70' : 'text-violet-400/70'}`} />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-white/70">GridIQ Orchestrator</span>
-              {!allDone && activeCount > 0 && (
-                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-400/10 text-emerald-400/70">
-                  {activeCount} active
-                </span>
-              )}
-              {doneCount > 0 && doneCount < 6 && (
-                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/[0.04] text-white/25">
-                  {doneCount} done
-                </span>
-              )}
-            </div>
-            <div className="text-[10px] text-white/25 font-mono mt-0.5">
-              {allDone
-                ? `✓ ${totalParams} parameters evaluated across 6 agents`
-                : `Scanning ${totalAnalyzed} / ${totalParams} parameters…`}
-            </div>
+            <span className="text-xs font-semibold text-white/70">GridIQ Multi-Agent Analysis</span>
+            <span className="text-[10px] text-white/25 font-mono block mt-0.5">
+              {allDone ? '✓ 6 agents → 12 findings → 3 root causes identified' :
+               `Analyzing ${doneAgents.size}/6 agents complete`}
+            </span>
           </div>
         </div>
-        {/* Progress bar (not ring — cleaner) */}
-        <div className="flex items-center gap-3">
-          <div className="w-32 h-1.5 rounded-full bg-white/[0.04] overflow-hidden hidden sm:block">
-            <div
-              className={`h-full rounded-full transition-all duration-300 ${allDone ? 'bg-emerald-400/40' : 'bg-violet-400/30'}`}
-              style={{ width: `${(totalAnalyzed / totalParams) * 100}%` }}
-            />
+        <div className="flex items-center gap-2">
+          <div className="w-24 h-1 rounded-full bg-white/[0.04] overflow-hidden">
+            <div className={`h-full rounded-full transition-all duration-500 ${allDone ? 'bg-emerald-400/40' : 'bg-violet-400/30'}`}
+              style={{ width: `${allDone ? 100 : (doneAgents.size / 6) * 80}%` }} />
           </div>
-          <span className={`text-sm font-mono font-bold tabular-nums ${allDone ? 'text-emerald-400/60' : 'text-white/40'}`}>
-            {Math.round((totalAnalyzed / totalParams) * 100)}%
+          <span className={`text-[10px] font-mono font-bold ${allDone ? 'text-emerald-400/60' : 'text-white/35'}`}>
+            {doneAgents.size}/6
           </span>
         </div>
       </div>
 
-      {/* ── Agent grid (2 columns, no SVG connectors) ── */}
-      <div className="grid md:grid-cols-2 gap-3">
-        {DETAILED_AGENTS.map(agent => {
-          const st = agentStates[agent.id] || { status: 'queued' as AgentStatus, revealedParams: 0 };
+      {/* ── Tree visualization ── */}
+      <div className="relative" style={{ height: `${VB_H}px` }}>
+        {/* SVG connection lines */}
+        <svg className="absolute inset-0 w-full h-full" viewBox={`0 0 ${VB_W} ${VB_H}`} preserveAspectRatio="none">
+          {/* Branch lines: Orchestrator → Agents */}
+          {AGENT_LAYOUT.map((a, i) => {
+            const ax = a.x * 10;
+            const agent = DETAILED_AGENTS.find(da => da.id === a.id);
+            const agentColor = agent?.dotColor || 'rgba(255,255,255,0.1)';
+            return (
+              <g key={`branch-${a.id}`}>
+                <AnimatedPath
+                  d={`M 500,${ORCH_Y + 25} C 500,${ORCH_Y + 55} ${ax},${AGENT_Y - 35} ${ax},${AGENT_Y - 10}`}
+                  visible={branchesDrawn}
+                  color={doneAgents.has(a.id) ? agentColor : 'rgba(255,255,255,0.07)'}
+                  delay={i * 80}
+                />
+                {activeAgents.has(a.id) && !doneAgents.has(a.id) && (
+                  <PulseDot
+                    d={`M 500,${ORCH_Y + 25} C 500,${ORCH_Y + 55} ${ax},${AGENT_Y - 35} ${ax},${AGENT_Y - 10}`}
+                    visible={true} color={agentColor} delay={0} duration={1200}
+                  />
+                )}
+              </g>
+            );
+          })}
+
+          {/* Finding lines: Agent → Findings (short fan-out) */}
+          {AGENT_LAYOUT.map((a) => {
+            const ax = a.x * 10;
+            const findings = KEY_FINDINGS[a.id];
+            const agent = DETAILED_AGENTS.find(da => da.id === a.id);
+            return findings.map((_, fi) => {
+              const fx = ax + (fi === 0 ? -30 : 30);
+              return (
+                <AnimatedPath
+                  key={`fline-${a.id}-${fi}`}
+                  d={`M ${ax},${AGENT_Y + 35} L ${fx},${FINDING_Y - 5}`}
+                  visible={showFindings.has(a.id)}
+                  color={agent?.dotColor || 'rgba(255,255,255,0.08)'}
+                  width={1}
+                  delay={fi * 100}
+                />
+              );
+            });
+          })}
+
+          {/* Convergence lines: Findings → Root Causes */}
+          {ROOT_CAUSES.map((rc, ri) => {
+            const rcx = rc.x * 10;
+            return rc.sources.flatMap((src, si) => {
+              const agent = AGENT_LAYOUT.find(a => a.id === src)!;
+              const ax = agent.x * 10;
+              const da = DETAILED_AGENTS.find(d => d.id === src);
+              return KEY_FINDINGS[src].map((_, fi) => {
+                const fx = ax + (fi === 0 ? -30 : 30);
+                return (
+                  <AnimatedPath
+                    key={`conv-${src}-${fi}-${rc.id}`}
+                    d={`M ${fx},${FINDING_Y + 18} C ${fx},${FINDING_Y + 70} ${rcx},${ROOT_Y - 60} ${rcx},${ROOT_Y - 15}`}
+                    visible={convergeDrawn}
+                    color={da?.dotColor || 'rgba(255,255,255,0.06)'}
+                    width={1}
+                    delay={ri * 200 + si * 100 + fi * 50}
+                  />
+                );
+              });
+            });
+          })}
+        </svg>
+
+        {/* ── Orchestrator node ── */}
+        <div className={`absolute -translate-x-1/2 transition-all duration-500 ${showOrch ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
+          style={{ left: '50%', top: `${ORCH_Y - 18}px` }}>
+          <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border ${
+            allDone ? 'border-emerald-500/20 bg-emerald-500/[0.06]' : 'border-violet-500/20 bg-violet-500/[0.06]'
+          }`}>
+            <Brain className={`w-4 h-4 ${allDone ? 'text-emerald-400' : 'text-violet-400'}`} />
+            <span className="text-xs font-semibold text-white/70">Orchestrator</span>
+            <span className={`w-2 h-2 rounded-full ${allDone ? 'bg-emerald-400' : 'bg-violet-400 animate-pulse'}`} />
+          </div>
+        </div>
+
+        {/* ── Agent nodes ── */}
+        {AGENT_LAYOUT.map(a => {
+          const agent = DETAILED_AGENTS.find(da => da.id === a.id)!;
+          const isActive = activeAgents.has(a.id);
+          const isDone = doneAgents.has(a.id);
           return (
-            <AgentEventStream
-              key={agent.id}
-              agent={agent}
-              status={st.status}
-              revealedCount={st.revealedParams}
-            />
+            <div key={a.id}
+              className={`absolute -translate-x-1/2 transition-all duration-500 ${isActive ? 'opacity-100 scale-100' : 'opacity-0 scale-75'}`}
+              style={{ left: `${a.x}%`, top: `${AGENT_Y - 18}px` }}>
+              <div className={`flex flex-col items-center gap-0.5 px-2.5 py-2 rounded-lg border transition-all duration-300 ${
+                isDone ? `${agent.borderColor} ${agent.bgColor}` :
+                isActive ? 'border-white/10 bg-white/[0.04]' :
+                'border-white/[0.04] bg-white/[0.02]'
+              }`}>
+                <span className={`transition-colors ${isDone ? agent.color : 'text-white/30'}`}>{agent.icon}</span>
+                <span className={`text-[9px] font-semibold transition-colors ${isDone ? agent.color : 'text-white/40'}`}>
+                  {a.id === 'history' ? 'History' : a.id === 'inspection' ? 'Inspect' : agent.shortName.split(' ')[0]}
+                </span>
+                {isActive && !isDone && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-white/30 animate-pulse mt-0.5" />
+                )}
+                {isDone && (
+                  <span className="text-[7px] font-mono text-emerald-400/60 mt-0.5">✓ done</span>
+                )}
+              </div>
+            </div>
           );
         })}
-      </div>
 
-      {/* ── Synthesis bar ── */}
-      <div className={`flex items-center justify-between px-4 py-3 rounded-lg border transition-all duration-500 ${
-        synthStatus === 'synthesizing' ? 'border-white/[0.08] bg-[#0a0a0a]' :
-        allDone ? 'border-white/[0.06] bg-[#080808]' :
-        'border-white/[0.04] bg-[#060606]'
-      }`}>
-        <div className="flex items-center gap-3">
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-            synthStatus === 'synthesizing' ? 'bg-cyan-400/10' :
-            allDone ? 'bg-emerald-400/10' : 'bg-white/[0.02]'
-          }`}>
-            {allDone ? <CheckCircle className="w-4 h-4 text-emerald-400/60" /> :
-             synthStatus === 'synthesizing' ? <Sparkles className="w-4 h-4 text-cyan-400/70 animate-pulse" /> :
-             <Sparkles className="w-4 h-4 text-white/10" />}
-          </div>
-          <div>
-            <span className={`text-xs font-semibold block ${
-              synthStatus === 'synthesizing' ? 'text-white/60' : allDone ? 'text-white/50' : 'text-white/12'
-            }`}>
-              {allDone ? 'Synthesis Complete' : 'Synthesis Engine'}
-            </span>
-            <span className={`text-[10px] font-mono block mt-0.5 ${
-              synthStatus === 'synthesizing' ? 'text-white/25' : allDone ? 'text-white/20' : 'text-white/8'
-            }`}>
-              {synthStatus === 'synthesizing' ? 'Cross-correlating findings… generating scenarios…' :
-               allDone ? `${totalParams} params → 6 findings → 3 scenarios` :
-               'Waiting for agents to finish'}
+        {/* ── Finding nodes (small pills below each agent) ── */}
+        {AGENT_LAYOUT.map(a => {
+          const findings = KEY_FINDINGS[a.id];
+          const isVisible = showFindings.has(a.id);
+          return findings.map((f, fi) => {
+            const sev = SEV_STYLES[f.sev];
+            return (
+              <div key={`f-${a.id}-${fi}`}
+                className={`absolute -translate-x-1/2 transition-all duration-400 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
+                style={{ left: `${a.x + (fi === 0 ? -3 : 3)}%`, top: `${FINDING_Y - 8}px`, transitionDelay: `${fi * 120}ms` }}>
+                <div className={`text-[7px] font-mono font-bold px-1.5 py-[3px] rounded-full whitespace-nowrap border ${
+                  f.sev === 'critical' ? 'border-rose-500/20 bg-rose-500/[0.06] text-rose-400/70' :
+                  'border-amber-500/20 bg-amber-500/[0.06] text-amber-400/70'
+                }`}>
+                  {f.text}
+                </div>
+              </div>
+            );
+          });
+        })}
+
+        {/* ── Root Cause nodes (convergence targets) ── */}
+        {ROOT_CAUSES.map((rc) => {
+          const isVisible = showRoots.has(rc.id);
+          const RcIcon = rc.icon;
+          const cmap: Record<string, { border: string; bg: string; text: string; glow: string }> = {
+            rose:   { border: 'border-rose-500/30',   bg: 'bg-rose-500/[0.08]',   text: 'text-rose-400',   glow: 'shadow-rose-500/10' },
+            amber:  { border: 'border-amber-500/30',  bg: 'bg-amber-500/[0.08]',  text: 'text-amber-400',  glow: 'shadow-amber-500/10' },
+            violet: { border: 'border-violet-500/30', bg: 'bg-violet-500/[0.08]', text: 'text-violet-400', glow: 'shadow-violet-500/10' },
+          };
+          const c = cmap[rc.color];
+          return (
+            <div key={rc.id}
+              className={`absolute -translate-x-1/2 transition-all duration-600 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
+              style={{ left: `${rc.x}%`, top: `${ROOT_Y - 25}px` }}>
+              <div className={`flex flex-col items-center gap-1 px-4 py-3 rounded-xl border shadow-lg ${c.border} ${c.bg} ${c.glow}`}>
+                <div className="flex items-center gap-1.5">
+                  <RcIcon className={`w-3.5 h-3.5 ${c.text}`} />
+                  <span className={`text-[8px] uppercase tracking-wider font-bold ${c.text}`}>Root Cause</span>
+                </div>
+                <span className="text-[11px] font-semibold text-white/75 text-center leading-tight max-w-[140px]">{rc.label}</span>
+                <span className="text-[8px] text-white/30 text-center leading-snug max-w-[160px]">{rc.detail}</span>
+              </div>
+            </div>
+          );
+        })}
+
+        {/* ── Synthesis indicator at bottom ── */}
+        <div className={`absolute -translate-x-1/2 transition-all duration-500 ${
+          synthPhase !== 'waiting' ? 'opacity-100' : 'opacity-0'
+        }`} style={{ left: '50%', top: `${VB_H - 45}px` }}>
+          <div className="flex items-center gap-2">
+            {synthPhase === 'running' && <Sparkles className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />}
+            {synthPhase === 'done' && <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />}
+            <span className={`text-[11px] font-mono ${synthPhase === 'done' ? 'text-emerald-400/50' : 'text-cyan-400/50'}`}>
+              {synthPhase === 'running' ? '3 root causes → generating scenarios…' :
+               '3 root causes → 3 scenarios ready'}
             </span>
           </div>
         </div>
-        {synthStatus === 'synthesizing' && (
-          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-cyan-400/10 text-cyan-400/70 animate-pulse">
-            Running
-          </span>
-        )}
-        {allDone && (
-          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/[0.04] text-white/25">
-            Done
-          </span>
-        )}
       </div>
-
-      <style jsx>{`
-        .beanstalk-scrollbar::-webkit-scrollbar { width: 3px; }
-        .beanstalk-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .beanstalk-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
-        .beanstalk-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
-      `}</style>
     </div>
   );
 }
