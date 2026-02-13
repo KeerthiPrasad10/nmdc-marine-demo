@@ -565,7 +565,7 @@ export default function Dashboard() {
                     {displayAlerts.map(alert => (
                       <div
                         key={alert.id}
-                        className={`p-3 border-b border-white/[0.04] transition-all ${
+                        className={`p-3 border-b border-white/[0.04] transition-all cursor-pointer hover:bg-white/[0.03] ${
                           alert.acknowledged ? 'opacity-40' : ''
                         } ${
                           alert.severity === 'critical'
@@ -574,6 +574,7 @@ export default function Dashboard() {
                             ? 'border-l-2 border-l-amber-500/40'
                             : ''
                         }`}
+                        onClick={() => router.push(`/transformer-iot?asset=${alert.assetId}`)}
                       >
                         <div className="flex items-start gap-2">
                           <AlertTriangle
@@ -591,22 +592,28 @@ export default function Dashboard() {
                                 {alert.customersAffected.toLocaleString()} customers
                               </span>
                             </div>
-                            {!alert.acknowledged && (
-                              <div className="flex items-center gap-2 mt-2">
+                            <div className="flex items-center gap-2 mt-2">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); router.push(`/transformer-iot?asset=${alert.assetId}`); }}
+                                className="text-[10px] px-2 py-0.5 rounded bg-white/[0.06] text-cyan-400/60 hover:bg-cyan-500/10 hover:text-cyan-400/80 transition-all"
+                              >
+                                Investigate
+                              </button>
+                              {!alert.acknowledged && (
                                 <button
-                                  onClick={() => handleAcknowledgeAlert(alert.id)}
+                                  onClick={(e) => { e.stopPropagation(); handleAcknowledgeAlert(alert.id); }}
                                   className="text-[10px] px-2 py-0.5 rounded bg-white/[0.06] text-white/50 hover:bg-white/[0.10] hover:text-white/70 transition-all"
                                 >
                                   Acknowledge
                                 </button>
-                                <button
-                                  onClick={() => handleResolveAlert(alert.id)}
-                                  className="text-[10px] px-2 py-0.5 rounded bg-white/[0.06] text-white/50 hover:bg-white/[0.10] hover:text-white/70 transition-all"
-                                >
-                                  Resolve
-                                </button>
-                              </div>
-                            )}
+                              )}
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleResolveAlert(alert.id); }}
+                                className="text-[10px] px-2 py-0.5 rounded bg-white/[0.06] text-white/50 hover:bg-white/[0.10] hover:text-white/70 transition-all"
+                              >
+                                Resolve
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>
