@@ -399,29 +399,29 @@ function UnifiedTree() {
             );
           })}
 
-          {/* Cross-cluster interlinks (dashed arcs between columns) */}
+          {/* Cross-cluster interlinks — connect rightmost branch of 'from' to leftmost branch of 'to' at their staggered deep-analysis Y */}
           {CROSS_LINKS.map((link, li) => {
             const fromC = TREE_CLUSTERS[link.from];
             const toC = TREE_CLUSTERS[link.to];
-            const fromX = (fromC.x + A_OFF) * (VB_W / 100);
-            const toX = (toC.x - A_OFF) * (VB_W / 100);
-            const midX = (fromX + toX) / 2;
-            const y = ROW.deep + 50;
-            const arcY = li === 2 ? y + 30 : y;
-            const arcBend = li === 2 ? 45 : 40;
+            const fromBx = branchX(fromC.x, 2, 3) * (VB_W / 100);
+            const toBx = branchX(toC.x, 0, 3) * (VB_W / 100);
+            const fromY = ROW.deep + 6 + STAGGER[2];
+            const toY = ROW.deep + 6 + STAGGER[0];
+            const midX = (fromBx + toBx) / 2;
+            const midY = Math.min(fromY, toY) - (li === 2 ? 55 : 45);
             const pathId = `xlink-${li}`;
             return (
               <g key={pathId}>
                 <AnimatedPath
                   id={pathId}
-                  d={`M ${fromX},${arcY} C ${midX},${arcY - arcBend} ${midX},${arcY - arcBend} ${toX},${arcY}`}
+                  d={`M ${fromBx},${fromY} C ${midX},${midY} ${midX},${midY} ${toBx},${toY}`}
                   visible={reveal >= 5} delay={600 + li * 300}
                   color="rgba(255,255,255,0.22)" width={1.5} dash
                 />
                 {reveal >= 5 && (
                   <PulseDot pathId={pathId} dur={4} delay={1 + li * 0.5} color="rgba(255,255,255,0.4)" />
                 )}
-                <text x={midX} y={arcY - arcBend + 10} fill="rgba(255,255,255,0.35)" fontSize="9"
+                <text x={midX} y={midY + 12} fill="rgba(255,255,255,0.35)" fontSize="9"
                   textAnchor="middle" fontFamily="monospace"
                   className={`transition-opacity duration-500 ${reveal >= 5 ? 'opacity-100' : 'opacity-0'}`}
                   style={{ transitionDelay: `${900 + li * 300}ms` }}>
