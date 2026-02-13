@@ -1720,7 +1720,6 @@ function BeanstalkOrchestration({ isAnalyzing, isComplete }: BeanstalkOrchestrat
 
   useEffect(() => {
     if (!isAnalyzing) return
-
     const initial: Record<string, { status: AgentStatus; messageIdx: number }> = {}
     ANALYSIS_AGENTS.forEach(a => { initial[a.id] = { status: 'queued', messageIdx: 0 } })
     setAgentStates(initial)
@@ -1733,29 +1732,26 @@ function BeanstalkOrchestration({ isAnalyzing, isComplete }: BeanstalkOrchestrat
         setAgentStates(prev => ({ ...prev, [agent.id]: { status: 'thinking', messageIdx: 0 } }))
       }, delay)
       timerRefs.current.push(t1)
-
       agent.thinkingMessages.forEach((_, mIdx) => {
         if (mIdx === 0) return
         const t = setTimeout(() => {
           setAgentStates(prev => ({ ...prev, [agent.id]: { status: 'thinking', messageIdx: mIdx } }))
-        }, delay + mIdx * 400)
+        }, delay + mIdx * 450)
         timerRefs.current.push(t)
       })
-
-      const completeDelay = delay + agent.thinkingMessages.length * 400 + 200
+      const completeDelay = delay + agent.thinkingMessages.length * 450 + 200
       const t2 = setTimeout(() => {
         setAgentStates(prev => ({ ...prev, [agent.id]: { status: 'complete', messageIdx: agent.thinkingMessages.length - 1 } }))
       }, completeDelay)
       timerRefs.current.push(t2)
     }
 
-    ANALYSIS_AGENTS.forEach((a, i) => startAgent(a, 200 + i * 180))
+    ANALYSIS_AGENTS.forEach((a, i) => startAgent(a, 300 + i * 350))
 
-    const maxAgentTime = 200 + 5 * 180 + 4 * 400 + 200
-    const synthT = setTimeout(() => setSynthStatus('synthesizing'), maxAgentTime + 300)
-    const synthDone = setTimeout(() => setSynthStatus('complete'), maxAgentTime + 1200)
+    const maxAgentTime = 300 + 5 * 350 + 4 * 450 + 200
+    const synthT = setTimeout(() => setSynthStatus('synthesizing'), maxAgentTime + 400)
+    const synthDone = setTimeout(() => setSynthStatus('complete'), maxAgentTime + 1600)
     timerRefs.current.push(synthT, synthDone)
-
     return () => timerRefs.current.forEach(clearTimeout)
   }, [isAnalyzing])
 
@@ -1769,201 +1765,167 @@ function BeanstalkOrchestration({ isAnalyzing, isComplete }: BeanstalkOrchestrat
   }, [isComplete, isAnalyzing])
 
   const allDone = synthStatus === 'complete' || isComplete
-  const lineColor = isAnalyzing && !allDone ? 'bg-violet-500/20' : allDone ? 'bg-emerald-500/12' : 'bg-white/[0.04]'
+  const stemColor = isAnalyzing && !allDone ? 'bg-violet-500/25' : allDone ? 'bg-emerald-500/15' : 'bg-white/[0.06]'
+  const stemGlow = isAnalyzing && !allDone ? 'shadow-[0_0_6px_rgba(139,92,246,0.15)]' : ''
 
   return (
-    <div className="relative">
-      {/* Horizontal beanstalk: Orchestrator → Agents → Synthesis */}
-      <div className="flex items-stretch gap-0">
-
-        {/* ── Orchestrator Node ── */}
-        <div className="flex flex-col items-center justify-center flex-shrink-0 w-28">
-          <div className={`p-3 rounded-xl border transition-all duration-500 text-center ${
-            isAnalyzing && synthStatus === 'waiting'
-              ? 'bg-violet-500/15 border-violet-500/30 shadow-lg shadow-violet-500/10'
-              : allDone
-              ? 'bg-emerald-500/[0.06] border-emerald-500/20'
-              : 'bg-white/[0.02] border-white/[0.06]'
-          }`}>
-            <Brain className={`w-5 h-5 mx-auto mb-1.5 transition-colors duration-500 ${
-              isAnalyzing && synthStatus === 'waiting' ? 'text-violet-400' :
-              allDone ? 'text-emerald-400/70' : 'text-white/25'
-            }`} />
-            <span className="text-[10px] font-semibold text-white/55 block leading-tight">GridIQ<br/>Orchestrator</span>
-            {isAnalyzing && synthStatus === 'waiting' && (
-              <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse inline-block mt-1.5" />
-            )}
-          </div>
-        </div>
-
-        {/* ── Left connector lines ── */}
-        <div className="flex flex-col justify-center flex-shrink-0 w-6 relative">
-          {/* Main horizontal trunk */}
-          <div className={`absolute left-0 top-1/2 w-full h-px ${lineColor} transition-colors duration-500`} />
-          {/* Branch lines to each row */}
-          {[0, 1].map(row => (
-            <div key={row} className={`absolute right-0 h-px w-3 ${lineColor} transition-colors duration-500`}
-              style={{ top: row === 0 ? '25%' : '75%' }} />
-          ))}
-          <div className={`absolute right-0 w-px ${lineColor} transition-colors duration-500`}
-            style={{ top: '25%', height: '50%' }} />
-        </div>
-
-        {/* ── Agent Cards — 2 rows × 3 columns ── */}
-        <div className="flex-1 min-w-0">
-          <div className="grid grid-rows-2 gap-2">
-            {/* Row 1: Top 3 agents */}
-            <div className="grid grid-cols-3 gap-3">
-              {ANALYSIS_AGENTS.slice(0, 3).map(agent => {
-                const state = agentStates[agent.id] || { status: 'queued', messageIdx: 0 }
-                const isThinking = state.status === 'thinking'
-                const isDone = state.status === 'complete'
-                return (
-                  <div
-                    key={agent.id}
-                    className={`relative p-3 rounded-lg border transition-all duration-500 ${
-                      isThinking ? `${agent.bgColor} ${agent.borderColor} shadow-md shadow-current/5` :
-                      isDone ? 'bg-emerald-500/[0.04] border-emerald-500/15' :
-                      'bg-white/[0.015] border-white/[0.06]'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <span className={`transition-colors duration-300 ${isThinking ? agent.color : isDone ? 'text-emerald-400/60' : 'text-white/20'}`}>
-                        {isDone ? <CheckCircle className="w-4 h-4" /> : agent.icon}
-                      </span>
-                      <span className={`text-[11px] font-medium transition-colors duration-300 ${
-                        isThinking ? 'text-white/70' : isDone ? 'text-white/45' : 'text-white/20'
-                      }`}>
-                        {agent.name}
-                      </span>
-                      {isThinking && (
-                        <span className={`ml-auto w-1.5 h-1.5 rounded-full animate-pulse ${agent.bgColor.replace('/10', '/60')}`} />
-                      )}
-                      {isDone && (
-                        <span className="ml-auto text-[9px] text-emerald-400/40 font-mono">done</span>
-                      )}
-                    </div>
-                    <div className="min-h-[20px]">
-                      {isThinking && (
-                        <p className="text-[10px] text-white/35 leading-relaxed animate-in fade-in duration-200">
-                          {agent.thinkingMessages[state.messageIdx]}
-                        </p>
-                      )}
-                      {isDone && (
-                        <p className="text-[10px] text-emerald-400/40 leading-relaxed animate-in fade-in slide-in-from-bottom-1 duration-300">
-                          → {agent.finding}
-                        </p>
-                      )}
-                      {state.status === 'queued' && (
-                        <p className="text-[10px] text-white/12">Queued</p>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-
-            {/* Row 2: Bottom 3 agents */}
-            <div className="grid grid-cols-3 gap-3">
-              {ANALYSIS_AGENTS.slice(3).map(agent => {
-                const state = agentStates[agent.id] || { status: 'queued', messageIdx: 0 }
-                const isThinking = state.status === 'thinking'
-                const isDone = state.status === 'complete'
-                return (
-                  <div
-                    key={agent.id}
-                    className={`relative p-3 rounded-lg border transition-all duration-500 ${
-                      isThinking ? `${agent.bgColor} ${agent.borderColor} shadow-md shadow-current/5` :
-                      isDone ? 'bg-emerald-500/[0.04] border-emerald-500/15' :
-                      'bg-white/[0.015] border-white/[0.06]'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <span className={`transition-colors duration-300 ${isThinking ? agent.color : isDone ? 'text-emerald-400/60' : 'text-white/20'}`}>
-                        {isDone ? <CheckCircle className="w-4 h-4" /> : agent.icon}
-                      </span>
-                      <span className={`text-[11px] font-medium transition-colors duration-300 ${
-                        isThinking ? 'text-white/70' : isDone ? 'text-white/45' : 'text-white/20'
-                      }`}>
-                        {agent.name}
-                      </span>
-                      {isThinking && (
-                        <span className={`ml-auto w-1.5 h-1.5 rounded-full animate-pulse ${agent.bgColor.replace('/10', '/60')}`} />
-                      )}
-                      {isDone && (
-                        <span className="ml-auto text-[9px] text-emerald-400/40 font-mono">done</span>
-                      )}
-                    </div>
-                    <div className="min-h-[20px]">
-                      {isThinking && (
-                        <p className="text-[10px] text-white/35 leading-relaxed animate-in fade-in duration-200">
-                          {agent.thinkingMessages[state.messageIdx]}
-                        </p>
-                      )}
-                      {isDone && (
-                        <p className="text-[10px] text-emerald-400/40 leading-relaxed animate-in fade-in slide-in-from-bottom-1 duration-300">
-                          → {agent.finding}
-                        </p>
-                      )}
-                      {state.status === 'queued' && (
-                        <p className="text-[10px] text-white/12">Queued</p>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* ── Right connector lines ── */}
-        <div className="flex flex-col justify-center flex-shrink-0 w-6 relative">
-          <div className={`absolute right-0 top-1/2 w-full h-px transition-colors duration-500 ${
-            synthStatus !== 'waiting' || allDone ? 'bg-cyan-500/20' : lineColor
+    <div className="relative py-2">
+      {/* ── Orchestrator — top of the stem ── */}
+      <div className="flex justify-center mb-0">
+        <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border transition-all duration-500 ${
+          isAnalyzing && !allDone
+            ? 'bg-violet-500/10 border-violet-500/25 shadow-md shadow-violet-500/10'
+            : allDone
+            ? 'bg-emerald-500/[0.06] border-emerald-500/20'
+            : 'bg-white/[0.02] border-white/[0.06]'
+        }`}>
+          <Brain className={`w-4 h-4 transition-colors duration-500 ${
+            isAnalyzing && !allDone ? 'text-violet-400' : allDone ? 'text-emerald-400/70' : 'text-white/25'
           }`} />
-          {[0, 1].map(row => (
-            <div key={row} className={`absolute left-0 h-px w-3 transition-colors duration-500 ${
-              synthStatus !== 'waiting' || allDone ? 'bg-cyan-500/15' : lineColor
-            }`} style={{ top: row === 0 ? '25%' : '75%' }} />
-          ))}
-          <div className={`absolute left-0 w-px transition-colors duration-500 ${
-            synthStatus !== 'waiting' || allDone ? 'bg-cyan-500/15' : lineColor
-          }`} style={{ top: '25%', height: '50%' }} />
-        </div>
-
-        {/* ── Synthesis Node ── */}
-        <div className="flex flex-col items-center justify-center flex-shrink-0 w-32">
-          <div className={`p-3 rounded-xl border transition-all duration-500 text-center w-full ${
-            synthStatus === 'synthesizing'
-              ? 'bg-cyan-500/15 border-cyan-500/30 shadow-lg shadow-cyan-500/10'
-              : allDone
-              ? 'bg-emerald-500/[0.06] border-emerald-500/20'
-              : 'bg-white/[0.02] border-white/[0.06]'
-          }`}>
-            {allDone ? (
-              <CheckCircle className="w-5 h-5 text-emerald-400/70 mx-auto mb-1.5" />
-            ) : synthStatus === 'synthesizing' ? (
-              <Sparkles className="w-5 h-5 text-cyan-400 animate-pulse mx-auto mb-1.5" />
-            ) : (
-              <Sparkles className="w-5 h-5 text-white/20 mx-auto mb-1.5" />
-            )}
-            <span className={`text-[10px] font-semibold block leading-tight transition-colors duration-300 ${
-              synthStatus === 'synthesizing' ? 'text-cyan-400/70' :
-              allDone ? 'text-emerald-400/55' : 'text-white/20'
-            }`}>
-              Synthesis<br/>Engine
-            </span>
-            <p className={`text-[9px] mt-1.5 leading-tight transition-colors duration-300 ${
-              synthStatus === 'synthesizing' ? 'text-white/35' :
-              allDone ? 'text-emerald-400/35' : 'text-white/12'
-            }`}>
-              {synthStatus === 'synthesizing' ? 'Correlating…' :
-               allDone ? 'Predictions ready' :
-               'Waiting…'}
-            </p>
-          </div>
+          <span className="text-[11px] font-semibold text-white/50">GridIQ Orchestrator</span>
+          {isAnalyzing && !allDone && <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />}
+          {allDone && <CheckCircle className="w-3.5 h-3.5 text-emerald-400/60" />}
         </div>
       </div>
+
+      {/* ── Vertical Stem with alternating branches ── */}
+      <div className="relative ml-[50%]">
+        {/* The stem line */}
+        <div className={`absolute left-0 top-0 bottom-0 w-px ${stemColor} ${stemGlow} transition-all duration-500`} />
+
+        {ANALYSIS_AGENTS.map((agent, i) => {
+          const state = agentStates[agent.id] || { status: 'queued', messageIdx: 0 }
+          const isThinking = state.status === 'thinking'
+          const isDone = state.status === 'complete'
+          const isLeft = i % 2 === 0
+          const branchColor = isThinking ? agent.borderColor.replace('border-', 'bg-') :
+            isDone ? 'bg-emerald-500/20' : 'bg-white/[0.06]'
+
+          return (
+            <div key={agent.id} className="relative" style={{ height: 72 }}>
+              {/* Horizontal branch */}
+              <div
+                className={`absolute top-[36px] h-px transition-all duration-500 ${branchColor}`}
+                style={isLeft
+                  ? { right: '0', width: '40px', left: 'auto', transform: 'translateX(-1px)' }
+                  : { left: '1px', width: '40px' }
+                }
+              />
+
+              {/* Animated pulse dot traveling along branch */}
+              {isThinking && (
+                <div
+                  className="absolute top-[34px] w-2 h-2 rounded-full"
+                  style={{
+                    ...(isLeft
+                      ? { right: '0', animation: 'pulseLeft 1.2s ease-in-out infinite' }
+                      : { left: '1px', animation: 'pulseRight 1.2s ease-in-out infinite' }),
+                    background: agent.color.includes('amber') ? 'rgba(251,191,36,0.6)' :
+                      agent.color.includes('rose') ? 'rgba(251,113,133,0.6)' :
+                      agent.color.includes('blue') ? 'rgba(96,165,250,0.6)' :
+                      agent.color.includes('cyan') ? 'rgba(34,211,238,0.6)' :
+                      agent.color.includes('violet') ? 'rgba(167,139,250,0.6)' :
+                      'rgba(52,211,153,0.6)',
+                    boxShadow: `0 0 8px ${
+                      agent.color.includes('amber') ? 'rgba(251,191,36,0.4)' :
+                      agent.color.includes('rose') ? 'rgba(251,113,133,0.4)' :
+                      agent.color.includes('blue') ? 'rgba(96,165,250,0.4)' :
+                      agent.color.includes('cyan') ? 'rgba(34,211,238,0.4)' :
+                      agent.color.includes('violet') ? 'rgba(167,139,250,0.4)' :
+                      'rgba(52,211,153,0.4)'
+                    }`,
+                  }}
+                />
+              )}
+
+              {/* Node junction dot on stem */}
+              <div className={`absolute top-[33px] left-0 -translate-x-1/2 w-2.5 h-2.5 rounded-full border-2 transition-all duration-500 ${
+                isThinking ? `${agent.borderColor} ${agent.bgColor}` :
+                isDone ? 'border-emerald-500/40 bg-emerald-500/25' :
+                'border-white/10 bg-white/[0.04]'
+              }`} />
+
+              {/* Agent card */}
+              <div
+                className={`absolute top-[12px] transition-all duration-500 ${
+                  isLeft ? 'right-[calc(50%+52px)]' : 'left-[52px]'
+                }`}
+                style={{ width: 'calc(50% - 64px)' }}
+              >
+                <div className={`p-2.5 rounded-lg border transition-all duration-500 ${
+                  isThinking ? `${agent.bgColor} ${agent.borderColor}` :
+                  isDone ? 'bg-emerald-500/[0.03] border-emerald-500/15' :
+                  'bg-white/[0.015] border-white/[0.06]'
+                }`}>
+                  <div className="flex items-center gap-2">
+                    <span className={`flex-shrink-0 transition-colors duration-300 ${
+                      isThinking ? agent.color : isDone ? 'text-emerald-400/60' : 'text-white/15'
+                    }`}>
+                      {isDone ? <CheckCircle className="w-3.5 h-3.5" /> : agent.icon}
+                    </span>
+                    <span className={`text-[11px] font-medium truncate transition-colors duration-300 ${
+                      isThinking ? 'text-white/70' : isDone ? 'text-white/45' : 'text-white/20'
+                    }`}>
+                      {agent.shortName}
+                    </span>
+                    {isThinking && <span className={`ml-auto w-1.5 h-1.5 rounded-full animate-pulse flex-shrink-0 ${agent.bgColor.replace('/10', '/50')}`} />}
+                  </div>
+                  <p className={`text-[10px] mt-1 leading-snug line-clamp-1 transition-colors duration-300 ${
+                    isThinking ? 'text-white/35' : isDone ? 'text-emerald-400/35' : 'text-white/10'
+                  }`}>
+                    {isThinking ? agent.thinkingMessages[state.messageIdx] :
+                     isDone ? `→ ${agent.finding}` : 'Waiting…'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+
+        {/* ── Synthesis — bottom of the stem ── */}
+        <div className="relative" style={{ height: 56 }}>
+          <div className={`absolute top-[28px] left-0 -translate-x-1/2 w-3 h-3 rounded-full border-2 transition-all duration-500 ${
+            synthStatus === 'synthesizing' ? 'border-cyan-500/50 bg-cyan-500/30 animate-pulse' :
+            allDone ? 'border-emerald-500/40 bg-emerald-500/30' :
+            'border-white/10 bg-white/[0.04]'
+          }`} />
+        </div>
+      </div>
+
+      {/* Synthesis label */}
+      <div className="flex justify-center mt-0">
+        <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border transition-all duration-500 ${
+          synthStatus === 'synthesizing'
+            ? 'bg-cyan-500/10 border-cyan-500/25 shadow-md shadow-cyan-500/10'
+            : allDone
+            ? 'bg-emerald-500/[0.06] border-emerald-500/20'
+            : 'bg-white/[0.02] border-white/[0.06]'
+        }`}>
+          {allDone ? <CheckCircle className="w-4 h-4 text-emerald-400/60" /> :
+           synthStatus === 'synthesizing' ? <Sparkles className="w-4 h-4 text-cyan-400 animate-pulse" /> :
+           <Sparkles className="w-4 h-4 text-white/20" />}
+          <span className={`text-[11px] font-semibold transition-colors duration-300 ${
+            synthStatus === 'synthesizing' ? 'text-cyan-400/60' : allDone ? 'text-emerald-400/50' : 'text-white/20'
+          }`}>
+            {synthStatus === 'synthesizing' ? 'Synthesizing findings…' :
+             allDone ? 'Analysis complete' : 'Synthesis Engine'}
+          </span>
+        </div>
+      </div>
+
+      {/* CSS animations for the traveling pulse dots */}
+      <style jsx>{`
+        @keyframes pulseLeft {
+          0% { transform: translateX(0); opacity: 0; }
+          30% { opacity: 1; }
+          100% { transform: translateX(-38px); opacity: 0; }
+        }
+        @keyframes pulseRight {
+          0% { transform: translateX(0); opacity: 0; }
+          30% { opacity: 1; }
+          100% { transform: translateX(38px); opacity: 0; }
+        }
+      `}</style>
     </div>
   )
 }

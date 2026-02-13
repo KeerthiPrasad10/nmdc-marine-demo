@@ -1,0 +1,4 @@
+[    1197ms] [WARNING] [GSI_LOGGER]: Currently, you disable FedCM on Google One Tap. FedCM for One Tap will become mandatory soon, and you won’t be able to disable it. Refer to the migration guide to update your code accordingly to ensure users will not be blocked from logging in. Learn more: https://developers.google.com/identity/gsi/web/guides/fedcm-migration @ https://accounts.google.com/gsi/client:80
+[   50585ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://edgezone-eg.bunnyinfra.net/500b.jpg?s=1770972178489:0
+[   64048ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://edgezone-ssa.bunnyinfra.net/500b.jpg?s=1770972191961:0
+[  107888ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://edgezone-mi2.bunnyinfra.net/500b.jpg?s=1770972235158:0
