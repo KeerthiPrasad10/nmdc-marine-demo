@@ -117,7 +117,7 @@ export default function Dashboard() {
 
   const handleSelectAsset = useCallback(
     (tag: string) => {
-      router.push(`/grid-iq?asset=${tag}`);
+      router.push(`/transformer-iot?asset=${tag}`);
     },
     [router],
   );
