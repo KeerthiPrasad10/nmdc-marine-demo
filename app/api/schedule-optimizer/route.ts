@@ -313,7 +313,7 @@ function generateCrossAnalysisInsights(
     
     // EAD environmental permits + large projects
     if ((regContent.includes('environmental') || regContent.includes('ead') || regContent.includes('permit') || regContent.includes('dredging')) &&
-        (marketContent.includes('exelon') || marketContent.includes('contract') || marketContent.includes('billion') || marketContent.includes('musanada'))) {
+        (marketContent.includes('nmdc') || marketContent.includes('contract') || marketContent.includes('billion') || marketContent.includes('musanada'))) {
       insights.push({
         id: 'insight-permits',
         type: 'insight',
