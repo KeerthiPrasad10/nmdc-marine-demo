@@ -1139,48 +1139,51 @@ function TransformerIoTDashboard() {
               />
             </div>
 
-            {/* AI Predictive Maintenance */}
-            <AIPredictiveMaintenance
-              assetType="transformer"
-              assetId={transformer.id}
-              assetName={transformer.name}
-              equipment={[
-                {
-                  id: 'winding-hv',
-                  name: 'HV Winding',
-                  type: 'winding',
-                  currentHealth: transformer.metrics.healthIndex,
-                  operatingHours: transformer.metrics.operatingHours,
-                  temperature: transformer.thermal.windingHotSpot,
-                },
-                {
-                  id: 'bushing-h1',
-                  name: 'H1 Bushing',
-                  type: 'bushing',
-                  currentHealth: Math.min(100, transformer.metrics.healthIndex + 15),
-                  operatingHours: transformer.metrics.operatingHours,
-                },
-                {
-                  id: 'tap-changer',
-                  name: 'OLTC Tap Changer',
-                  type: 'tap_changer',
-                  currentHealth: 68,
-                  operatingHours: transformer.metrics.operatingHours * 0.4,
-                },
-                {
-                  id: 'cooling-system',
-                  name: 'Cooling System',
-                  type: 'cooling_system',
-                  currentHealth: 75,
-                  operatingHours: transformer.metrics.operatingHours * 0.6,
-                  temperature: transformer.thermal.topOilTemp,
-                },
-              ]}
-              onResolve={(query) => {
-                router.push(`/troubleshoot?q=${encodeURIComponent(query)}&asset=${encodeURIComponent(transformer.name)}`);
-              }}
-            />
           </div>
+        </div>
+
+        {/* ── Full-width: AI Predictive Maintenance ── */}
+        <div className="mt-6">
+          <AIPredictiveMaintenance
+            assetType="transformer"
+            assetId={transformer.id}
+            assetName={transformer.name}
+            equipment={[
+              {
+                id: 'winding-hv',
+                name: 'HV Winding',
+                type: 'winding',
+                currentHealth: transformer.metrics.healthIndex,
+                operatingHours: transformer.metrics.operatingHours,
+                temperature: transformer.thermal.windingHotSpot,
+              },
+              {
+                id: 'bushing-h1',
+                name: 'H1 Bushing',
+                type: 'bushing',
+                currentHealth: Math.min(100, transformer.metrics.healthIndex + 15),
+                operatingHours: transformer.metrics.operatingHours,
+              },
+              {
+                id: 'tap-changer',
+                name: 'OLTC Tap Changer',
+                type: 'tap_changer',
+                currentHealth: 68,
+                operatingHours: transformer.metrics.operatingHours * 0.4,
+              },
+              {
+                id: 'cooling-system',
+                name: 'Cooling System',
+                type: 'cooling_system',
+                currentHealth: 75,
+                operatingHours: transformer.metrics.operatingHours * 0.6,
+                temperature: transformer.thermal.topOilTemp,
+              },
+            ]}
+            onResolve={(query) => {
+              router.push(`/troubleshoot?q=${encodeURIComponent(query)}&asset=${encodeURIComponent(transformer.name)}`);
+            }}
+          />
         </div>
       </main>
     </div>
