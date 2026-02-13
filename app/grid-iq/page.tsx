@@ -207,143 +207,28 @@ const EVENT_TYPE_STYLES: Record<string, { color: string; bg: string; lineColor: 
 };
 
 // ════════════════════════════════════════════════════════════════════════
-// PHASE 1 — Organic Beanstalk with Deep Analysis (52+ parameters)
+// PHASE 1 — Beanstalk Event Stream (clean, terminal-style agent cards)
 // ════════════════════════════════════════════════════════════════════════
 
-const SEV_STYLES: Record<ParamSeverity, { dot: string; text: string; bg: string; label: string }> = {
-  normal:   { dot: 'bg-emerald-500', text: 'text-emerald-400/70', bg: 'bg-emerald-500/8', label: 'OK' },
-  warning:  { dot: 'bg-amber-500',   text: 'text-amber-400/70',   bg: 'bg-amber-500/8',   label: 'WARN' },
-  critical: { dot: 'bg-rose-500',    text: 'text-rose-400/70',    bg: 'bg-rose-500/8',    label: 'CRIT' },
-  info:     { dot: 'bg-blue-500',    text: 'text-blue-400/60',    bg: 'bg-blue-500/8',    label: 'INFO' },
+const SEV_STYLES: Record<ParamSeverity, { dot: string; text: string; bg: string; label: string; icon: string }> = {
+  normal:   { dot: 'bg-emerald-400', text: 'text-emerald-400/80', bg: 'bg-emerald-400/10', label: 'OK', icon: '✓' },
+  warning:  { dot: 'bg-amber-400',   text: 'text-amber-400/80',   bg: 'bg-amber-400/10',   label: 'WARN', icon: '⚠' },
+  critical: { dot: 'bg-rose-400',    text: 'text-rose-400/80',    bg: 'bg-rose-400/10',    label: 'CRIT', icon: '✗' },
+  info:     { dot: 'bg-blue-400',    text: 'text-blue-400/70',    bg: 'bg-blue-400/10',    label: 'INFO', icon: 'ℹ' },
 };
 
-/* ── SVG curved branch connector ────────────────────────────────────── */
-function CurvedBranch({ side, active, dotColor, done, agentId }: {
-  side: 'left' | 'right';
-  active: boolean;
-  dotColor: string;
-  done: boolean;
-  agentId: string;
-}) {
-  const idSuffix = `${side}-${agentId}`;
-  const strokeColor = active ? dotColor : done ? 'rgba(52,211,153,0.18)' : 'rgba(255,255,255,0.04)';
-  const pathD = side === 'left'
-    ? 'M 80,28 C 55,28 45,4 4,4'
-    : 'M 0,28 C 25,28 35,4 76,4';
+// Tool-call operation names per agent (cycle through these)
+const AGENT_OPS: Record<string, string[]> = {
+  dga:        ['read_sensor', 'correlate', 'classify', 'cross_check', 'duval_map', 'rogers_calc', 'trend', 'threshold', 'compare', 'flag'],
+  thermal:    ['read_sensor', 'model_ieee', 'compare', 'extrapolate', 'calc_dp', 'check_cooling', 'load_curve', 'delta_test', 'aging_calc'],
+  fleet:      ['query_fleet', 'match_cohort', 'calc_rate', 'geo_factor', 'load_match', 'predict_mttf', 'bayes_prob', 'cross_opco'],
+  oem:        ['lookup_spec', 'check_sb', 'overhaul_gap', 'load_check', 'bil_margin', 'defect_scan', 'cooling_spec', 'eos_check'],
+  history:    ['query_wo', 'calc_pm', 'flag_repeat', 'mean_repair', 'parts_audit', 'outage_sum', 'cost_trend', 'overhaul_gap'],
+  inspection: ['read_report', 'score_visual', 'leak_detect', 'porcelain_check', 'corrosion_idx', 'foundation', 'ground_test', 'surge_test', 'cabinet_check'],
+};
 
-  return (
-    <svg
-      width="80" height="32" viewBox="0 0 80 32"
-      className={`absolute top-2 z-20 ${side === 'left' ? '-right-[80px]' : '-left-[80px]'}`}
-      style={{ overflow: 'visible' }}
-    >
-      <defs>
-        <filter id={`glow-${idSuffix}`}>
-          <feGaussianBlur stdDeviation="3" result="blur" />
-          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-        </filter>
-      </defs>
-      {/* Glow layer */}
-      {active && (
-        <path d={pathD} fill="none" stroke={dotColor} strokeWidth="6" opacity="0.08"
-          filter={`url(#glow-${idSuffix})`} />
-      )}
-      {/* Base curve */}
-      <path d={pathD} fill="none" stroke={strokeColor} strokeWidth="1"
-        strokeLinecap="round" className="transition-all duration-700" />
-      {/* Animated dash overlay when active */}
-      {active && (
-        <path d={pathD} fill="none" stroke={dotColor} strokeWidth="1.5"
-          strokeLinecap="round" strokeDasharray="3 8" opacity="0.6">
-          <animate attributeName="stroke-dashoffset" from="44" to="0" dur="1.5s" repeatCount="indefinite" />
-        </path>
-      )}
-      {/* Flowing particle */}
-      {active && (
-        <circle r="3" fill={dotColor} opacity="0.9" filter={`url(#glow-${idSuffix})`}>
-          <animateMotion dur="2s" repeatCount="indefinite" path={pathD} />
-        </circle>
-      )}
-      {/* Junction node */}
-      <circle cx={side === 'left' ? 80 : 0} cy="28" r="3.5"
-        fill={active ? dotColor : done ? 'rgba(52,211,153,0.25)' : 'rgba(255,255,255,0.04)'}
-        stroke={active ? dotColor : done ? 'rgba(52,211,153,0.15)' : 'rgba(255,255,255,0.06)'}
-        strokeWidth="1" opacity={active ? '1' : '0.6'}
-        className="transition-all duration-700">
-        {active && <animate attributeName="r" values="3.5;5;3.5" dur="2s" repeatCount="indefinite" />}
-      </circle>
-    </svg>
-  );
-}
-
-/* ── Organic vine SVG for the central stem ──────────────────────────── */
-function OrganicVine({ allDone }: { allDone: boolean }) {
-  const vineColor = allDone ? 'rgba(52,211,153,0.12)' : 'rgba(139,92,246,0.12)';
-  const particleColor = allDone ? 'rgba(52,211,153,0.5)' : 'rgba(139,92,246,0.35)';
-  return (
-    <svg className="absolute left-1/2 -translate-x-1/2 top-0 w-[40px] h-full z-10 pointer-events-none" preserveAspectRatio="none">
-      <defs>
-        <filter id="vine-glow">
-          <feGaussianBlur stdDeviation="2" result="b" />
-          <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
-        </filter>
-      </defs>
-      {/* Sinusoidal vine path */}
-      <path
-        d="M 20,0 C 28,8 12,16 20,24 C 28,32 12,40 20,48 C 28,56 12,64 20,72 C 28,80 12,88 20,96 C 28,104 12,112 20,120"
-        fill="none" stroke={vineColor} strokeWidth="1.5" strokeLinecap="round"
-        vectorEffect="non-scaling-stroke"
-        style={{ height: '100%' }}
-      />
-      {/* Glow vine */}
-      <path
-        d="M 20,0 C 28,8 12,16 20,24 C 28,32 12,40 20,48 C 28,56 12,64 20,72 C 28,80 12,88 20,96 C 28,104 12,112 20,120"
-        fill="none" stroke={vineColor} strokeWidth="4" strokeLinecap="round"
-        filter="url(#vine-glow)" opacity="0.5"
-        vectorEffect="non-scaling-stroke"
-      />
-      {/* Flowing particle along vine */}
-      <circle r="2.5" fill={particleColor} filter="url(#vine-glow)">
-        <animateMotion dur="4s" repeatCount="indefinite"
-          path="M 20,0 C 28,8 12,16 20,24 C 28,32 12,40 20,48 C 28,56 12,64 20,72 C 28,80 12,88 20,96 C 28,104 12,112 20,120" />
-      </circle>
-      <circle r="2" fill={particleColor} opacity="0.5" filter="url(#vine-glow)">
-        <animateMotion dur="4s" repeatCount="indefinite" begin="2s"
-          path="M 20,0 C 28,8 12,16 20,24 C 28,32 12,40 20,48 C 28,56 12,64 20,72 C 28,80 12,88 20,96 C 28,104 12,112 20,120" />
-      </circle>
-    </svg>
-  );
-}
-
-/* ── Typing cursor for "thinking" text ──────────────────────────────── */
-function TypingNote({ text }: { text: string }) {
-  const [charIdx, setCharIdx] = useState(0);
-  useEffect(() => {
-    setCharIdx(0);
-    const iv = setInterval(() => setCharIdx(p => Math.min(p + 1, text.length)), 18);
-    return () => clearInterval(iv);
-  }, [text]);
-  return (
-    <span className="text-[9px] text-white/40 flex-1 overflow-hidden whitespace-nowrap">
-      {text.slice(0, charIdx)}
-      {charIdx < text.length && <span className="beanstalk-cursor">▎</span>}
-    </span>
-  );
-}
-
-/* ── Neural shimmer overlay for active panels ───────────────────────── */
-function NeuralShimmer({ color }: { color: string }) {
-  return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-xl z-0">
-      <div className="beanstalk-shimmer" style={{
-        background: `linear-gradient(110deg, transparent 30%, ${color} 50%, transparent 70%)`,
-      }} />
-    </div>
-  );
-}
-
-/* ── Agent panel with organic visuals ───────────────────────────────── */
-function AgentPanel({ agent, status, revealedCount }: {
+/* ── Agent event stream card (Beanstalk-style) ────────────────────── */
+function AgentEventStream({ agent, status, revealedCount }: {
   agent: DetailedAgent;
   status: AgentStatus;
   revealedCount: number;
@@ -353,132 +238,141 @@ function AgentPanel({ agent, status, revealedCount }: {
   const isQueued = status === 'queued';
   const critCount = agent.parameters.filter(p => p.severity === 'critical').length;
   const warnCount = agent.parameters.filter(p => p.severity === 'warning').length;
+  const ops = AGENT_OPS[agent.id] || [];
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom as new events appear
+  useEffect(() => {
+    if (scrollRef.current && isThinking) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [revealedCount, isThinking]);
 
   return (
-    <div className={`relative rounded-xl border transition-all duration-700 overflow-hidden ${
-      isThinking ? `${agent.bgColor} ${agent.borderColor}` :
-      isDone ? 'bg-white/[0.015] border-emerald-500/12' :
-      'bg-white/[0.01] border-white/[0.04]'
-    }`}
-    style={isThinking ? { boxShadow: `0 0 30px -5px ${agent.dotColor}` } : undefined}
-    >
-      {/* Neural shimmer when thinking */}
-      {isThinking && <NeuralShimmer color={agent.dotColor.replace('0.5)', '0.04)')} />}
-
-      {/* Agent header */}
-      <div className="relative z-10 px-4 py-3 flex items-center gap-3 border-b border-white/[0.04]">
-        <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-500 ${
-          isThinking ? agent.bgColor : isDone ? 'bg-emerald-500/10' : 'bg-white/[0.03]'
+    <div className={`rounded-lg border overflow-hidden transition-colors duration-500 ${
+      isThinking ? 'border-white/[0.08] bg-[#0a0a0a]' :
+      isDone ? 'border-white/[0.06] bg-[#080808]' :
+      'border-white/[0.04] bg-[#060606]'
+    }`}>
+      {/* ── Card header (like Beanstalk dashboard) ── */}
+      <div className="px-3 py-2.5 flex items-center gap-2.5 border-b border-white/[0.05]">
+        {/* Status indicator */}
+        <div className={`w-2 h-2 rounded-full flex-shrink-0 transition-colors duration-300 ${
+          isThinking ? 'bg-emerald-400 animate-pulse' :
+          isDone ? 'bg-white/20' :
+          'bg-white/[0.06]'
+        }`} />
+        {/* Agent icon */}
+        <span className={`flex-shrink-0 transition-colors duration-300 ${
+          isThinking ? agent.color : isDone ? 'text-white/40' : 'text-white/10'
         }`}>
-          <span className={`transition-colors duration-300 ${
-            isThinking ? agent.color : isDone ? 'text-emerald-400/60' : 'text-white/12'
-          }`}>
-            {isDone ? <CheckCircle className="w-3.5 h-3.5" /> : agent.icon}
+          {agent.icon}
+        </span>
+        {/* Agent name */}
+        <span className={`text-xs font-semibold flex-1 truncate transition-colors ${
+          isThinking ? 'text-white/80' : isDone ? 'text-white/50' : 'text-white/15'
+        }`}>
+          {agent.shortName}
+        </span>
+        {/* Status badge */}
+        {isThinking && (
+          <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-400/10 text-emerald-400/80 uppercase tracking-wider">
+            Running
           </span>
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className={`text-xs font-semibold transition-colors ${isThinking ? 'text-white/80' : isDone ? 'text-white/50' : 'text-white/18'}`}>
-              {agent.shortName}
-            </span>
-            {isThinking && (
-              <span className="flex items-center gap-1">
-                <span className="w-1 h-1 rounded-full animate-pulse" style={{ background: agent.dotColor, animationDelay: '0ms' }} />
-                <span className="w-1 h-1 rounded-full animate-pulse" style={{ background: agent.dotColor, animationDelay: '200ms' }} />
-                <span className="w-1 h-1 rounded-full animate-pulse" style={{ background: agent.dotColor, animationDelay: '400ms' }} />
-              </span>
-            )}
-          </div>
-          <span className={`text-[10px] ${isThinking ? 'text-white/30' : isDone ? 'text-white/20' : 'text-white/8'}`}>
-            {agent.name}
+        )}
+        {isDone && (
+          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/[0.04] text-white/30 uppercase tracking-wider">
+            Done
           </span>
-        </div>
-        <div className="flex items-center gap-1.5 flex-shrink-0">
-          {isDone && critCount > 0 && (
-            <span className="text-[9px] px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-400/70 font-bold">{critCount} CRIT</span>
-          )}
-          {isDone && warnCount > 0 && (
-            <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400/70 font-bold">{warnCount} WARN</span>
-          )}
-          {/* Micro progress ring */}
-          <div className="relative w-6 h-6">
-            <svg className="w-6 h-6 -rotate-90" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="9" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="2" />
-              <circle cx="12" cy="12" r="9" fill="none"
-                stroke={isThinking ? agent.dotColor : isDone ? 'rgba(52,211,153,0.3)' : 'transparent'}
-                strokeWidth="2"
-                strokeDasharray={`${((isDone ? agent.parameters.length : revealedCount) / agent.parameters.length) * 56.5} 56.5`}
-                strokeLinecap="round" className="transition-all duration-300" />
-            </svg>
-            <span className={`absolute inset-0 flex items-center justify-center text-[7px] font-bold ${
-              isThinking ? 'text-white/50' : isDone ? 'text-emerald-400/50' : 'text-white/12'
-            }`}>
-              {isQueued ? '—' : isDone ? '✓' : revealedCount}
-            </span>
-          </div>
-        </div>
+        )}
+        {isQueued && (
+          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/[0.02] text-white/10 uppercase tracking-wider">
+            Queued
+          </span>
+        )}
+        {/* Event count */}
+        <span className={`text-[10px] font-mono tabular-nums transition-colors ${
+          isThinking ? 'text-white/40' : isDone ? 'text-white/25' : 'text-white/8'
+        }`}>
+          {isDone ? agent.parameters.length : revealedCount}/{agent.parameters.length}
+        </span>
       </div>
 
-      {/* Parameter rows */}
+      {/* ── Event stream (like Beanstalk Live Event Stream) ── */}
       {(isThinking || isDone) && (
-        <div className="relative z-10 divide-y divide-white/[0.025]">
+        <div ref={scrollRef} className="max-h-[220px] overflow-y-auto beanstalk-scrollbar">
           {agent.parameters.map((param, pIdx) => {
             const isRevealed = isDone || pIdx < revealedCount;
-            const isCurrentlyAnalyzing = isThinking && pIdx === revealedCount - 1;
+            const isActive = isThinking && pIdx === revealedCount - 1;
             const sev = SEV_STYLES[param.severity];
+            const opName = ops[pIdx % ops.length] || 'analyze';
+
+            if (!isRevealed) return null;
+
             return (
-              <div key={param.id} className={`px-4 py-1.5 flex items-center gap-3 transition-all duration-300 ${
-                !isRevealed ? 'opacity-0 max-h-0 py-0 overflow-hidden' : 'opacity-100 max-h-24'
-              } ${isCurrentlyAnalyzing ? 'bg-white/[0.04]' : ''}`}>
-                {/* Animated severity indicator */}
-                <span className={`flex-shrink-0 w-1.5 h-1.5 rounded-full transition-all duration-300 ${isRevealed ? sev.dot : 'bg-white/6'}`}
-                  style={isCurrentlyAnalyzing ? { boxShadow: `0 0 6px ${agent.dotColor}` } : undefined} />
-                {/* Parameter name */}
-                <span className={`text-[10px] w-[140px] flex-shrink-0 truncate transition-colors ${isCurrentlyAnalyzing ? 'text-white/60' : 'text-white/40'}`}>
+              <div
+                key={param.id}
+                className={`group flex items-center gap-2 px-3 py-[5px] border-b border-white/[0.02] transition-all duration-200 ${
+                  isActive ? 'bg-white/[0.03]' : 'hover:bg-white/[0.015]'
+                }`}
+              >
+                {/* Severity dot */}
+                <span className={`flex-shrink-0 w-[6px] h-[6px] rounded-full transition-all ${sev.dot} ${
+                  isActive ? 'animate-pulse' : 'opacity-70'
+                }`} />
+                {/* Tool call name (monospace, muted) */}
+                <span className={`text-[10px] font-mono w-[90px] flex-shrink-0 truncate ${
+                  isActive ? 'text-white/50' : 'text-white/25'
+                }`}>
+                  {opName}
+                </span>
+                {/* Parameter label */}
+                <span className={`text-[10px] flex-1 truncate ${
+                  isActive ? 'text-white/60' : 'text-white/35'
+                }`}>
                   {param.label}
                 </span>
-                {/* Value with pop-in effect */}
-                <span className={`text-[11px] font-mono font-bold w-[80px] flex-shrink-0 text-right transition-all duration-300 ${
-                  isRevealed ? sev.text : 'text-white/8'
-                } ${isCurrentlyAnalyzing ? 'scale-110' : ''}`}>
-                  {isRevealed ? param.value : '—'}
+                {/* Value */}
+                <span className={`text-[10px] font-mono font-bold flex-shrink-0 text-right min-w-[60px] ${sev.text}`}>
+                  {param.value}{param.unit ? ` ${param.unit}` : ''}
                 </span>
-                {/* Unit */}
-                <span className="text-[9px] text-white/20 w-[36px] flex-shrink-0">{param.unit}</span>
-                {/* Note — typing effect for current, static for past */}
-                {isCurrentlyAnalyzing ? (
-                  <TypingNote text={param.note} />
-                ) : (
-                  <span className="text-[9px] text-white/25 flex-1 truncate">{isRevealed ? param.note : ''}</span>
+                {/* Severity badge (only warn/crit) */}
+                {(param.severity === 'warning' || param.severity === 'critical') && (
+                  <span className={`text-[8px] font-bold font-mono px-1 py-[1px] rounded flex-shrink-0 ${sev.bg} ${sev.text}`}>
+                    {sev.label}
+                  </span>
                 )}
-                {/* Severity badge */}
-                {isRevealed && param.severity !== 'normal' && param.severity !== 'info' && (
-                  <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${sev.bg} ${sev.text} ${
-                    isCurrentlyAnalyzing ? 'animate-pulse' : ''
-                  }`}>{sev.label}</span>
-                )}
+                {/* Duration (simulated) */}
+                <span className={`text-[9px] font-mono flex-shrink-0 w-[32px] text-right ${
+                  isActive ? 'text-white/30' : 'text-white/15'
+                }`}>
+                  {isActive ? '...' : `${(0.2 + pIdx * 0.15).toFixed(1)}s`}
+                </span>
               </div>
             );
           })}
         </div>
       )}
 
-      {/* Finding summary */}
-      {isDone && (
-        <div className={`relative z-10 px-4 py-2.5 border-t border-white/[0.04] ${agent.bgColor}`}>
-          <div className="flex items-start gap-2">
-            <Target className={`w-3 h-3 flex-shrink-0 mt-0.5 ${agent.color}`} />
-            <p className={`text-[10px] leading-relaxed ${agent.color}`}>{agent.finding}</p>
-          </div>
+      {/* ── Queued placeholder ── */}
+      {isQueued && (
+        <div className="px-3 py-4 text-center">
+          <span className="text-[10px] text-white/10 font-mono">{agent.parameters.length} checks queued</span>
         </div>
       )}
 
-      {/* Queued state */}
-      {isQueued && (
-        <div className="relative z-10 px-4 py-5 text-center">
-          <div className="flex items-center justify-center gap-1.5 text-[10px] text-white/12">
-            <span className="w-1 h-1 rounded-full bg-white/8" />
-            <span>{agent.parameters.length} parameters queued</span>
+      {/* ── Finding summary (appears after completion) ── */}
+      {isDone && (
+        <div className="px-3 py-2 border-t border-white/[0.05] flex items-start gap-2">
+          <Target className={`w-3 h-3 flex-shrink-0 mt-0.5 ${agent.color}`} />
+          <p className="text-[10px] leading-relaxed text-white/40">{agent.finding}</p>
+          <div className="flex items-center gap-1 flex-shrink-0 ml-auto">
+            {critCount > 0 && (
+              <span className="text-[8px] font-bold px-1 py-[1px] rounded bg-rose-400/10 text-rose-400/70">{critCount} CRIT</span>
+            )}
+            {warnCount > 0 && (
+              <span className="text-[8px] font-bold px-1 py-[1px] rounded bg-amber-400/10 text-amber-400/70">{warnCount} WARN</span>
+            )}
           </div>
         </div>
       )}
@@ -486,58 +380,7 @@ function AgentPanel({ agent, status, revealedCount }: {
   );
 }
 
-/* ── Split / Converge SVG connectors ────────────────────────────────── */
-function SplitCurves({ active, done }: { active: boolean; done: boolean }) {
-  const c = active ? 'rgba(139,92,246,0.2)' : done ? 'rgba(52,211,153,0.1)' : 'rgba(255,255,255,0.03)';
-  const pc = active ? 'rgba(139,92,246,0.5)' : 'rgba(52,211,153,0.3)';
-  return (
-    <svg width="100%" height="48" viewBox="0 0 200 48" preserveAspectRatio="xMidYMid meet" className="block">
-      <defs>
-        <filter id="sc-glow"><feGaussianBlur stdDeviation="2" /><feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge></filter>
-      </defs>
-      <path d="M 100,0 C 100,30 40,30 40,48" fill="none" stroke={c} strokeWidth="1.2" strokeLinecap="round" />
-      <path d="M 100,0 C 100,30 160,30 160,48" fill="none" stroke={c} strokeWidth="1.2" strokeLinecap="round" />
-      {active && <>
-        <path d="M 100,0 C 100,30 40,30 40,48" fill="none" stroke={pc} strokeWidth="1.5" strokeDasharray="2 6" strokeLinecap="round" opacity="0.5">
-          <animate attributeName="stroke-dashoffset" from="32" to="0" dur="2s" repeatCount="indefinite" />
-        </path>
-        <path d="M 100,0 C 100,30 160,30 160,48" fill="none" stroke={pc} strokeWidth="1.5" strokeDasharray="2 6" strokeLinecap="round" opacity="0.5">
-          <animate attributeName="stroke-dashoffset" from="32" to="0" dur="2s" repeatCount="indefinite" />
-        </path>
-        <circle r="2.5" fill={pc} filter="url(#sc-glow)">
-          <animateMotion dur="2.5s" repeatCount="indefinite" path="M 100,0 C 100,30 40,30 40,48" />
-        </circle>
-        <circle r="2.5" fill={pc} filter="url(#sc-glow)">
-          <animateMotion dur="2.5s" repeatCount="indefinite" path="M 100,0 C 100,30 160,30 160,48" />
-        </circle>
-      </>}
-    </svg>
-  );
-}
-
-function ConvergeCurves({ active, done }: { active: boolean; done: boolean }) {
-  const c = active ? 'rgba(34,211,238,0.2)' : done ? 'rgba(52,211,153,0.1)' : 'rgba(255,255,255,0.03)';
-  const pc = active ? 'rgba(34,211,238,0.5)' : done ? 'rgba(52,211,153,0.3)' : 'transparent';
-  return (
-    <svg width="100%" height="48" viewBox="0 0 200 48" preserveAspectRatio="xMidYMid meet" className="block">
-      <defs>
-        <filter id="cv-glow"><feGaussianBlur stdDeviation="2" /><feMerge><feMergeNode /><feMergeNode in="SourceGraphic" /></feMerge></filter>
-      </defs>
-      <path d="M 40,0 C 40,18 100,18 100,48" fill="none" stroke={c} strokeWidth="1.2" strokeLinecap="round" />
-      <path d="M 160,0 C 160,18 100,18 100,48" fill="none" stroke={c} strokeWidth="1.2" strokeLinecap="round" />
-      {(active || done) && <>
-        <circle r="2.5" fill={pc} filter="url(#cv-glow)">
-          <animateMotion dur="2.5s" repeatCount="indefinite" path="M 40,0 C 40,18 100,18 100,48" />
-        </circle>
-        <circle r="2.5" fill={pc} filter="url(#cv-glow)">
-          <animateMotion dur="2.5s" repeatCount="indefinite" path="M 160,0 C 160,18 100,18 100,48" />
-        </circle>
-      </>}
-    </svg>
-  );
-}
-
-/* ── Main beanstalk component ───────────────────────────────────────── */
+/* ── Main Beanstalk component (clean event-stream dashboard) ────────── */
 function BeanstalkAnalysis({ onComplete }: { onComplete: () => void }) {
   const [agentStates, setAgentStates] = useState<Record<string, { status: AgentStatus; revealedParams: number }>>({});
   const [synthStatus, setSynthStatus] = useState<'waiting' | 'synthesizing' | 'complete'>('waiting');
@@ -555,10 +398,11 @@ function BeanstalkAnalysis({ onComplete }: { onComplete: () => void }) {
     timerRefs.current = [];
     completeFired.current = false;
     setTotalAnalyzed(0);
+    setSynthStatus('waiting');
 
     let runningTotal = 0;
-    const PARAM_INTERVAL = 160;
-    const AGENT_STAGGER = 350;
+    const PARAM_INTERVAL = 140;   // ms per parameter reveal
+    const AGENT_STAGGER = 300;    // ms between agent starts
 
     const startAgent = (agent: DetailedAgent, delay: number) => {
       timerRefs.current.push(setTimeout(() => {
@@ -578,9 +422,10 @@ function BeanstalkAnalysis({ onComplete }: { onComplete: () => void }) {
       return completeTime;
     };
 
+    // Stagger agents so they overlap — looks like parallel processing
     let lastComplete = 0;
     DETAILED_AGENTS.forEach((a, i) => {
-      const delay = i * AGENT_STAGGER + (i > 0 ? DETAILED_AGENTS[i-1].parameters.length * PARAM_INTERVAL * 0.45 : 0);
+      const delay = i * AGENT_STAGGER + (i > 0 ? DETAILED_AGENTS[i - 1].parameters.length * PARAM_INTERVAL * 0.4 : 0);
       lastComplete = startAgent(a, delay);
     });
 
@@ -594,149 +439,118 @@ function BeanstalkAnalysis({ onComplete }: { onComplete: () => void }) {
   }, [onComplete]);
 
   const allDone = synthStatus === 'complete';
-  const anyActive = Object.values(agentStates).some(s => s.status === 'thinking');
-  const leftAgents = DETAILED_AGENTS.filter((_, i) => i % 2 === 0);
-  const rightAgents = DETAILED_AGENTS.filter((_, i) => i % 2 === 1);
+  const activeCount = Object.values(agentStates).filter(s => s.status === 'thinking').length;
+  const doneCount = Object.values(agentStates).filter(s => s.status === 'complete').length;
 
   return (
-    <div className="space-y-0">
-      {/* ── Orchestrator node ── */}
-      <div className={`flex items-center justify-between px-5 py-3.5 rounded-2xl border transition-all duration-700 ${
-        allDone ? 'bg-emerald-500/[0.03] border-emerald-500/12' : 'bg-violet-500/[0.04] border-violet-500/12'
-      }`} style={!allDone ? { boxShadow: '0 0 40px -10px rgba(139,92,246,0.15)' } : undefined}>
+    <div className="space-y-3">
+      {/* ── Orchestrator bar ── */}
+      <div className={`flex items-center justify-between px-4 py-3 rounded-lg border transition-all duration-500 ${
+        allDone ? 'border-white/[0.06] bg-[#080808]' : 'border-white/[0.08] bg-[#0a0a0a]'
+      }`}>
         <div className="flex items-center gap-3">
-          <div className={`relative w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-700 ${
-            allDone ? 'bg-emerald-500/12' : 'bg-violet-500/12'
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+            allDone ? 'bg-emerald-400/10' : 'bg-violet-400/10'
           }`}>
-            <Brain className={`w-5 h-5 transition-colors duration-700 ${allDone ? 'text-emerald-400/70' : 'text-violet-400/80'}`} />
-            {!allDone && <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-violet-400 animate-pulse" />}
+            <Brain className={`w-4 h-4 ${allDone ? 'text-emerald-400/70' : 'text-violet-400/70'}`} />
           </div>
           <div>
-            <div className="text-sm font-semibold text-white/70">GridIQ Orchestrator</div>
-            <div className="text-[10px] text-white/30 font-mono">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-white/70">GridIQ Orchestrator</span>
+              {!allDone && activeCount > 0 && (
+                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-400/10 text-emerald-400/70">
+                  {activeCount} active
+                </span>
+              )}
+              {doneCount > 0 && doneCount < 6 && (
+                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/[0.04] text-white/25">
+                  {doneCount} done
+                </span>
+              )}
+            </div>
+            <div className="text-[10px] text-white/25 font-mono mt-0.5">
               {allDone
-                ? '✓ Cross-correlated 6 agents — synthesized 3 scenario hypotheses'
-                : `Evaluating ${totalAnalyzed} / ${totalParams} parameters across 6 parallel agents…`}
+                ? `✓ ${totalParams} parameters evaluated across 6 agents`
+                : `Scanning ${totalAnalyzed} / ${totalParams} parameters…`}
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="text-right hidden sm:block">
-            <div className={`text-xl font-bold font-mono tabular-nums tracking-tight ${allDone ? 'text-emerald-400/70' : 'text-white/50'}`}>
-              {totalAnalyzed}<span className="text-xs text-white/15 ml-0.5">/{totalParams}</span>
-            </div>
-            <div className="text-[9px] text-white/20 uppercase tracking-wider">parameters</div>
+        {/* Progress bar (not ring — cleaner) */}
+        <div className="flex items-center gap-3">
+          <div className="w-32 h-1.5 rounded-full bg-white/[0.04] overflow-hidden hidden sm:block">
+            <div
+              className={`h-full rounded-full transition-all duration-300 ${allDone ? 'bg-emerald-400/40' : 'bg-violet-400/30'}`}
+              style={{ width: `${(totalAnalyzed / totalParams) * 100}%` }}
+            />
           </div>
-          <div className="relative w-12 h-12">
-            <svg className="w-12 h-12 -rotate-90" viewBox="0 0 44 44">
-              <circle cx="22" cy="22" r="18" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="3" />
-              <circle cx="22" cy="22" r="18" fill="none"
-                stroke={allDone ? 'rgba(52,211,153,0.45)' : 'rgba(139,92,246,0.35)'}
-                strokeWidth="3" strokeDasharray={`${(totalAnalyzed / totalParams) * 113.1} 113.1`}
-                strokeLinecap="round" className="transition-all duration-300" />
-            </svg>
-            <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white/35">
-              {Math.round((totalAnalyzed / totalParams) * 100)}%
+          <span className={`text-sm font-mono font-bold tabular-nums ${allDone ? 'text-emerald-400/60' : 'text-white/40'}`}>
+            {Math.round((totalAnalyzed / totalParams) * 100)}%
+          </span>
+        </div>
+      </div>
+
+      {/* ── Agent grid (2 columns, no SVG connectors) ── */}
+      <div className="grid md:grid-cols-2 gap-3">
+        {DETAILED_AGENTS.map(agent => {
+          const st = agentStates[agent.id] || { status: 'queued' as AgentStatus, revealedParams: 0 };
+          return (
+            <AgentEventStream
+              key={agent.id}
+              agent={agent}
+              status={st.status}
+              revealedCount={st.revealedParams}
+            />
+          );
+        })}
+      </div>
+
+      {/* ── Synthesis bar ── */}
+      <div className={`flex items-center justify-between px-4 py-3 rounded-lg border transition-all duration-500 ${
+        synthStatus === 'synthesizing' ? 'border-white/[0.08] bg-[#0a0a0a]' :
+        allDone ? 'border-white/[0.06] bg-[#080808]' :
+        'border-white/[0.04] bg-[#060606]'
+      }`}>
+        <div className="flex items-center gap-3">
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+            synthStatus === 'synthesizing' ? 'bg-cyan-400/10' :
+            allDone ? 'bg-emerald-400/10' : 'bg-white/[0.02]'
+          }`}>
+            {allDone ? <CheckCircle className="w-4 h-4 text-emerald-400/60" /> :
+             synthStatus === 'synthesizing' ? <Sparkles className="w-4 h-4 text-cyan-400/70 animate-pulse" /> :
+             <Sparkles className="w-4 h-4 text-white/10" />}
+          </div>
+          <div>
+            <span className={`text-xs font-semibold block ${
+              synthStatus === 'synthesizing' ? 'text-white/60' : allDone ? 'text-white/50' : 'text-white/12'
+            }`}>
+              {allDone ? 'Synthesis Complete' : 'Synthesis Engine'}
+            </span>
+            <span className={`text-[10px] font-mono block mt-0.5 ${
+              synthStatus === 'synthesizing' ? 'text-white/25' : allDone ? 'text-white/20' : 'text-white/8'
+            }`}>
+              {synthStatus === 'synthesizing' ? 'Cross-correlating findings… generating scenarios…' :
+               allDone ? `${totalParams} params → 6 findings → 3 scenarios` :
+               'Waiting for agents to finish'}
             </span>
           </div>
         </div>
-      </div>
-
-      {/* ── Split curves: orchestrator → left/right columns ── */}
-      <SplitCurves active={anyActive} done={allDone} />
-
-      {/* ── Two-column agent panels with organic vine ── */}
-      <div className="grid grid-cols-2 gap-x-[160px] gap-y-5 relative">
-        {/* Central organic vine */}
-        <OrganicVine allDone={allDone} />
-
-        {/* Left column */}
-        <div className="space-y-5 relative z-10">
-          {leftAgents.map(agent => {
-            const st = agentStates[agent.id] || { status: 'queued' as AgentStatus, revealedParams: 0 };
-            return (
-              <div key={agent.id} className="relative">
-                <CurvedBranch side="left" active={st.status === 'thinking'} dotColor={agent.dotColor} done={st.status === 'complete'} agentId={agent.id} />
-                <AgentPanel agent={agent} status={st.status} revealedCount={st.revealedParams} />
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Right column */}
-        <div className="space-y-5 relative z-10">
-          {rightAgents.map(agent => {
-            const st = agentStates[agent.id] || { status: 'queued' as AgentStatus, revealedParams: 0 };
-            return (
-              <div key={agent.id} className="relative">
-                <CurvedBranch side="right" active={st.status === 'thinking'} dotColor={agent.dotColor} done={st.status === 'complete'} agentId={agent.id} />
-                <AgentPanel agent={agent} status={st.status} revealedCount={st.revealedParams} />
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ── Converge curves: left/right → synthesis ── */}
-      <ConvergeCurves active={synthStatus === 'synthesizing'} done={allDone} />
-
-      {/* ── Synthesis node ── */}
-      <div className={`flex items-center justify-center gap-3 px-5 py-3.5 rounded-2xl border transition-all duration-700 ${
-        synthStatus === 'synthesizing' ? 'bg-cyan-500/[0.04] border-cyan-500/12' :
-        allDone ? 'bg-emerald-500/[0.04] border-emerald-500/15' :
-        'bg-white/[0.01] border-white/[0.04]'
-      }`} style={synthStatus === 'synthesizing' ? { boxShadow: '0 0 40px -10px rgba(34,211,238,0.15)' } : undefined}>
-        {allDone ? <CheckCircle className="w-5 h-5 text-emerald-400/60" /> :
-         synthStatus === 'synthesizing' ? <Sparkles className="w-5 h-5 text-cyan-400 animate-pulse" /> :
-         <Sparkles className="w-5 h-5 text-white/12" />}
-        <div className="text-center">
-          <span className={`text-xs font-semibold block ${
-            synthStatus === 'synthesizing' ? 'text-cyan-400/60' : allDone ? 'text-emerald-400/50' : 'text-white/12'
-          }`}>
-            {synthStatus === 'synthesizing' ? 'Synthesis Engine' : allDone ? 'Analysis Complete' : 'Synthesis Engine'}
-          </span>
-          <span className={`text-[10px] block mt-0.5 ${
-            synthStatus === 'synthesizing' ? 'text-cyan-400/30' : allDone ? 'text-emerald-400/30' : 'text-white/8'
-          }`}>
-            {synthStatus === 'synthesizing' ? 'Cross-correlating 52 findings… generating scenario hypotheses…' :
-             allDone ? `${totalParams} parameters → 6 agent findings → 3 scenarios identified` :
-             'Awaiting agent convergence'}
-          </span>
-        </div>
         {synthStatus === 'synthesizing' && (
-          <span className="flex items-center gap-1">
-            <span className="w-1 h-1 rounded-full bg-cyan-400 animate-pulse" />
-            <span className="w-1 h-1 rounded-full bg-cyan-400 animate-pulse" style={{ animationDelay: '200ms' }} />
-            <span className="w-1 h-1 rounded-full bg-cyan-400 animate-pulse" style={{ animationDelay: '400ms' }} />
+          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-cyan-400/10 text-cyan-400/70 animate-pulse">
+            Running
+          </span>
+        )}
+        {allDone && (
+          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/[0.04] text-white/25">
+            Done
           </span>
         )}
       </div>
 
-      {/* ── Global CSS for organic animations ── */}
       <style jsx>{`
-        .beanstalk-cursor {
-          display: inline-block;
-          color: rgba(255,255,255,0.5);
-          animation: cursorBlink 0.6s step-end infinite;
-          margin-left: 1px;
-        }
-        @keyframes cursorBlink {
-          50% { opacity: 0; }
-        }
-        .beanstalk-shimmer {
-          position: absolute;
-          top: -50%;
-          left: -50%;
-          width: 200%;
-          height: 200%;
-          animation: shimmerMove 3s ease-in-out infinite;
-          pointer-events: none;
-        }
-        @keyframes shimmerMove {
-          0% { transform: translateX(-30%) translateY(-30%) rotate(25deg); }
-          50% { transform: translateX(30%) translateY(30%) rotate(25deg); }
-          100% { transform: translateX(-30%) translateY(-30%) rotate(25deg); }
-        }
+        .beanstalk-scrollbar::-webkit-scrollbar { width: 3px; }
+        .beanstalk-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .beanstalk-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+        .beanstalk-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
       `}</style>
     </div>
   );
@@ -1361,4 +1175,6 @@ export default function GridIQPage() {
     </Suspense>
   );
 }
+
+
 
