@@ -42,7 +42,7 @@ import {
   generateDGAHistory,
   updateSensorValue,
 } from '@/lib/transformer-iot/mock-data';
-import { AIPredictiveMaintenance } from '@/app/components/PredictiveMaintenance';
+import { Building, FileText, ClipboardList, ExternalLink } from 'lucide-react';
 import { getScenarioForAsset, type DemoScenario, type ScenarioEvent, type DecisionOption, type DecisionSupport } from '@/lib/demo-scenarios';
 
 // ──────────────────── Decision Brief Panel ────────────────────────────
@@ -476,6 +476,180 @@ function ScenarioInvestigation({ scenario }: { scenario: DemoScenario }) {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─────────────── Grid IQ Branch Summary (inline from tree) ──────────────
+const BRANCH_DATA: Record<string, {
+  triggers: { label: string; detail: string; Icon: typeof FlaskConical }[];
+  agents: { name: string; finding: string; sev: 'critical' | 'warning' }[];
+  deepAnalysis: { text: string; method: string }[];
+  rootCause: { label: string; detail: string; confidence: number };
+  scenarioId: string;
+}> = {
+  'BGE-TF-001': {
+    triggers: [
+      { label: 'DGA TDCG Spike', detail: '1,384 ppm — Cond. 3', Icon: FlaskConical },
+      { label: 'Thermal Alarm', detail: 'Hot-spot 112.4 °C', Icon: Thermometer },
+      { label: 'Load Exceedance', detail: 'Peak 94 % nameplate', Icon: Activity },
+    ],
+    agents: [
+      { name: 'DGA Analysis', finding: 'TDCG Cond. 3 — T2 thermal fault', sev: 'critical' },
+      { name: 'Thermal Model', finding: 'Hot-spot +12 °C, aging 4.2×', sev: 'critical' },
+      { name: 'Load Analytics', finding: 'Peak load 94 % — thermal stress', sev: 'warning' },
+    ],
+    deepAnalysis: [
+      { text: 'Duval → T2 · Rogers 3.1 · TDCG 48 ppm/d', method: 'IEEE C57.104' },
+      { text: 'DP = 285 · insulation 2.3 yr left', method: 'Thermal Model' },
+      { text: 'LF 0.87 · 14 overloads/mo · LTC ↑', method: 'Load Analytics' },
+    ],
+    rootCause: { label: 'Thermal Fault Validated', detail: 'DGA T2 + hot-spot + load stress converge', confidence: 94 },
+    scenarioId: 'aging-transformer',
+  },
+  'COMED-TF-004': {
+    triggers: [
+      { label: 'Fleet Batch Alert', detail: 'GE Prolec B-1989', Icon: Building },
+      { label: 'OEM Bulletin Open', detail: 'SB-2019-047', Icon: FileText },
+      { label: 'Elec. Test Fail', detail: 'PF 1.8 % (limit 1.0)', Icon: Zap },
+    ],
+    agents: [
+      { name: 'Fleet Intelligence', finding: '67 % fail prob. — batch 3/8', sev: 'critical' },
+      { name: 'OEM Specs', finding: 'Design life +3.2 yr · SB-047 open', sev: 'critical' },
+      { name: 'Electrical Testing', finding: 'PF 1.8 % — insulation breakdown', sev: 'critical' },
+    ],
+    deepAnalysis: [
+      { text: 'Weibull β 3.2 · 3/8 batch fail', method: 'Fleet Analytics' },
+      { text: 'SB-047 bushing recall · dielectric ↓', method: 'OEM Cross-Ref' },
+      { text: 'Tan-δ 0.042 · C₂ +8 % · SFRA shift', method: 'Dielectric' },
+    ],
+    rootCause: { label: 'End-of-Life Confirmed', detail: 'Fleet defect + OEM recall + dielectric degradation', confidence: 89 },
+    scenarioId: 'dga-trending-alert',
+  },
+  'PECO-TF-001': {
+    triggers: [
+      { label: 'PM Compliance Drop', detail: 'Score 72 % (tgt 85 %)', Icon: ClipboardList },
+      { label: 'Visual Score 4.1', detail: 'Oil seepage B-phase', Icon: Eye },
+      { label: 'PD Trend Alert', detail: '↑ 340 % in 6 months', Icon: Activity },
+    ],
+    agents: [
+      { name: 'Work Order History', finding: 'BUSH-SEAL replaced 3× / 24 mo', sev: 'critical' },
+      { name: 'Field Inspection', finding: 'Visual 4.1/10 · seepage active', sev: 'critical' },
+      { name: 'Condition Monitoring', finding: 'PD ↑ 340 % · acoustic anomaly', sev: 'warning' },
+    ],
+    deepAnalysis: [
+      { text: 'MTBF ↓ 37 % · cost +120 % YoY', method: 'History' },
+      { text: 'Corrosion C · gasket ↓ · 0.4 L/mo', method: 'Field Inspect' },
+      { text: 'PD 450 pC · UHF trend · 38 dB', method: 'PD Diagnostics' },
+    ],
+    rootCause: { label: 'Maintenance Gap Critical', detail: 'Repeat failures + degradation + PD trending converge', confidence: 91 },
+    scenarioId: 'avoided-outage',
+  },
+};
+
+function GridIQBranchSummary({ assetTag }: { assetTag: string }) {
+  const branch = BRANCH_DATA[assetTag];
+  if (!branch) return (
+    <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Brain className="w-4 h-4 text-white/40" />
+          <h3 className="text-xs font-semibold text-white/60">Grid IQ Analysis</h3>
+        </div>
+        <Link href="/grid-iq" className="flex items-center gap-1 text-[10px] text-cyan-400/60 hover:text-cyan-400/80 transition-colors">
+          Full Analysis <ExternalLink className="w-3 h-3" />
+        </Link>
+      </div>
+      <p className="text-[11px] text-white/40">No active Grid IQ analysis branch for this asset. Run full analysis in Grid IQ.</p>
+    </div>
+  );
+
+  const sevColor = (s: string) => s === 'critical' ? 'text-rose-400/70 bg-rose-500/10' : 'text-amber-400/70 bg-amber-500/10';
+
+  return (
+    <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
+        <div className="flex items-center gap-2">
+          <Brain className="w-4 h-4 text-cyan-400/60" />
+          <h3 className="text-xs font-semibold text-white/70">Grid IQ — Analysis Branch</h3>
+        </div>
+        <Link
+          href={`/grid-iq?id=${branch.scenarioId}`}
+          className="flex items-center gap-1 text-[10px] text-cyan-400/60 hover:text-cyan-400/80 transition-colors"
+        >
+          View Full Tree <ExternalLink className="w-3 h-3" />
+        </Link>
+      </div>
+
+      {/* Triggers */}
+      <div className="px-4 py-3 border-b border-white/[0.04]">
+        <span className="text-[9px] font-mono uppercase tracking-wider text-white/25 mb-2 block">Triggers</span>
+        <div className="flex flex-wrap gap-2">
+          {branch.triggers.map((t, i) => (
+            <div key={i} className="flex items-center gap-1.5 text-[10px] text-white/55 bg-white/[0.04] border border-white/[0.06] rounded px-2 py-1">
+              <t.Icon className="w-3 h-3 text-white/35" />
+              <span className="font-medium">{t.label}</span>
+              <span className="text-white/30">— {t.detail}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Agent Findings */}
+      <div className="px-4 py-3 border-b border-white/[0.04]">
+        <span className="text-[9px] font-mono uppercase tracking-wider text-white/25 mb-2 block">Agent Findings</span>
+        <div className="space-y-1.5">
+          {branch.agents.map((a, i) => (
+            <div key={i} className="flex items-start gap-2">
+              <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded ${sevColor(a.sev)}`}>
+                {a.sev === 'critical' ? 'CRIT' : 'WARN'}
+              </span>
+              <div className="flex-1 min-w-0">
+                <span className="text-[10px] text-white/45 font-medium">{a.name}:</span>
+                <span className="text-[10px] text-white/65 ml-1">{a.finding}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Deep Analysis */}
+      <div className="px-4 py-3 border-b border-white/[0.04]">
+        <span className="text-[9px] font-mono uppercase tracking-wider text-white/25 mb-2 block">Deep Analysis</span>
+        <div className="space-y-1">
+          {branch.deepAnalysis.map((d, i) => (
+            <div key={i} className="flex items-center gap-2 text-[10px]">
+              <span className="text-white/30 font-mono">{d.method}</span>
+              <span className="text-white/10">→</span>
+              <span className="text-white/55">{d.text}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Root Cause Convergence */}
+      <div className="px-4 py-3">
+        <span className="text-[9px] font-mono uppercase tracking-wider text-white/25 mb-2 block">Root Cause</span>
+        <div className="flex items-center gap-3 rounded-lg border border-rose-500/15 bg-rose-500/[0.04] p-3">
+          <AlertTriangle className="w-4 h-4 text-rose-400/60 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <h4 className="text-xs font-semibold text-white/80">{branch.rootCause.label}</h4>
+            <p className="text-[10px] text-white/45 mt-0.5">{branch.rootCause.detail}</p>
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-lg font-bold text-rose-400/70">{branch.rootCause.confidence}%</span>
+            <span className="text-[8px] text-white/30">confidence</span>
+          </div>
+        </div>
+        <Link
+          href={`/grid-iq?id=${branch.scenarioId}`}
+          className="mt-3 w-full flex items-center justify-center gap-2 text-xs font-medium text-cyan-400/60 hover:text-cyan-400/80 bg-cyan-500/[0.04] hover:bg-cyan-500/[0.08] border border-cyan-500/15 rounded-lg py-2 transition-all"
+        >
+          <Brain className="w-3.5 h-3.5" />
+          Open Scenario & Decision in Grid IQ
+          <ExternalLink className="w-3 h-3" />
+        </Link>
+      </div>
     </div>
   );
 }
@@ -1097,47 +1271,8 @@ function TransformerIoTDashboard() {
               return <ScenarioInvestigation scenario={scenario} />;
             })()}
 
-            {/* AI Predictive Maintenance — the main attraction */}
-            <AIPredictiveMaintenance
-              assetType="transformer"
-              assetId={transformer.id}
-              assetName={transformer.name}
-              equipment={[
-                {
-                  id: 'winding-hv',
-                  name: 'HV Winding',
-                  type: 'winding',
-                  currentHealth: transformer.metrics.healthIndex,
-                  operatingHours: transformer.metrics.operatingHours,
-                  temperature: transformer.thermal.windingHotSpot,
-                },
-                {
-                  id: 'bushing-h1',
-                  name: 'H1 Bushing',
-                  type: 'bushing',
-                  currentHealth: Math.min(100, transformer.metrics.healthIndex + 15),
-                  operatingHours: transformer.metrics.operatingHours,
-                },
-                {
-                  id: 'tap-changer',
-                  name: 'OLTC Tap Changer',
-                  type: 'tap_changer',
-                  currentHealth: 68,
-                  operatingHours: transformer.metrics.operatingHours * 0.4,
-                },
-                {
-                  id: 'cooling-system',
-                  name: 'Cooling System',
-                  type: 'cooling_system',
-                  currentHealth: 75,
-                  operatingHours: transformer.metrics.operatingHours * 0.6,
-                  temperature: transformer.thermal.topOilTemp,
-                },
-              ]}
-              onResolve={(query) => {
-                router.push(`/troubleshoot?q=${encodeURIComponent(query)}&asset=${encodeURIComponent(transformer.name)}`);
-              }}
-            />
+            {/* Grid IQ Branch Summary — relevant analysis for this asset */}
+            <GridIQBranchSummary assetTag={assetTag} />
           </div>
         </div>
       </main>
