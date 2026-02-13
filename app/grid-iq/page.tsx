@@ -60,6 +60,12 @@ const DETAILED_AGENTS: DetailedAgent[] = [
     finding: 'Hot-spot +12°C — aging 4.2× accelerated',
   },
   {
+    id: 'load', name: 'Load Profile Analysis', shortName: 'Load',
+    icon: <Activity className="w-3.5 h-3.5" />, color: 'text-sky-400',
+    borderColor: 'border-sky-500/20', bgColor: 'bg-sky-500/[0.06]', dotColor: 'rgba(56,189,248,0.5)',
+    finding: 'Peak load 94% nameplate — thermal stress',
+  },
+  {
     id: 'fleet', name: 'Fleet Intelligence', shortName: 'Fleet',
     icon: <Building className="w-3.5 h-3.5" />, color: 'text-blue-400',
     borderColor: 'border-blue-500/20', bgColor: 'bg-blue-500/[0.06]', dotColor: 'rgba(96,165,250,0.5)',
@@ -72,6 +78,12 @@ const DETAILED_AGENTS: DetailedAgent[] = [
     finding: 'Design life exceeded 3.2yr, SB-047 open',
   },
   {
+    id: 'electrical', name: 'Electrical Testing', shortName: 'Elec. Test',
+    icon: <Zap className="w-3.5 h-3.5" />, color: 'text-fuchsia-400',
+    borderColor: 'border-fuchsia-500/20', bgColor: 'bg-fuchsia-500/[0.06]', dotColor: 'rgba(232,121,249,0.5)',
+    finding: 'Power factor 1.8% — insulation breakdown',
+  },
+  {
     id: 'history', name: 'Work Order History', shortName: 'History',
     icon: <ClipboardList className="w-3.5 h-3.5" />, color: 'text-violet-400',
     borderColor: 'border-violet-500/20', bgColor: 'bg-violet-500/[0.06]', dotColor: 'rgba(167,139,250,0.5)',
@@ -82,6 +94,12 @@ const DETAILED_AGENTS: DetailedAgent[] = [
     icon: <Eye className="w-3.5 h-3.5" />, color: 'text-emerald-400',
     borderColor: 'border-emerald-500/20', bgColor: 'bg-emerald-500/[0.06]', dotColor: 'rgba(52,211,153,0.5)',
     finding: 'Visual 4.1/10 — oil seepage B-phase',
+  },
+  {
+    id: 'condition', name: 'Condition Monitoring', shortName: 'Condition',
+    icon: <Activity className="w-3.5 h-3.5" />, color: 'text-lime-400',
+    borderColor: 'border-lime-500/20', bgColor: 'bg-lime-500/[0.06]', dotColor: 'rgba(163,230,53,0.5)',
+    finding: 'PD trend ↑ 340% in 6 months',
   },
 ];
 
@@ -118,19 +136,22 @@ const TREE_CLUSTERS: TreeCluster[] = [
   {
     id: 'c1', x: 16,
     triggers: [
-      { label: 'DGA TDCG Spike', detail: '1,384 ppm — Condition 3', color: 'amber', Icon: FlaskConical },
+      { label: 'DGA TDCG Spike', detail: '1,384 ppm — Cond. 3', color: 'amber', Icon: FlaskConical },
       { label: 'Thermal Alarm', detail: 'Hot-spot 112.4 °C', color: 'rose', Icon: Thermometer },
+      { label: 'Load Exceedance', detail: 'Peak 94 % nameplate', color: 'sky', Icon: Activity },
     ],
-    agentIds: ['dga', 'thermal'],
+    agentIds: ['dga', 'thermal', 'load'],
     findings: [
-      { text: 'TDCG Condition 3 — T2 thermal fault pattern', sev: 'critical' },
-      { text: 'Hot-spot +12 °C above limit, aging rate 4.2×', sev: 'critical' },
+      { text: 'TDCG Cond. 3 — T2 thermal fault', sev: 'critical' },
+      { text: 'Hot-spot +12 °C, aging 4.2×', sev: 'critical' },
+      { text: 'Peak load 94 % — thermal stress', sev: 'warning' },
     ],
     deepAnalysis: [
-      { text: 'Duval Triangle → T2 confirmed · Rogers Ratio 3.1 · TDCG rate 48 ppm/day', method: 'IEEE C57.104' },
-      { text: 'Winding DP = 285 (limit 200) · remaining insulation life 2.3 yr', method: 'Thermal Model' },
+      { text: 'Duval Triangle → T2 · Rogers Ratio 3.1 · TDCG rate 48 ppm/day', method: 'IEEE C57.104' },
+      { text: 'Winding DP = 285 · insulation life 2.3 yr remaining', method: 'Thermal Model' },
+      { text: 'Load factor 0.87 · overload events 14/mo · LTC cycling ↑', method: 'Load Analytics' },
     ],
-    crossVal: { label: 'Thermal Fault Validated', detail: 'DGA T2 + hot-spot + aging model converge', confidence: 94 },
+    crossVal: { label: 'Thermal Fault Validated', detail: 'DGA T2 + hot-spot + load stress converge', confidence: 94 },
     scenarioId: 'aging-transformer',
     color: 'rose',
   },
@@ -138,45 +159,52 @@ const TREE_CLUSTERS: TreeCluster[] = [
     id: 'c2', x: 50,
     triggers: [
       { label: 'Fleet Batch Alert', detail: 'GE Prolec B-1989', color: 'blue', Icon: Building },
-      { label: 'OEM Service Bulletin', detail: 'SB-2019-047 open', color: 'cyan', Icon: FileText },
+      { label: 'OEM Bulletin Open', detail: 'SB-2019-047', color: 'cyan', Icon: FileText },
+      { label: 'Elec. Test Fail', detail: 'PF 1.8 % (limit 1.0)', color: 'fuchsia', Icon: Zap },
     ],
-    agentIds: ['fleet', 'oem'],
+    agentIds: ['fleet', 'oem', 'electrical'],
     findings: [
-      { text: '67 % failure probability — batch 3 of 8 flagged', sev: 'critical' },
-      { text: 'Design life exceeded 3.2 yr · SB-047 open recall', sev: 'critical' },
+      { text: '67 % fail prob. — batch 3/8', sev: 'critical' },
+      { text: 'Design life +3.2 yr · SB-047 open', sev: 'critical' },
+      { text: 'PF 1.8 % — insulation breakdown', sev: 'critical' },
     ],
     deepAnalysis: [
-      { text: 'Weibull β = 3.2 · batch failure 3/8 · matching units BGE-TF-003, PECO-TF-002', method: 'Fleet Analytics' },
-      { text: 'SB-2019-047 bushing recall · dielectric integrity compromised per OEM', method: 'OEM Cross-Ref' },
+      { text: 'Weibull β = 3.2 · batch failure 3/8 · matching units BGE-TF-003', method: 'Fleet Analytics' },
+      { text: 'SB-2019-047 bushing recall · dielectric integrity compromised', method: 'OEM Cross-Ref' },
+      { text: 'Tan-δ 0.042 · C₂ cap shift +8 % · SFRA deviation detected', method: 'Dielectric Analysis' },
     ],
-    crossVal: { label: 'End-of-Life Confirmed', detail: 'Fleet batch defect + OEM recall + design limits', confidence: 89 },
+    crossVal: { label: 'End-of-Life Confirmed', detail: 'Fleet defect + OEM recall + dielectric degradation', confidence: 89 },
     scenarioId: 'dga-trending-alert',
     color: 'amber',
   },
   {
     id: 'c3', x: 84,
     triggers: [
-      { label: 'PM Compliance Drop', detail: 'Score 72 % (target 85 %)', color: 'violet', Icon: ClipboardList },
+      { label: 'PM Compliance Drop', detail: 'Score 72 % (tgt 85 %)', color: 'violet', Icon: ClipboardList },
       { label: 'Visual Score 4.1', detail: 'Oil seepage B-phase', color: 'emerald', Icon: Eye },
+      { label: 'PD Trend Alert', detail: '↑ 340 % in 6 months', color: 'lime', Icon: Activity },
     ],
-    agentIds: ['history', 'inspection'],
+    agentIds: ['history', 'inspection', 'condition'],
     findings: [
-      { text: 'BUSH-SEAL replaced 3× in 24 months — repeat pattern', sev: 'critical' },
-      { text: 'Visual grade 4.1 / 10 · oil seepage B-phase active', sev: 'critical' },
+      { text: 'BUSH-SEAL replaced 3× / 24 mo', sev: 'critical' },
+      { text: 'Visual 4.1/10 · seepage active', sev: 'critical' },
+      { text: 'PD ↑ 340 % · acoustic anomaly', sev: 'warning' },
     ],
     deepAnalysis: [
-      { text: 'MTBF ↓ 37 % trend · cost escalation + 120 % YoY · repeat-failure cluster', method: 'History Analysis' },
-      { text: 'Corrosion grade C · gasket degradation · seepage rate 0.4 L/mo', method: 'Field Assessment' },
+      { text: 'MTBF ↓ 37 % · cost +120 % YoY · repeat-failure cluster', method: 'History Analysis' },
+      { text: 'Corrosion grade C · gasket degradation · seepage 0.4 L/mo', method: 'Field Assessment' },
+      { text: 'PD onset 450 pC · UHF signature trending · acoustic at 38 dB', method: 'PD Diagnostics' },
     ],
-    crossVal: { label: 'Maintenance Gap Critical', detail: 'Repeat failures + physical degradation + declining MTBF', confidence: 91 },
+    crossVal: { label: 'Maintenance Gap Critical', detail: 'Repeat failures + degradation + PD trending converge', confidence: 91 },
     scenarioId: 'avoided-outage',
     color: 'violet',
   },
 ];
 
 const CROSS_LINKS = [
-  { from: 0, to: 1, label: 'DGA gas signature matches fleet batch failure pattern' },
+  { from: 0, to: 1, label: 'DGA gas profile matches fleet batch failure signature' },
   { from: 1, to: 2, label: 'OEM end-of-support correlates with field inspection decay' },
+  { from: 0, to: 2, label: 'Load stress accelerating condition degradation' },
 ];
 
 /* ── Layout constants ── */
@@ -192,7 +220,15 @@ const TRIGGER_COLORS: Record<string, string> = {
   cyan: 'text-cyan-400 border-cyan-500/20 bg-cyan-500/[0.06]',
   violet: 'text-violet-400 border-violet-500/20 bg-violet-500/[0.06]',
   emerald: 'text-emerald-400 border-emerald-500/20 bg-emerald-500/[0.06]',
+  sky: 'text-sky-400 border-sky-500/20 bg-sky-500/[0.06]',
+  fuchsia: 'text-fuchsia-400 border-fuchsia-500/20 bg-fuchsia-500/[0.06]',
+  lime: 'text-lime-400 border-lime-500/20 bg-lime-500/[0.06]',
 };
+
+function branchX(clusterX: number, branchIdx: number, count: number): number {
+  if (count === 3) return clusterX + (branchIdx - 1) * A_OFF;
+  return clusterX + (branchIdx === 0 ? -A_OFF : A_OFF);
+}
 
 const CONV_COLORS: Record<string, { border: string; bg: string; text: string }> = {
   rose: { border: 'border-rose-500/25', bg: 'bg-rose-500/[0.08]', text: 'text-rose-400' },
@@ -310,53 +346,46 @@ function UnifiedTree() {
         {/* ═══ SVG CONNECTION LAYER ═══ */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox={`0 0 ${VB_W} ${TREE_H}`} preserveAspectRatio="none">
 
-          {/* Per-cluster vertical connections */}
+          {/* Per-cluster vertical connections (3 branches each) */}
           {TREE_CLUSTERS.map((cluster, ci) => {
             const cx = cluster.x * 10;
-            const lx = (cluster.x - A_OFF) * 10;
-            const rx = (cluster.x + A_OFF) * 10;
-            const lAgent = DETAILED_AGENTS.find(a => a.id === cluster.agentIds[0]);
-            const rAgent = DETAILED_AGENTS.find(a => a.id === cluster.agentIds[1]);
-            const convLId = `conv-${cluster.id}-l`;
-            const convRId = `conv-${cluster.id}-r`;
+            const branchCount = cluster.agentIds.length;
 
             return (
               <g key={cluster.id}>
-                {/* Trigger → Agent */}
-                <AnimatedPath d={`M ${lx},${ROW.trigger + 32} L ${lx},${ROW.agent - 10}`} visible={reveal >= 2} delay={ci * 120} color="rgba(255,255,255,0.2)" width={2} />
-                <AnimatedPath d={`M ${rx},${ROW.trigger + 32} L ${rx},${ROW.agent - 10}`} visible={reveal >= 2} delay={ci * 120 + 60} color="rgba(255,255,255,0.2)" width={2} />
+                {cluster.agentIds.map((agentId, bi) => {
+                  const bx = branchX(cluster.x, bi, branchCount) * 10;
+                  const agent = DETAILED_AGENTS.find(a => a.id === agentId);
+                  const convId = `conv-${cluster.id}-${bi}`;
 
-                {/* Agent → Finding */}
-                <AnimatedPath d={`M ${lx},${ROW.agent + 48} L ${lx},${ROW.finding - 8}`} visible={reveal >= 3} delay={ci * 150} color="rgba(255,255,255,0.2)" width={2} />
-                <AnimatedPath d={`M ${rx},${ROW.agent + 48} L ${rx},${ROW.finding - 8}`} visible={reveal >= 3} delay={ci * 150 + 80} color="rgba(255,255,255,0.2)" width={2} />
+                  return (
+                    <g key={`${cluster.id}-${bi}`}>
+                      {/* Trigger → Agent */}
+                      <AnimatedPath d={`M ${bx},${ROW.trigger + 32} L ${bx},${ROW.agent - 10}`} visible={reveal >= 2} delay={ci * 120 + bi * 60} color="rgba(255,255,255,0.2)" width={2} />
 
-                {/* Finding → Deep Analysis */}
-                <AnimatedPath d={`M ${lx},${ROW.finding + 22} L ${lx},${ROW.deep - 8}`} visible={reveal >= 4} delay={ci * 150} color={lAgent?.dotColor || 'rgba(255,255,255,0.2)'} width={2} />
-                <AnimatedPath d={`M ${rx},${ROW.finding + 22} L ${rx},${ROW.deep - 8}`} visible={reveal >= 4} delay={ci * 150 + 80} color={rAgent?.dotColor || 'rgba(255,255,255,0.2)'} width={2} />
+                      {/* Agent → Finding */}
+                      <AnimatedPath d={`M ${bx},${ROW.agent + 48} L ${bx},${ROW.finding - 8}`} visible={reveal >= 3} delay={ci * 150 + bi * 60} color="rgba(255,255,255,0.2)" width={2} />
 
-                {/* Deep Analysis → CrossVal convergence curves */}
-                <AnimatedPath
-                  id={convLId}
-                  d={`M ${lx},${ROW.deep + 30} C ${lx},${ROW.deep + 70} ${cx},${ROW.crossVal - 50} ${cx},${ROW.crossVal - 10}`}
-                  visible={reveal >= 5} delay={ci * 200}
-                  color={lAgent?.dotColor} width={2.5}
-                />
-                <AnimatedPath
-                  id={convRId}
-                  d={`M ${rx},${ROW.deep + 30} C ${rx},${ROW.deep + 70} ${cx},${ROW.crossVal - 50} ${cx},${ROW.crossVal - 10}`}
-                  visible={reveal >= 5} delay={ci * 200 + 100}
-                  color={rAgent?.dotColor} width={2.5}
-                />
+                      {/* Finding → Deep Analysis */}
+                      <AnimatedPath d={`M ${bx},${ROW.finding + 22} L ${bx},${ROW.deep - 8}`} visible={reveal >= 4} delay={ci * 150 + bi * 80} color={agent?.dotColor || 'rgba(255,255,255,0.2)'} width={2} />
 
-                {/* Pulse dots on convergence */}
-                {reveal >= 5 && (
-                  <>
-                    <PulseDot pathId={convLId} dur={2.5} delay={ci * 0.3} color={lAgent?.dotColor || 'rgba(255,255,255,0.3)'} />
-                    <PulseDot pathId={convRId} dur={2.5} delay={ci * 0.3 + 0.4} color={rAgent?.dotColor || 'rgba(255,255,255,0.3)'} />
-                  </>
-                )}
+                      {/* Deep Analysis → Root Cause convergence curves */}
+                      <AnimatedPath
+                        id={convId}
+                        d={`M ${bx},${ROW.deep + 30} C ${bx},${ROW.deep + 70} ${cx},${ROW.crossVal - 50} ${cx},${ROW.crossVal - 10}`}
+                        visible={reveal >= 5} delay={ci * 200 + bi * 100}
+                        color={agent?.dotColor} width={2.5}
+                      />
 
-                {/* CrossVal → Scenario */}
+                      {/* Pulse dots on convergence */}
+                      {reveal >= 5 && (
+                        <PulseDot pathId={convId} dur={2.5} delay={ci * 0.3 + bi * 0.3} color={agent?.dotColor || 'rgba(255,255,255,0.3)'} />
+                      )}
+                    </g>
+                  );
+                })}
+
+                {/* Root Cause → Scenario */}
                 <AnimatedPath d={`M ${cx},${ROW.crossVal + 40} L ${cx},${ROW.scenario - 10}`} visible={reveal >= 6} delay={ci * 150} color="rgba(255,255,255,0.25)" width={2} />
 
                 {/* Selected expansion connector */}
@@ -376,19 +405,21 @@ function UnifiedTree() {
             const toX = (toC.x - A_OFF) * 10;
             const midX = (fromX + toX) / 2;
             const y = ROW.deep + 10;
+            const arcY = li === 2 ? y + 25 : y;
+            const arcBend = li === 2 ? 50 : 45;
             const pathId = `xlink-${li}`;
             return (
               <g key={pathId}>
                 <AnimatedPath
                   id={pathId}
-                  d={`M ${fromX},${y} C ${midX},${y - 45} ${midX},${y - 45} ${toX},${y}`}
+                  d={`M ${fromX},${arcY} C ${midX},${arcY - arcBend} ${midX},${arcY - arcBend} ${toX},${arcY}`}
                   visible={reveal >= 5} delay={600 + li * 300}
                   color="rgba(255,255,255,0.10)" width={1.5} dash
                 />
                 {reveal >= 5 && (
                   <PulseDot pathId={pathId} dur={4} delay={1 + li * 0.5} color="rgba(255,255,255,0.25)" />
                 )}
-                <text x={midX} y={y - 30} fill="rgba(255,255,255,0.18)" fontSize="9"
+                <text x={midX} y={arcY - arcBend + 10} fill="rgba(255,255,255,0.16)" fontSize="8"
                   textAnchor="middle" fontFamily="monospace"
                   className={`transition-opacity duration-500 ${reveal >= 5 ? 'opacity-100' : 'opacity-0'}`}
                   style={{ transitionDelay: `${900 + li * 300}ms` }}>
@@ -404,17 +435,17 @@ function UnifiedTree() {
         {/* Layer 1: TRIGGERS */}
         {TREE_CLUSTERS.map((cluster, ci) =>
           cluster.triggers.map((trigger, ti) => {
-            const x = cluster.x + (ti === 0 ? -A_OFF : A_OFF);
+            const x = branchX(cluster.x, ti, cluster.triggers.length);
             const TIcon = trigger.Icon;
             return (
               <div key={`t-${ci}-${ti}`}
                 className={`absolute -translate-x-1/2 transition-all duration-500 ${reveal >= 1 ? 'opacity-100 scale-100' : 'opacity-0 scale-75'}`}
-                style={{ left: `${x}%`, top: ROW.trigger - 18, transitionDelay: `${ci * 150 + ti * 100}ms` }}>
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${TRIGGER_COLORS[trigger.color]}`}>
-                  <TIcon className="w-4 h-4 flex-shrink-0" />
+                style={{ left: `${x}%`, top: ROW.trigger - 18, transitionDelay: `${ci * 150 + ti * 80}ms` }}>
+                <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border ${TRIGGER_COLORS[trigger.color]}`}>
+                  <TIcon className="w-3.5 h-3.5 flex-shrink-0" />
                   <div className="min-w-0">
-                    <div className="text-[11px] font-bold whitespace-nowrap leading-tight">{trigger.label}</div>
-                    <div className="text-[10px] text-white/40 whitespace-nowrap">{trigger.detail}</div>
+                    <div className="text-[10px] font-bold whitespace-nowrap leading-tight">{trigger.label}</div>
+                    <div className="text-[9px] text-white/40 whitespace-nowrap">{trigger.detail}</div>
                   </div>
                 </div>
               </div>
@@ -426,17 +457,16 @@ function UnifiedTree() {
         {TREE_CLUSTERS.map((cluster, ci) =>
           cluster.agentIds.map((agentId, ai) => {
             const agent = DETAILED_AGENTS.find(a => a.id === agentId)!;
-            const x = cluster.x + (ai === 0 ? -A_OFF : A_OFF);
+            const x = branchX(cluster.x, ai, cluster.agentIds.length);
             return (
               <div key={`a-${ci}-${ai}`}
                 className={`absolute -translate-x-1/2 transition-all duration-500 ${reveal >= 2 ? 'opacity-100 scale-100' : 'opacity-0 scale-75'}`}
-                style={{ left: `${x}%`, top: ROW.agent - 18, transitionDelay: `${ci * 150 + ai * 100}ms` }}>
-                <div className={`flex flex-col items-center gap-1 px-4 py-2.5 rounded-lg border ${agent.borderColor} ${agent.bgColor}`}>
+                style={{ left: `${x}%`, top: ROW.agent - 18, transitionDelay: `${ci * 150 + ai * 80}ms` }}>
+                <div className={`flex flex-col items-center gap-0.5 px-3 py-2 rounded-lg border ${agent.borderColor} ${agent.bgColor}`}>
                   <span className={agent.color}>{agent.icon}</span>
-                  <span className={`text-[11px] font-bold ${agent.color}`}>{agent.shortName}</span>
-                  <span className="text-[9px] text-white/30 max-w-[90px] text-center leading-tight">{agent.name}</span>
-                  <span className={`text-[9px] font-mono transition-colors duration-500 ${reveal >= 3 ? 'text-emerald-400/70' : 'text-white/25'}`}>
-                    {reveal >= 3 ? '✓ complete' : '⟳ analyzing…'}
+                  <span className={`text-[10px] font-bold ${agent.color}`}>{agent.shortName}</span>
+                  <span className={`text-[8px] font-mono transition-colors duration-500 ${reveal >= 3 ? 'text-emerald-400/70' : 'text-white/25'}`}>
+                    {reveal >= 3 ? '✓ done' : '⟳ …'}
                   </span>
                 </div>
               </div>
@@ -447,13 +477,13 @@ function UnifiedTree() {
         {/* Layer 3: FINDINGS */}
         {TREE_CLUSTERS.map((cluster, ci) =>
           cluster.findings.map((finding, fi) => {
-            const x = cluster.x + (fi === 0 ? -A_OFF : A_OFF);
+            const x = branchX(cluster.x, fi, cluster.findings.length);
             const isCrit = finding.sev === 'critical';
             return (
               <div key={`f-${ci}-${fi}`}
                 className={`absolute -translate-x-1/2 transition-all duration-400 ${reveal >= 3 ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
-                style={{ left: `${x}%`, top: ROW.finding - 10, transitionDelay: `${ci * 200 + fi * 120}ms` }}>
-                <div className={`text-[10px] font-mono font-semibold px-3 py-1.5 rounded-lg whitespace-nowrap border ${
+                style={{ left: `${x}%`, top: ROW.finding - 10, transitionDelay: `${ci * 200 + fi * 100}ms` }}>
+                <div className={`text-[9px] font-mono font-semibold px-2.5 py-1 rounded-lg whitespace-nowrap border ${
                   isCrit ? 'border-rose-500/25 bg-rose-500/[0.08] text-rose-300/80' : 'border-amber-500/25 bg-amber-500/[0.08] text-amber-300/80'
                 }`}>
                   {finding.text}
@@ -463,18 +493,18 @@ function UnifiedTree() {
           })
         )}
 
-        {/* Layer 3.5: DEEP ANALYSIS */}
+        {/* Layer 4: DEEP ANALYSIS */}
         {TREE_CLUSTERS.map((cluster, ci) =>
           cluster.deepAnalysis.map((da, di) => {
-            const x = cluster.x + (di === 0 ? -A_OFF : A_OFF);
+            const x = branchX(cluster.x, di, cluster.deepAnalysis.length);
             const agent = DETAILED_AGENTS.find(a => a.id === cluster.agentIds[di]);
             return (
               <div key={`d-${ci}-${di}`}
                 className={`absolute -translate-x-1/2 transition-all duration-500 ${reveal >= 4 ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
-                style={{ left: `${x}%`, top: ROW.deep - 14, transitionDelay: `${ci * 200 + di * 150}ms` }}>
-                <div className={`max-w-[200px] px-3 py-2 rounded-lg border ${agent?.borderColor || 'border-white/10'} ${agent?.bgColor || 'bg-white/[0.03]'}`}>
-                  <div className={`text-[9px] font-bold uppercase tracking-wider ${agent?.color || 'text-white/50'} mb-0.5`}>{da.method}</div>
-                  <div className="text-[10px] text-white/60 leading-snug">{da.text}</div>
+                style={{ left: `${x}%`, top: ROW.deep - 14, transitionDelay: `${ci * 200 + di * 120}ms` }}>
+                <div className={`max-w-[170px] px-2.5 py-1.5 rounded-lg border ${agent?.borderColor || 'border-white/10'} ${agent?.bgColor || 'bg-white/[0.03]'}`}>
+                  <div className={`text-[8px] font-bold uppercase tracking-wider ${agent?.color || 'text-white/50'} mb-0.5`}>{da.method}</div>
+                  <div className="text-[9px] text-white/55 leading-snug">{da.text}</div>
                 </div>
               </div>
             );
