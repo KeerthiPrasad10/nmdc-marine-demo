@@ -345,11 +345,11 @@ function UnifiedTree() {
         </div>
 
         {/* ═══ SVG CONNECTION LAYER ═══ */}
-        <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox={`0 0 ${VB_W} ${TREE_H}`} preserveAspectRatio="none">
+        <svg className="absolute inset-0 w-full pointer-events-none" style={{ height: TREE_H }} viewBox={`0 0 ${VB_W} ${TREE_H}`} preserveAspectRatio="none">
 
           {/* Per-cluster vertical connections (3 branches each) */}
           {TREE_CLUSTERS.map((cluster, ci) => {
-            const cx = cluster.x * 10;
+            const cx = cluster.x * (VB_W / 100);
             const branchCount = cluster.agentIds.length;
 
             return (
@@ -374,7 +374,7 @@ function UnifiedTree() {
                       {/* Deep Analysis → Root Cause convergence curves */}
                       <AnimatedPath
                         id={convId}
-                        d={`M ${bx},${ROW.deep + 40 + st} C ${bx},${ROW.deep + 80 + st} ${cx * (VB_W / 100)},${ROW.crossVal - 60} ${cx * (VB_W / 100)},${ROW.crossVal - 10}`}
+                        d={`M ${bx},${ROW.deep + 40 + st} C ${bx},${ROW.deep + 80 + st} ${cx},${ROW.crossVal - 60} ${cx},${ROW.crossVal - 10}`}
                         visible={reveal >= 5} delay={ci * 200 + bi * 100}
                         color={agent?.dotColor} width={2.5}
                       />
@@ -388,11 +388,11 @@ function UnifiedTree() {
                 })}
 
                 {/* Root Cause → Scenario */}
-                <AnimatedPath d={`M ${cx * (VB_W / 100)},${ROW.crossVal + 40} L ${cx * (VB_W / 100)},${ROW.scenario - 10}`} visible={reveal >= 6} delay={ci * 150} color="rgba(255,255,255,0.25)" width={2} />
+                <AnimatedPath d={`M ${cx},${ROW.crossVal + 40} L ${cx},${ROW.scenario - 10}`} visible={reveal >= 6} delay={ci * 150} color="rgba(255,255,255,0.25)" width={2} />
 
                 {/* Selected expansion connector */}
                 {selectedId === cluster.scenarioId && (
-                  <line x1={cx * (VB_W / 100)} y1={ROW.scenario + 52} x2={cx * (VB_W / 100)} y2={TREE_H}
+                  <line x1={cx} y1={ROW.scenario + 52} x2={cx} y2={TREE_H}
                     stroke="rgba(255,255,255,0.08)" strokeWidth="2" strokeDasharray="4,4" />
                 )}
               </g>
