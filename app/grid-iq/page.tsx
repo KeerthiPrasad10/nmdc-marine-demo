@@ -337,7 +337,7 @@ function UnifiedTree() {
             { y: ROW.crossVal, label: 'ROOT CAUSE', rev: 5 },
             { y: ROW.scenario, label: 'SCENARIOS', rev: 6 },
           ].map((r, i) => (
-            <div key={i} className={`absolute text-[9px] font-bold uppercase tracking-widest text-white/20 transition-opacity duration-500 ${reveal >= r.rev ? 'opacity-100' : 'opacity-0'}`}
+            <div key={i} className={`absolute text-[9px] font-bold uppercase tracking-widest text-white/35 transition-opacity duration-500 ${reveal >= r.rev ? 'opacity-100' : 'opacity-0'}`}
               style={{ top: r.y - 2, left: 0, writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>
               {r.label}
             </div>
@@ -363,10 +363,10 @@ function UnifiedTree() {
                   return (
                     <g key={`${cluster.id}-${bi}`}>
                       {/* Trigger → Agent */}
-                      <AnimatedPath d={`M ${bx},${ROW.trigger + 32 + st} C ${bx},${ROW.trigger + 60 + st} ${bx},${ROW.agent - 30} ${bx},${ROW.agent - 10}`} visible={reveal >= 2} delay={ci * 120 + bi * 60} color="rgba(255,255,255,0.18)" width={1.5} />
+                      <AnimatedPath d={`M ${bx},${ROW.trigger + 32 + st} C ${bx},${ROW.trigger + 60 + st} ${bx},${ROW.agent - 30} ${bx},${ROW.agent - 10}`} visible={reveal >= 2} delay={ci * 120 + bi * 60} color="rgba(255,255,255,0.35)" width={1.5} />
 
                       {/* Agent → Finding */}
-                      <AnimatedPath d={`M ${bx},${ROW.agent + 48} C ${bx},${ROW.agent + 70} ${bx},${ROW.finding - 30 + st} ${bx},${ROW.finding - 8 + st}`} visible={reveal >= 3} delay={ci * 150 + bi * 60} color="rgba(255,255,255,0.18)" width={1.5} />
+                      <AnimatedPath d={`M ${bx},${ROW.agent + 48} C ${bx},${ROW.agent + 70} ${bx},${ROW.finding - 30 + st} ${bx},${ROW.finding - 8 + st}`} visible={reveal >= 3} delay={ci * 150 + bi * 60} color="rgba(255,255,255,0.35)" width={1.5} />
 
                       {/* Finding → Deep Analysis */}
                       <AnimatedPath d={`M ${bx},${ROW.finding + 22 + st} L ${bx},${ROW.deep - 8 + st}`} visible={reveal >= 4} delay={ci * 150 + bi * 80} color={agent?.dotColor || 'rgba(255,255,255,0.2)'} width={2} />
@@ -388,7 +388,7 @@ function UnifiedTree() {
                 })}
 
                 {/* Root Cause → Scenario */}
-                <AnimatedPath d={`M ${cx},${ROW.crossVal + 40} L ${cx},${ROW.scenario - 10}`} visible={reveal >= 6} delay={ci * 150} color="rgba(255,255,255,0.25)" width={2} />
+                <AnimatedPath d={`M ${cx},${ROW.crossVal + 40} L ${cx},${ROW.scenario - 10}`} visible={reveal >= 6} delay={ci * 150} color="rgba(255,255,255,0.4)" width={2} />
 
                 {/* Selected expansion connector */}
                 {selectedId === cluster.scenarioId && (
@@ -416,12 +416,12 @@ function UnifiedTree() {
                   id={pathId}
                   d={`M ${fromX},${arcY} C ${midX},${arcY - arcBend} ${midX},${arcY - arcBend} ${toX},${arcY}`}
                   visible={reveal >= 5} delay={600 + li * 300}
-                  color="rgba(255,255,255,0.10)" width={1.5} dash
+                  color="rgba(255,255,255,0.22)" width={1.5} dash
                 />
                 {reveal >= 5 && (
-                  <PulseDot pathId={pathId} dur={4} delay={1 + li * 0.5} color="rgba(255,255,255,0.25)" />
+                  <PulseDot pathId={pathId} dur={4} delay={1 + li * 0.5} color="rgba(255,255,255,0.4)" />
                 )}
-                <text x={midX} y={arcY - arcBend + 10} fill="rgba(255,255,255,0.16)" fontSize="8"
+                <text x={midX} y={arcY - arcBend + 10} fill="rgba(255,255,255,0.35)" fontSize="9"
                   textAnchor="middle" fontFamily="monospace"
                   className={`transition-opacity duration-500 ${reveal >= 5 ? 'opacity-100' : 'opacity-0'}`}
                   style={{ transitionDelay: `${900 + li * 300}ms` }}>
@@ -444,11 +444,11 @@ function UnifiedTree() {
               <div key={`t-${ci}-${ti}`}
                 className={`absolute -translate-x-1/2 transition-all duration-500 ${reveal >= 1 ? 'opacity-100 scale-100' : 'opacity-0 scale-75'}`}
                 style={{ left: `${x}%`, top: ROW.trigger - 18 + st, transitionDelay: `${ci * 150 + ti * 80}ms` }}>
-                <div className={`flex items-center gap-1 px-2 py-1 rounded border max-w-[150px] ${TRIGGER_COLORS[trigger.color]}`}>
+                <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded border max-w-[155px] ${TRIGGER_COLORS[trigger.color]}`}>
                   <TIcon className="w-3 h-3 flex-shrink-0" />
                   <div className="min-w-0 overflow-hidden">
-                    <div className="text-[9px] font-bold leading-tight truncate">{trigger.label}</div>
-                    <div className="text-[8px] text-white/35 truncate">{trigger.detail}</div>
+                    <div className="text-[10px] font-bold leading-tight truncate">{trigger.label}</div>
+                    <div className="text-[9px] text-white/55 truncate">{trigger.detail}</div>
                   </div>
                 </div>
               </div>
@@ -465,11 +465,11 @@ function UnifiedTree() {
               <div key={`a-${ci}-${ai}`}
                 className={`absolute -translate-x-1/2 transition-all duration-500 ${reveal >= 2 ? 'opacity-100 scale-100' : 'opacity-0 scale-75'}`}
                 style={{ left: `${x}%`, top: ROW.agent - 16, transitionDelay: `${ci * 150 + ai * 80}ms` }}>
-                <div className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded border ${agent.borderColor} ${agent.bgColor}`}>
+                <div className={`flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded border ${agent.borderColor} ${agent.bgColor}`}>
                   <span className={agent.color}>{agent.icon}</span>
-                  <span className={`text-[9px] font-bold ${agent.color}`}>{agent.shortName}</span>
-                  <span className={`text-[7px] font-mono transition-colors duration-500 ${reveal >= 3 ? 'text-emerald-400/70' : 'text-white/25'}`}>
-                    {reveal >= 3 ? '✓' : '⟳'}
+                  <span className={`text-[10px] font-bold ${agent.color}`}>{agent.shortName}</span>
+                  <span className={`text-[8px] font-mono transition-colors duration-500 ${reveal >= 3 ? 'text-emerald-400' : 'text-white/30'}`}>
+                    {reveal >= 3 ? '✓ done' : '⟳'}
                   </span>
                 </div>
               </div>
@@ -487,8 +487,8 @@ function UnifiedTree() {
               <div key={`f-${ci}-${fi}`}
                 className={`absolute -translate-x-1/2 transition-all duration-400 ${reveal >= 3 ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
                 style={{ left: `${x}%`, top: ROW.finding - 10 + st, transitionDelay: `${ci * 200 + fi * 100}ms` }}>
-                <div className={`text-[8px] font-mono font-semibold px-2 py-1 rounded border max-w-[140px] leading-snug ${
-                  isCrit ? 'border-rose-500/25 bg-rose-500/[0.08] text-rose-300/80' : 'border-amber-500/25 bg-amber-500/[0.08] text-amber-300/80'
+                <div className={`text-[9px] font-mono font-semibold px-2.5 py-1 rounded border max-w-[145px] leading-snug ${
+                  isCrit ? 'border-rose-500/30 bg-rose-500/[0.10] text-rose-300' : 'border-amber-500/30 bg-amber-500/[0.10] text-amber-300'
                 }`}>
                   {finding.text}
                 </div>
@@ -507,9 +507,9 @@ function UnifiedTree() {
               <div key={`d-${ci}-${di}`}
                 className={`absolute -translate-x-1/2 transition-all duration-500 ${reveal >= 4 ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
                 style={{ left: `${x}%`, top: ROW.deep - 14 + st, transitionDelay: `${ci * 200 + di * 120}ms` }}>
-                <div className={`max-w-[145px] px-2 py-1.5 rounded border ${agent?.borderColor || 'border-white/10'} ${agent?.bgColor || 'bg-white/[0.03]'}`}>
-                  <div className={`text-[7px] font-bold uppercase tracking-wider ${agent?.color || 'text-white/50'} mb-0.5`}>{da.method}</div>
-                  <div className="text-[8px] text-white/50 leading-snug">{da.text}</div>
+                <div className={`max-w-[150px] px-2.5 py-1.5 rounded border ${agent?.borderColor || 'border-white/10'} ${agent?.bgColor || 'bg-white/[0.03]'}`}>
+                  <div className={`text-[8px] font-bold uppercase tracking-wider ${agent?.color || 'text-white/50'} mb-0.5`}>{da.method}</div>
+                  <div className="text-[9px] text-white/70 leading-snug">{da.text}</div>
                 </div>
               </div>
             );
@@ -523,13 +523,13 @@ function UnifiedTree() {
             <div key={`cv-${ci}`}
               className={`absolute -translate-x-1/2 transition-all duration-500 ${reveal >= 5 ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
               style={{ left: `${cluster.x}%`, top: ROW.crossVal - 18, transitionDelay: `${ci * 250}ms` }}>
-              <div className={`flex flex-col items-center gap-0.5 px-3 py-2 rounded-lg border-2 max-w-[190px] ${cc.border} ${cc.bg}`}>
+              <div className={`flex flex-col items-center gap-0.5 px-3 py-2.5 rounded-lg border-2 max-w-[200px] ${cc.border} ${cc.bg}`}>
                 <div className="flex items-center gap-1.5">
-                  <span className={`text-[8px] uppercase tracking-wider font-bold ${cc.text}`}>✓ Root Cause</span>
-                  <span className={`text-[9px] font-mono font-bold ${cc.text}`}>{cluster.crossVal.confidence}%</span>
+                  <span className={`text-[9px] uppercase tracking-wider font-bold ${cc.text}`}>✓ Root Cause</span>
+                  <span className={`text-[10px] font-mono font-bold ${cc.text}`}>{cluster.crossVal.confidence}%</span>
                 </div>
-                <span className="text-[10px] font-bold text-white/80 text-center leading-tight">{cluster.crossVal.label}</span>
-                <span className="text-[8px] text-white/40 text-center leading-snug">{cluster.crossVal.detail}</span>
+                <span className="text-[11px] font-bold text-white/90 text-center leading-tight">{cluster.crossVal.label}</span>
+                <span className="text-[9px] text-white/55 text-center leading-snug">{cluster.crossVal.detail}</span>
               </div>
             </div>
           );
@@ -552,14 +552,14 @@ function UnifiedTree() {
                     ? `${config.border} ${config.bg} ring-1 ring-white/10 shadow-lg shadow-white/5`
                     : 'border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/15'
                 }`}>
-                <span className={`text-[8px] uppercase tracking-wider font-bold ${config.color}`}>{config.label}</span>
-                <span className="text-[10px] font-bold text-white/85 text-center leading-tight">{scenario.title}</span>
-                <div className="flex items-center gap-1.5 text-[8px] text-white/40">
+                <span className={`text-[9px] uppercase tracking-wider font-bold ${config.color}`}>{config.label}</span>
+                <span className="text-[11px] font-bold text-white/90 text-center leading-tight">{scenario.title}</span>
+                <div className="flex items-center gap-1.5 text-[9px] text-white/50">
                   <span>{scenario.outcome.costAvoided}</span>
-                  <span className="text-white/15">•</span>
+                  <span className="text-white/20">•</span>
                   <span>{scenario.outcome.customersProtected.toLocaleString()} cust.</span>
                 </div>
-                <span className={`text-[8px] font-medium ${isSelected ? 'text-amber-400' : 'text-white/25'}`}>
+                <span className={`text-[9px] font-medium ${isSelected ? 'text-amber-400' : 'text-white/35'}`}>
                   {isSelected ? '▼ Expanded' : '▶ Investigate'}
                 </span>
               </button>
