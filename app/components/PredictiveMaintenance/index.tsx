@@ -1594,49 +1594,359 @@ function WorkOrderModal({ prediction, equipment, profile, onClose }: WorkOrderMo
   )
 }
 
-interface SourceQueryAnimationProps {
-  sources: PMDataSource[]
-  activeSourceIndex: number
-  isComplete: boolean
+interface AgentNode {
+  id: string
+  name: string
+  shortName: string
+  icon: React.ReactNode
+  color: string
+  borderColor: string
+  bgColor: string
+  thinkingMessages: string[]
+  finding: string
 }
 
-function SourceQueryAnimation({ sources, activeSourceIndex, isComplete }: SourceQueryAnimationProps) {
+const ANALYSIS_AGENTS: AgentNode[] = [
+  {
+    id: 'dga',
+    name: 'DGA Analysis Agent',
+    shortName: 'DGA',
+    icon: <FlaskConical className="w-4 h-4" />,
+    color: 'text-amber-400',
+    borderColor: 'border-amber-500/30',
+    bgColor: 'bg-amber-500/10',
+    thinkingMessages: [
+      'Reading dissolved gas concentrations…',
+      'Computing Duval Triangle classification…',
+      'Evaluating Rogers Ratio patterns…',
+      'Mapping to IEEE C57.104 thresholds…',
+    ],
+    finding: 'TDCG trending above Condition 2 threshold',
+  },
+  {
+    id: 'thermal',
+    name: 'Thermal Modeling Agent',
+    shortName: 'Thermal',
+    icon: <Thermometer className="w-4 h-4" />,
+    color: 'text-rose-400',
+    borderColor: 'border-rose-500/30',
+    bgColor: 'bg-rose-500/10',
+    thinkingMessages: [
+      'Analyzing winding hot-spot temperatures…',
+      'Running IEEE C57.91 aging model…',
+      'Correlating ambient vs load profile…',
+      'Estimating insulation DP degradation…',
+    ],
+    finding: 'Hot-spot 12°C above design limit at peak load',
+  },
+  {
+    id: 'fleet',
+    name: 'Fleet Intelligence Agent',
+    shortName: 'Fleet',
+    icon: <Building className="w-4 h-4" />,
+    color: 'text-blue-400',
+    borderColor: 'border-blue-500/30',
+    bgColor: 'bg-blue-500/10',
+    thinkingMessages: [
+      'Querying similar assets across fleet…',
+      'Matching failure patterns by vintage…',
+      'Cross-referencing manufacturer batch…',
+      'Computing fleet-wide failure probability…',
+    ],
+    finding: '3 similar units failed within 18 months of this profile',
+  },
+  {
+    id: 'oem',
+    name: 'OEM Specs Agent',
+    shortName: 'OEM',
+    icon: <FileText className="w-4 h-4" />,
+    color: 'text-cyan-400',
+    borderColor: 'border-cyan-500/30',
+    bgColor: 'bg-cyan-500/10',
+    thinkingMessages: [
+      'Loading manufacturer service bulletins…',
+      'Checking design-life parameters…',
+      'Evaluating overhaul intervals…',
+      'Reviewing known failure modes…',
+    ],
+    finding: 'Operating beyond OEM recommended service life',
+  },
+  {
+    id: 'history',
+    name: 'Work Order History Agent',
+    shortName: 'History',
+    icon: <ClipboardList className="w-4 h-4" />,
+    color: 'text-violet-400',
+    borderColor: 'border-violet-500/30',
+    bgColor: 'bg-violet-500/10',
+    thinkingMessages: [
+      'Scanning corrective maintenance records…',
+      'Analyzing PM compliance gaps…',
+      'Correlating repeat failure modes…',
+      'Evaluating repair effectiveness…',
+    ],
+    finding: 'Repeat bushing repairs — 3 CMs in 24 months',
+  },
+  {
+    id: 'inspection',
+    name: 'Inspection Records Agent',
+    shortName: 'Inspect',
+    icon: <Eye className="w-4 h-4" />,
+    color: 'text-emerald-400',
+    borderColor: 'border-emerald-500/30',
+    bgColor: 'bg-emerald-500/10',
+    thinkingMessages: [
+      'Reviewing latest field inspection notes…',
+      'Flagging condition deterioration trends…',
+      'Correlating visual findings with DGA…',
+      'Checking environmental exposure factors…',
+    ],
+    finding: 'Oil seepage noted at bushing gasket — progressive',
+  },
+]
+
+type AgentStatus = 'queued' | 'thinking' | 'complete'
+
+interface BeanstalkOrchestrationProps {
+  isAnalyzing: boolean
+  isComplete: boolean
+  onSynthesisComplete?: () => void
+}
+
+function BeanstalkOrchestration({ isAnalyzing, isComplete }: BeanstalkOrchestrationProps) {
+  const [agentStates, setAgentStates] = useState<Record<string, { status: AgentStatus; messageIdx: number }>>({})
+  const [synthStatus, setSynthStatus] = useState<'waiting' | 'synthesizing' | 'complete'>('waiting')
+  const timerRefs = useRef<NodeJS.Timeout[]>([])
+
+  useEffect(() => {
+    if (!isAnalyzing) return
+
+    const initial: Record<string, { status: AgentStatus; messageIdx: number }> = {}
+    ANALYSIS_AGENTS.forEach(a => { initial[a.id] = { status: 'queued', messageIdx: 0 } })
+    setAgentStates(initial)
+    setSynthStatus('waiting')
+    timerRefs.current.forEach(clearTimeout)
+    timerRefs.current = []
+
+    const leftAgents = ANALYSIS_AGENTS.slice(0, 3)
+    const rightAgents = ANALYSIS_AGENTS.slice(3)
+
+    const startAgent = (agent: AgentNode, delay: number) => {
+      const t1 = setTimeout(() => {
+        setAgentStates(prev => ({ ...prev, [agent.id]: { status: 'thinking', messageIdx: 0 } }))
+      }, delay)
+      timerRefs.current.push(t1)
+
+      agent.thinkingMessages.forEach((_, mIdx) => {
+        if (mIdx === 0) return
+        const t = setTimeout(() => {
+          setAgentStates(prev => ({ ...prev, [agent.id]: { status: 'thinking', messageIdx: mIdx } }))
+        }, delay + mIdx * 400)
+        timerRefs.current.push(t)
+      })
+
+      const completeDelay = delay + agent.thinkingMessages.length * 400 + 200
+      const t2 = setTimeout(() => {
+        setAgentStates(prev => ({ ...prev, [agent.id]: { status: 'complete', messageIdx: agent.thinkingMessages.length - 1 } }))
+      }, completeDelay)
+      timerRefs.current.push(t2)
+    }
+
+    leftAgents.forEach((a, i) => startAgent(a, 200 + i * 250))
+    rightAgents.forEach((a, i) => startAgent(a, 350 + i * 250))
+
+    const maxAgentTime = 350 + 2 * 250 + 4 * 400 + 200
+    const synthT = setTimeout(() => setSynthStatus('synthesizing'), maxAgentTime + 300)
+    const synthDone = setTimeout(() => setSynthStatus('complete'), maxAgentTime + 1200)
+    timerRefs.current.push(synthT, synthDone)
+
+    return () => timerRefs.current.forEach(clearTimeout)
+  }, [isAnalyzing])
+
+  useEffect(() => {
+    if (isComplete && !isAnalyzing) {
+      const done: Record<string, { status: AgentStatus; messageIdx: number }> = {}
+      ANALYSIS_AGENTS.forEach(a => { done[a.id] = { status: 'complete', messageIdx: a.thinkingMessages.length - 1 } })
+      setAgentStates(done)
+      setSynthStatus('complete')
+    }
+  }, [isComplete, isAnalyzing])
+
+  const leftAgents = ANALYSIS_AGENTS.slice(0, 3)
+  const rightAgents = ANALYSIS_AGENTS.slice(3)
+
+  const renderAgent = (agent: AgentNode, side: 'left' | 'right') => {
+    const state = agentStates[agent.id] || { status: 'queued', messageIdx: 0 }
+    const isThinking = state.status === 'thinking'
+    const isDone = state.status === 'complete'
+
+    return (
+      <div
+        key={agent.id}
+        className={`relative p-2.5 rounded-lg border transition-all duration-500 ${
+          isThinking ? `${agent.bgColor} ${agent.borderColor} shadow-lg` :
+          isDone ? 'bg-emerald-500/[0.06] border-emerald-500/20' :
+          'bg-white/[0.015] border-white/[0.06]'
+        }`}
+      >
+        <div className="flex items-center gap-2 mb-1">
+          <span className={`transition-colors duration-300 ${isThinking ? agent.color : isDone ? 'text-emerald-400/70' : 'text-white/20'}`}>
+            {isDone ? <CheckCircle className="w-4 h-4" /> : agent.icon}
+          </span>
+          <span className={`text-[10px] font-medium transition-colors duration-300 ${
+            isThinking ? 'text-white/70' : isDone ? 'text-white/50' : 'text-white/25'
+          }`}>
+            {agent.shortName}
+          </span>
+          {isThinking && (
+            <span className="ml-auto w-1.5 h-1.5 rounded-full bg-current animate-pulse" style={{ color: 'inherit' }} />
+          )}
+        </div>
+
+        <div className="min-h-[28px]">
+          {isThinking && (
+            <p className="text-[10px] text-white/40 leading-relaxed animate-in fade-in duration-300">
+              {agent.thinkingMessages[state.messageIdx]}
+            </p>
+          )}
+          {isDone && (
+            <p className="text-[10px] text-emerald-400/50 leading-relaxed animate-in fade-in slide-in-from-bottom-1 duration-300">
+              ✓ {agent.finding}
+            </p>
+          )}
+          {state.status === 'queued' && (
+            <p className="text-[10px] text-white/15">Waiting…</p>
+          )}
+        </div>
+
+        {/* Connector dot */}
+        <div className={`absolute top-1/2 -translate-y-1/2 ${side === 'left' ? '-right-1.5' : '-left-1.5'}`}>
+          <div className={`w-2.5 h-2.5 rounded-full border-2 transition-colors duration-500 ${
+            isThinking ? `${agent.borderColor} ${agent.bgColor}` :
+            isDone ? 'border-emerald-500/40 bg-emerald-500/20' :
+            'border-white/10 bg-white/[0.03]'
+          }`} />
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="grid grid-cols-4 gap-2">
-      {sources.map((source, idx) => {
-        const isActive = idx === activeSourceIndex
-        const isQueried = idx < activeSourceIndex || isComplete
-        
-        return (
-          <div
-            key={source.id}
-            className={`relative p-2 rounded-lg border transition-all duration-300 ${
-              isActive
-                ? 'bg-violet-500/20 border-violet-500/50 scale-105'
-                : isQueried
-                ? 'bg-emerald-500/10 border-emerald-500/30'
-                : 'bg-white/[0.02] border-white/10'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <span className={`transition-colors ${
-                isActive ? 'text-violet-400' : isQueried ? 'text-emerald-400' : 'text-white/30'
-              }`}>
-                {SOURCE_ICONS[source.iconName] || <Activity className="w-4 h-4" />}
-              </span>
-              <span className="text-[10px] text-white/60 truncate">{source.name.split(' ')[0]}</span>
+    <div className="relative py-2">
+      {/* Orchestrator Node */}
+      <div className="flex justify-center mb-4">
+        <div className={`px-4 py-2 rounded-xl border flex items-center gap-2 transition-all duration-500 ${
+          isAnalyzing && synthStatus === 'waiting'
+            ? 'bg-violet-500/15 border-violet-500/30 shadow-lg shadow-violet-500/10'
+            : synthStatus === 'complete' || isComplete
+            ? 'bg-emerald-500/10 border-emerald-500/20'
+            : 'bg-white/[0.03] border-white/[0.06]'
+        }`}>
+          <Brain className={`w-4 h-4 transition-colors duration-500 ${
+            isAnalyzing && synthStatus === 'waiting' ? 'text-violet-400' :
+            synthStatus === 'complete' || isComplete ? 'text-emerald-400/70' : 'text-white/30'
+          }`} />
+          <span className="text-[11px] font-semibold text-white/60">GridIQ Orchestrator</span>
+          {isAnalyzing && synthStatus === 'waiting' && (
+            <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
+          )}
+        </div>
+      </div>
+
+      {/* Vertical connector from orchestrator */}
+      <div className="flex justify-center mb-1">
+        <div className={`w-px h-4 transition-colors duration-500 ${
+          isAnalyzing ? 'bg-violet-500/30' : isComplete ? 'bg-emerald-500/15' : 'bg-white/[0.06]'
+        }`} />
+      </div>
+
+      {/* Branch split line */}
+      <div className="flex justify-center mb-1">
+        <div className={`w-[70%] h-px transition-colors duration-500 ${
+          isAnalyzing ? 'bg-violet-500/20' : isComplete ? 'bg-emerald-500/10' : 'bg-white/[0.04]'
+        }`} />
+      </div>
+
+      {/* Parallel Agent Branches */}
+      <div className="grid grid-cols-[1fr_20px_1fr] gap-0 mb-1">
+        {/* Left branch */}
+        <div className="space-y-2 pr-1">
+          {leftAgents.map(a => renderAgent(a, 'left'))}
+        </div>
+
+        {/* Center connectors */}
+        <div className="relative flex flex-col items-center">
+          <div className={`w-px flex-1 transition-colors duration-500 ${
+            isAnalyzing ? 'bg-violet-500/15' : isComplete ? 'bg-emerald-500/10' : 'bg-white/[0.04]'
+          }`} />
+          {/* Horizontal ticks for each row */}
+          {[0, 1, 2].map(i => (
+            <div key={i} className="absolute w-full flex items-center" style={{ top: `${15 + i * 33}%` }}>
+              <div className={`flex-1 h-px transition-colors duration-500 ${
+                isAnalyzing ? 'bg-violet-500/15' : isComplete ? 'bg-emerald-500/10' : 'bg-white/[0.04]'
+              }`} />
+              <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 transition-colors duration-500 ${
+                isAnalyzing ? 'bg-violet-500/30' : isComplete ? 'bg-emerald-500/15' : 'bg-white/[0.06]'
+              }`} />
+              <div className={`flex-1 h-px transition-colors duration-500 ${
+                isAnalyzing ? 'bg-violet-500/15' : isComplete ? 'bg-emerald-500/10' : 'bg-white/[0.04]'
+              }`} />
             </div>
-            {isActive && (
-              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2">
-                <div className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-ping" />
-              </div>
+          ))}
+        </div>
+
+        {/* Right branch */}
+        <div className="space-y-2 pl-1">
+          {rightAgents.map(a => renderAgent(a, 'right'))}
+        </div>
+      </div>
+
+      {/* Merge line */}
+      <div className="flex justify-center mb-1">
+        <div className={`w-[70%] h-px transition-colors duration-500 ${
+          synthStatus !== 'waiting' ? 'bg-cyan-500/20' : isComplete ? 'bg-emerald-500/10' : 'bg-white/[0.04]'
+        }`} />
+      </div>
+      <div className="flex justify-center mb-2">
+        <div className={`w-px h-4 transition-colors duration-500 ${
+          synthStatus !== 'waiting' ? 'bg-cyan-500/30' : isComplete ? 'bg-emerald-500/15' : 'bg-white/[0.06]'
+        }`} />
+      </div>
+
+      {/* Synthesis Node */}
+      <div className="flex justify-center">
+        <div className={`px-4 py-2.5 rounded-xl border transition-all duration-500 max-w-[280px] text-center ${
+          synthStatus === 'synthesizing'
+            ? 'bg-cyan-500/15 border-cyan-500/30 shadow-lg shadow-cyan-500/10'
+            : synthStatus === 'complete' || isComplete
+            ? 'bg-emerald-500/10 border-emerald-500/20'
+            : 'bg-white/[0.02] border-white/[0.05]'
+        }`}>
+          <div className="flex items-center justify-center gap-2 mb-1">
+            {synthStatus === 'complete' || isComplete ? (
+              <CheckCircle className="w-4 h-4 text-emerald-400/70" />
+            ) : synthStatus === 'synthesizing' ? (
+              <Sparkles className="w-4 h-4 text-cyan-400 animate-pulse" />
+            ) : (
+              <Sparkles className="w-4 h-4 text-white/20" />
             )}
-            {isQueried && !isActive && (
-              <CheckCircle className="absolute -top-1 -right-1 w-3 h-3 text-emerald-400" />
-            )}
+            <span className={`text-[11px] font-semibold transition-colors duration-300 ${
+              synthStatus === 'synthesizing' ? 'text-cyan-400/70' :
+              synthStatus === 'complete' || isComplete ? 'text-emerald-400/60' : 'text-white/25'
+            }`}>
+              Synthesis Engine
+            </span>
           </div>
-        )
-      })}
+          <p className={`text-[10px] transition-colors duration-300 ${
+            synthStatus === 'synthesizing' ? 'text-white/40' :
+            synthStatus === 'complete' || isComplete ? 'text-emerald-400/40' : 'text-white/15'
+          }`}>
+            {synthStatus === 'synthesizing' ? 'Cross-correlating agent findings…' :
+             synthStatus === 'complete' || isComplete ? 'Analysis complete — predictions ready' :
+             'Waiting for agents…'}
+          </p>
+        </div>
+      </div>
     </div>
   )
 }
@@ -1751,14 +2061,12 @@ export function AIPredictiveMaintenance({
 }: AIPredictiveMaintenanceProps) {
   const [analysis, setAnalysis] = useState<PMAnalysis | null>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(true)
-  const [activeSourceIndex, setActiveSourceIndex] = useState(0)
   const [selectedPrediction, setSelectedPrediction] = useState<PMPrediction | null>(null)
   const [selectedEquipment, setSelectedEquipment] = useState<typeof equipment[0] | null>(null)
   const hasRun = useRef(false)
 
   const runAnalysis = useCallback(() => {
     setIsAnalyzing(true)
-    setActiveSourceIndex(0)
     setAnalysis(null)
 
     const request: PMAnalysisRequest = {
@@ -1774,25 +2082,12 @@ export function AIPredictiveMaintenance({
       })),
     }
 
-    const sourceAnimationInterval = setInterval(() => {
-      setActiveSourceIndex(prev => {
-        if (prev >= DATA_SOURCES.length - 1) {
-          clearInterval(sourceAnimationInterval)
-          return prev
-        }
-        return prev + 1
-      })
-    }, 350)
-
+    const totalAgentTime = 350 + 2 * 250 + 4 * 400 + 200 + 1200 + 300
     setTimeout(() => {
       const result = analyzeEquipment(request)
       setAnalysis(result)
       setIsAnalyzing(false)
-    }, DATA_SOURCES.length * 350 + 400)
-
-    return () => {
-      clearInterval(sourceAnimationInterval)
-    }
+    }, totalAgentTime)
   }, [assetType, assetId, assetName, equipment])
 
   useEffect(() => {
@@ -1863,7 +2158,7 @@ export function AIPredictiveMaintenance({
         {isAnalyzing && (
           <div className="flex items-center gap-2 py-4">
             <div className="w-4 h-4 border-2 border-violet-400 border-t-transparent rounded-full animate-spin" />
-            <span className="text-xs text-white/50">Cross-referencing data sources...</span>
+            <span className="text-xs text-white/50">6 agents analyzing in parallel…</span>
           </div>
         )}
 
@@ -1915,9 +2210,8 @@ export function AIPredictiveMaintenance({
             </div>
           </div>
 
-          <SourceQueryAnimation
-            sources={DATA_SOURCES}
-            activeSourceIndex={activeSourceIndex}
+          <BeanstalkOrchestration
+            isAnalyzing={isAnalyzing}
             isComplete={!isAnalyzing && !!analysis}
           />
         </div>
@@ -1957,10 +2251,8 @@ export function AIPredictiveMaintenance({
           )}
 
           {isAnalyzing && (
-            <div className="text-center py-8">
-              <div className="w-12 h-12 border-4 border-violet-400 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-              <p className="text-sm text-white/60">Analyzing equipment health...</p>
-              <p className="text-xs text-white/40 mt-1">Cross-referencing OEM specs, fleet data, and history</p>
+            <div className="text-center py-4">
+              <p className="text-xs text-white/40">Agents analyzing — results will appear below</p>
             </div>
           )}
         </div>
