@@ -9,11 +9,10 @@ import {
   Bell,
   RefreshCw,
   Menu,
-  Cpu,
+  Brain,
   X,
   LayoutGrid,
   Leaf,
-  Shield,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -41,10 +40,9 @@ export function Header({
 
   // Navigation items — Exelon GridIQ modules
   const navItems = [
-    { href: '/transformer-iot', label: 'Transformer IoT', icon: Cpu },
+    { href: '/grid-iq', label: 'Grid IQ', icon: Brain },
     { href: '/orchestration', label: 'Dispatch', icon: LayoutGrid },
     { href: '/esg', label: 'ESG', icon: Leaf },
-    { href: '/scenarios', label: 'Scenarios', icon: Shield },
   ];
 
   return (

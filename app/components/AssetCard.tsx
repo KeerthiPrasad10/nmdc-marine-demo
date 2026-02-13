@@ -196,7 +196,7 @@ export function AssetCard({
               if (!scenario) return null;
               return (
                 <Link
-                  href={`/scenarios?id=${scenario.id}`}
+                  href={`/grid-iq?id=${scenario.id}`}
                   onClick={e => e.stopPropagation()}
                   className="inline-flex items-center gap-1 mt-1.5 text-[10px] font-medium px-2 py-0.5 rounded border border-white/[0.08] bg-white/[0.04] text-white/45 hover:bg-white/[0.08] hover:text-white/60 transition-all"
                 >
