@@ -147,9 +147,9 @@ const TREE_CLUSTERS: TreeCluster[] = [
       { text: 'Peak load 94 % — thermal stress', sev: 'warning' },
     ],
     deepAnalysis: [
-      { text: 'Duval Triangle → T2 · Rogers Ratio 3.1 · TDCG rate 48 ppm/day', method: 'IEEE C57.104' },
-      { text: 'Winding DP = 285 · insulation life 2.3 yr remaining', method: 'Thermal Model' },
-      { text: 'Load factor 0.87 · overload events 14/mo · LTC cycling ↑', method: 'Load Analytics' },
+      { text: 'Duval → T2 · Rogers 3.1 · TDCG 48 ppm/d', method: 'IEEE C57.104' },
+      { text: 'DP = 285 · insulation 2.3 yr left', method: 'Thermal Model' },
+      { text: 'LF 0.87 · 14 overloads/mo · LTC ↑', method: 'Load Analytics' },
     ],
     crossVal: { label: 'Thermal Fault Validated', detail: 'DGA T2 + hot-spot + load stress converge', confidence: 94 },
     scenarioId: 'aging-transformer',
@@ -169,9 +169,9 @@ const TREE_CLUSTERS: TreeCluster[] = [
       { text: 'PF 1.8 % — insulation breakdown', sev: 'critical' },
     ],
     deepAnalysis: [
-      { text: 'Weibull β = 3.2 · batch failure 3/8 · matching units BGE-TF-003', method: 'Fleet Analytics' },
-      { text: 'SB-2019-047 bushing recall · dielectric integrity compromised', method: 'OEM Cross-Ref' },
-      { text: 'Tan-δ 0.042 · C₂ cap shift +8 % · SFRA deviation detected', method: 'Dielectric Analysis' },
+      { text: 'Weibull β 3.2 · 3/8 batch fail', method: 'Fleet Analytics' },
+      { text: 'SB-047 bushing recall · dielectric ↓', method: 'OEM Cross-Ref' },
+      { text: 'Tan-δ 0.042 · C₂ +8 % · SFRA shift', method: 'Dielectric' },
     ],
     crossVal: { label: 'End-of-Life Confirmed', detail: 'Fleet defect + OEM recall + dielectric degradation', confidence: 89 },
     scenarioId: 'dga-trending-alert',
@@ -191,9 +191,9 @@ const TREE_CLUSTERS: TreeCluster[] = [
       { text: 'PD ↑ 340 % · acoustic anomaly', sev: 'warning' },
     ],
     deepAnalysis: [
-      { text: 'MTBF ↓ 37 % · cost +120 % YoY · repeat-failure cluster', method: 'History Analysis' },
-      { text: 'Corrosion grade C · gasket degradation · seepage 0.4 L/mo', method: 'Field Assessment' },
-      { text: 'PD onset 450 pC · UHF signature trending · acoustic at 38 dB', method: 'PD Diagnostics' },
+      { text: 'MTBF ↓ 37 % · cost +120 % YoY', method: 'History' },
+      { text: 'Corrosion C · gasket ↓ · 0.4 L/mo', method: 'Field Inspect' },
+      { text: 'PD 450 pC · UHF trend · 38 dB', method: 'PD Diagnostics' },
     ],
     crossVal: { label: 'Maintenance Gap Critical', detail: 'Repeat failures + degradation + PD trending converge', confidence: 91 },
     scenarioId: 'avoided-outage',
@@ -202,16 +202,16 @@ const TREE_CLUSTERS: TreeCluster[] = [
 ];
 
 const CROSS_LINKS = [
-  { from: 0, to: 1, label: 'DGA gas profile matches fleet batch failure signature' },
-  { from: 1, to: 2, label: 'OEM end-of-support correlates with field inspection decay' },
-  { from: 0, to: 2, label: 'Load stress accelerating condition degradation' },
+  { from: 0, to: 1, label: 'DGA ↔ Fleet batch correlation' },
+  { from: 1, to: 2, label: 'OEM EoS ↔ Inspection decay' },
+  { from: 0, to: 2, label: 'Load stress ↔ Condition accel.' },
 ];
 
 /* ── Layout constants ── */
 const A_OFF = 12;
-const STAGGER = [-22, 0, 22];
-const ROW = { trigger: 60, agent: 200, finding: 350, deep: 500, crossVal: 660, scenario: 790 };
-const TREE_H = 900;
+const STAGGER = [-30, 0, 30];
+const ROW = { trigger: 60, agent: 210, finding: 360, deep: 520, crossVal: 700, scenario: 840 };
+const TREE_H = 960;
 const VB_W = 1400;
 
 const TRIGGER_COLORS: Record<string, string> = {
@@ -406,9 +406,9 @@ function UnifiedTree() {
             const fromX = (fromC.x + A_OFF) * (VB_W / 100);
             const toX = (toC.x - A_OFF) * (VB_W / 100);
             const midX = (fromX + toX) / 2;
-            const y = ROW.deep + 10;
-            const arcY = li === 2 ? y + 35 : y;
-            const arcBend = li === 2 ? 55 : 50;
+            const y = ROW.deep + 50;
+            const arcY = li === 2 ? y + 30 : y;
+            const arcBend = li === 2 ? 45 : 40;
             const pathId = `xlink-${li}`;
             return (
               <g key={pathId}>
@@ -487,10 +487,10 @@ function UnifiedTree() {
               <div key={`f-${ci}-${fi}`}
                 className={`absolute -translate-x-1/2 transition-all duration-400 ${reveal >= 3 ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
                 style={{ left: `${x}%`, top: ROW.finding - 10 + st, transitionDelay: `${ci * 200 + fi * 100}ms` }}>
-                <div className={`text-[9px] font-mono font-semibold px-2.5 py-1 rounded border max-w-[145px] leading-snug ${
+                <div className={`text-[9px] font-mono font-semibold px-2 py-1 rounded border w-[135px] leading-snug overflow-hidden ${
                   isCrit ? 'border-rose-500/30 bg-rose-500/[0.10] text-rose-300' : 'border-amber-500/30 bg-amber-500/[0.10] text-amber-300'
                 }`}>
-                  {finding.text}
+                  <span className="line-clamp-2">{finding.text}</span>
                 </div>
               </div>
             );
@@ -507,9 +507,9 @@ function UnifiedTree() {
               <div key={`d-${ci}-${di}`}
                 className={`absolute -translate-x-1/2 transition-all duration-500 ${reveal >= 4 ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
                 style={{ left: `${x}%`, top: ROW.deep - 14 + st, transitionDelay: `${ci * 200 + di * 120}ms` }}>
-                <div className={`max-w-[150px] px-2.5 py-1.5 rounded border ${agent?.borderColor || 'border-white/10'} ${agent?.bgColor || 'bg-white/[0.03]'}`}>
-                  <div className={`text-[8px] font-bold uppercase tracking-wider ${agent?.color || 'text-white/50'} mb-0.5`}>{da.method}</div>
-                  <div className="text-[9px] text-white/70 leading-snug">{da.text}</div>
+                <div className={`w-[130px] px-2 py-1.5 rounded border overflow-hidden ${agent?.borderColor || 'border-white/10'} ${agent?.bgColor || 'bg-white/[0.03]'}`}>
+                  <div className={`text-[8px] font-bold uppercase tracking-wider ${agent?.color || 'text-white/50'} mb-0.5 truncate`}>{da.method}</div>
+                  <div className="text-[9px] text-white/70 leading-snug line-clamp-2">{da.text}</div>
                 </div>
               </div>
             );
