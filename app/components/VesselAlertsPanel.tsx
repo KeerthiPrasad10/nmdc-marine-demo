@@ -1,7 +1,7 @@
 'use client';
 
 import { Vessel } from '@/lib/supabase';
-import type { NMDCAlert } from '@/lib/nmdc/alerts';
+import type { WSDOTAlert } from '@/lib/wsdot/alerts';
 import { 
   AlertTriangle, 
   AlertCircle, 
@@ -17,7 +17,7 @@ import {
 
 interface VesselAlertsPanelProps {
   vessel: Vessel;
-  alerts: NMDCAlert[];
+  alerts: WSDOTAlert[];
   onAcknowledge: (id: string) => void;
   onResolve: (id: string) => void;
 }
@@ -148,6 +148,10 @@ export function VesselAlertsPanel({ vessel, alerts, onAcknowledge, onResolve }: 
       case 'hull': return Anchor;
       case 'engine': return Thermometer;
       case 'thruster': return Wrench;
+      case 'equipment': return Wrench;
+      case 'navigation': return Anchor;
+      case 'safety': return AlertTriangle;
+      case 'schedule': return Info;
       default: return Info;
     }
   };

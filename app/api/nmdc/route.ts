@@ -7,30 +7,30 @@ import {
   calculateDistanceNm,
 } from '@/lib/datalastic';
 import { 
-  NMDC_FLEET, 
-  getNMDCVesselByMMSI,
-  getNMDCActiveProjects,
-  NMDCVessel,
-} from '@/lib/nmdc/fleet';
+  WSDOT_FLEET, 
+  getWSDOTVesselByMMSI,
+  getWSDOTActiveRoutes,
+  type WSDOTVessel,
+} from '@/lib/wsdot/fleet';
 
 export const dynamic = 'force-dynamic';
 
-export interface NMDCEnrichedVessel extends SimplifiedVessel {
-  nmdc: NMDCVessel;
+export interface WSDOTEnrichedVessel extends SimplifiedVessel {
+  wsdot: WSDOTVessel;
   isOnline: boolean;
-  distanceFromAbuDhabi?: number;
+  distanceFromSeattle?: number;
 }
 
-// Abu Dhabi port coordinates
-const ABU_DHABI_PORT = { lat: 24.4539, lng: 54.3773 };
+// Seattle Colman Dock (ferry terminal) coordinates
+const SEATTLE_COLMAN_DOCK = { lat: 47.6023, lng: -122.3393 };
 
 /**
- * GET /api/nmdc
+ * GET /api/nmdc  (legacy endpoint, serves WSDOT data)
  * 
- * Fetch NMDC fleet data with enrichment
+ * Fetch WSDOT ferry fleet data with enrichment
  * 
  * Query parameters:
- * - action: 'fleet' | 'vessel' | 'projects' | 'stats'
+ * - action: 'fleet' | 'vessel' | 'routes' | 'stats'
  * - mmsi: vessel MMSI (for single vessel)
  */
 export async function GET(request: NextRequest) {
@@ -49,15 +49,15 @@ export async function GET(request: NextRequest) {
 
     switch (action) {
       case 'fleet': {
-        // Get all NMDC vessels with live positions
-        const mmsiList = NMDC_FLEET.map(v => v.mmsi);
+        // Get all WSDOT vessels with live positions
+        const mmsiList = WSDOT_FLEET.map(v => v.mmsi);
         const liveVessels = await client.getVesselsBulk(mmsiList);
         
-        const enrichedVessels: NMDCEnrichedVessel[] = [];
+        const enrichedVessels: WSDOTEnrichedVessel[] = [];
         const now = Date.now();
 
-        for (const nmdcVessel of NMDC_FLEET) {
-          const liveData = liveVessels.find(v => v.mmsi === nmdcVessel.mmsi);
+        for (const wsdotVessel of WSDOT_FLEET) {
+          const liveData = liveVessels.find(v => v.mmsi === wsdotVessel.mmsi);
           
           if (liveData) {
             const simplified = convertToSimplifiedVessel(liveData);
@@ -66,46 +66,45 @@ export async function GET(request: NextRequest) {
               : 0;
             const isOnline = (now - lastUpdateTime) < 3600000; // 1 hour
             
-            const distanceFromAbuDhabi = calculateDistanceNm(
-              ABU_DHABI_PORT.lat,
-              ABU_DHABI_PORT.lng,
+            const distanceFromSeattle = calculateDistanceNm(
+              SEATTLE_COLMAN_DOCK.lat,
+              SEATTLE_COLMAN_DOCK.lng,
               simplified.position.lat,
               simplified.position.lng
             );
 
             enrichedVessels.push({
               ...simplified,
-              name: nmdcVessel.name, // Use NMDC name (more accurate)
-              nmdc: nmdcVessel,
+              name: wsdotVessel.name, // Use WSDOT name (more accurate)
+              wsdot: wsdotVessel,
               isOnline,
-              distanceFromAbuDhabi: Math.round(distanceFromAbuDhabi * 10) / 10,
+              distanceFromSeattle: Math.round(distanceFromSeattle * 10) / 10,
             });
           } else {
             // Vessel not found in live data - create placeholder
             enrichedVessels.push({
-              id: nmdcVessel.mmsi,
-              mmsi: nmdcVessel.mmsi,
-              imo: nmdcVessel.imo,
-              name: nmdcVessel.name,
-              type: nmdcVessel.type,
-              subType: nmdcVessel.subType,
+              id: wsdotVessel.mmsi,
+              mmsi: wsdotVessel.mmsi,
+              name: wsdotVessel.name,
+              type: 'ferry',
+              subType: wsdotVessel.vesselClass,
               position: { lat: 0, lng: 0 },
               navStatus: 'Unknown',
-              nmdc: nmdcVessel,
+              wsdot: wsdotVessel,
               isOnline: false,
             });
           }
         }
 
-        // Sort: online vessels first, then by distance from Abu Dhabi
+        // Sort: online vessels first, then by distance from Seattle
         enrichedVessels.sort((a, b) => {
           if (a.isOnline !== b.isOnline) return a.isOnline ? -1 : 1;
-          return (a.distanceFromAbuDhabi || 999) - (b.distanceFromAbuDhabi || 999);
+          return (a.distanceFromSeattle || 999) - (b.distanceFromSeattle || 999);
         });
 
         // Calculate fleet stats
         const onlineCount = enrichedVessels.filter(v => v.isOnline).length;
-        const totalCrew = NMDC_FLEET.reduce((sum, v) => sum + (v.crewCount || 0), 0);
+        const totalCrew = WSDOT_FLEET.reduce((sum, v) => sum + (v.crewCount || 0), 0);
         const avgSpeed = enrichedVessels
           .filter(v => v.speed && v.speed > 0)
           .reduce((sum, v, _, arr) => sum + (v.speed || 0) / arr.length, 0);
@@ -114,12 +113,12 @@ export async function GET(request: NextRequest) {
           success: true,
           vessels: enrichedVessels,
           stats: {
-            totalVessels: NMDC_FLEET.length,
+            totalVessels: WSDOT_FLEET.length,
             onlineVessels: onlineCount,
-            offlineVessels: NMDC_FLEET.length - onlineCount,
+            offlineVessels: WSDOT_FLEET.length - onlineCount,
             totalCrew,
             avgSpeed: Math.round(avgSpeed * 10) / 10,
-            activeProjects: getNMDCActiveProjects().length,
+            activeRoutes: getWSDOTActiveRoutes().length,
           },
           meta: {
             fetchedAt: new Date().toISOString(),
@@ -137,11 +136,11 @@ export async function GET(request: NextRequest) {
           }, { status: 400 });
         }
 
-        const nmdcVessel = getNMDCVesselByMMSI(mmsi);
-        if (!nmdcVessel) {
+        const wsdotVessel = getWSDOTVesselByMMSI(mmsi);
+        if (!wsdotVessel) {
           return NextResponse.json({
             success: false,
-            error: 'Vessel not in NMDC fleet',
+            error: 'Vessel not in WSDOT fleet',
           }, { status: 404 });
         }
 
@@ -171,9 +170,9 @@ export async function GET(request: NextRequest) {
           : 0;
         const isOnline = (now - lastUpdateTime) < 3600000;
 
-        const distanceFromAbuDhabi = calculateDistanceNm(
-          ABU_DHABI_PORT.lat,
-          ABU_DHABI_PORT.lng,
+        const distanceFromSeattle = calculateDistanceNm(
+          SEATTLE_COLMAN_DOCK.lat,
+          SEATTLE_COLMAN_DOCK.lng,
           simplified.position.lat,
           simplified.position.lng
         );
@@ -182,42 +181,43 @@ export async function GET(request: NextRequest) {
           success: true,
           vessel: {
             ...simplified,
-            name: nmdcVessel.name,
-            nmdc: nmdcVessel,
+            name: wsdotVessel.name,
+            wsdot: wsdotVessel,
             isOnline,
-            distanceFromAbuDhabi: Math.round(distanceFromAbuDhabi * 10) / 10,
+            distanceFromSeattle: Math.round(distanceFromSeattle * 10) / 10,
           },
           info: vesselInfo,
           history: history?.positions || [],
         });
       }
 
+      case 'routes':
       case 'projects': {
-        const projects = getNMDCActiveProjects();
+        const routes = getWSDOTActiveRoutes();
         return NextResponse.json({
           success: true,
-          projects,
+          routes,
         });
       }
 
       case 'stats': {
         // Quick stats without fetching live data
-        const projects = getNMDCActiveProjects();
-        const vesselsByType = NMDC_FLEET.reduce((acc, v) => {
-          acc[v.type] = (acc[v.type] || 0) + 1;
+        const routes = getWSDOTActiveRoutes();
+        const vesselsByClass = WSDOT_FLEET.reduce((acc, v) => {
+          acc[v.vesselClass] = (acc[v.vesselClass] || 0) + 1;
           return acc;
         }, {} as Record<string, number>);
 
         return NextResponse.json({
           success: true,
           stats: {
-            totalVessels: NMDC_FLEET.length,
-            totalCrew: NMDC_FLEET.reduce((sum, v) => sum + (v.crewCount || 0), 0),
-            activeProjects: projects.length,
-            vesselsByType,
-            projects: projects.map(p => ({
-              name: p.project,
-              vesselCount: p.vessels.length,
+            totalVessels: WSDOT_FLEET.length,
+            totalCrew: WSDOT_FLEET.reduce((sum, v) => sum + (v.crewCount || 0), 0),
+            activeRoutes: routes.length,
+            vesselsByClass,
+            routes: routes.map(r => ({
+              name: r.route,
+              vesselCount: r.vessels.length,
             })),
           },
         });
@@ -230,7 +230,7 @@ export async function GET(request: NextRequest) {
         }, { status: 400 });
     }
   } catch (error) {
-    console.error('NMDC API error:', error);
+    console.error('WSDOT API error:', error);
     return NextResponse.json({
       success: false,
       error: 'API error',
@@ -238,15 +238,3 @@ export async function GET(request: NextRequest) {
     }, { status: 500 });
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-

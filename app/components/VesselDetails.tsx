@@ -5,10 +5,7 @@ import { Vessel, Equipment } from '@/lib/supabase';
 import {
   X,
   Ship,
-  Anchor,
-  Construction,
   Waves,
-  Radar,
   Heart,
   Fuel,
   Users,
@@ -61,32 +58,22 @@ interface VesselDetailsProps {
   onClose: () => void;
 }
 
-const vesselIcons: Record<string, typeof Ship> = {
-  tugboat: Anchor,
-  supply_vessel: Ship,
-  crane_barge: Construction,
-  dredger: Waves,
-  survey_vessel: Radar,
-};
-
-const vesselTypeLabels: Record<string, string> = {
-  tugboat: 'Tugboat',
-  supply_vessel: 'Supply Vessel',
-  crane_barge: 'Crane Barge',
-  dredger: 'Dredger',
-  survey_vessel: 'Survey Vessel',
-  pipelay_barge: 'Pipelay Barge',
-  jack_up_barge: 'Jack-Up Barge',
-  accommodation_barge: 'Accommodation Barge',
-  work_barge: 'Work Barge',
-  derrick_barge: 'Derrick Barge',
+const vesselClassLabels: Record<string, string> = {
+  jumbo_mark_ii: 'Jumbo Mark II',
+  jumbo: 'Jumbo',
+  super: 'Super Class',
+  issaquah_130: 'Issaquah 130',
+  olympic: 'Olympic (Kwa-di Tabil)',
+  evergreen_state: 'Evergreen State',
+  ferry: 'Ferry',
 };
 
 function getVesselTypeDisplay(vessel: Vessel): string {
   if (vessel.vessel_class) {
-    return vessel.vessel_class.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    return vesselClassLabels[vessel.vessel_class] ||
+      vessel.vessel_class.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   }
-  return vesselTypeLabels[vessel.type] || vessel.type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  return vesselClassLabels[vessel.type] || vessel.type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
 const fuelTypeLabels: Record<string, { label: string; color: string; description: string }> = {
@@ -102,37 +89,37 @@ const fuelTypeLabels: Record<string, { label: string; color: string; description
 
 const failureModeLabels: Record<string, string> = {
   bearing_wear: 'Bearing Wear',
-  piston_ring_wear: 'Piston Ring Wear',
   fuel_injector_fouling: 'Fuel Injector Fouling',
   turbocharger_failure: 'Turbocharger Failure',
   cooling_system_failure: 'Cooling System Failure',
   lube_oil_degradation: 'Lube Oil Degradation',
-  cavitation_damage: 'Cavitation Damage',
   shaft_misalignment: 'Shaft Misalignment',
   seal_leakage: 'Seal Leakage',
   gearbox_wear: 'Gearbox Wear',
-  thruster_bearing_wear: 'Thruster Bearing Wear',
   hull_fouling: 'Hull Fouling',
   propeller_fouling: 'Propeller Fouling',
   corrosion: 'Corrosion',
   fatigue_cracking: 'Fatigue Cracking',
-  cutter_motor_bearing: 'Cutter Motor Bearing',
-  spud_embedment: 'Spud Embedment',
-  dredge_pump_wear: 'Dredge Pump Wear',
-  suction_pipe_wear: 'Suction Pipe Wear',
-  wire_rope_fatigue: 'Wire Rope Fatigue',
-  crane_boom_fatigue: 'Crane Boom Fatigue',
   hydraulic_leak: 'Hydraulic Leak',
-  winch_brake_wear: 'Winch Brake Wear',
   generator_winding: 'Generator Winding',
   switchboard_failure: 'Switchboard Failure',
   sensor_drift: 'Sensor Drift',
+  ramp_hydraulic_failure: 'Ramp Hydraulic Failure',
+  ramp_hinge_wear: 'Ramp Hinge Wear',
+  fire_suppression_fault: 'Fire Suppression Fault',
+  hvac_compressor_decline: 'HVAC Compressor Decline',
+  emergency_gen_failure: 'Emergency Generator Failure',
+  radar_magnetron_degradation: 'Radar Magnetron Degradation',
+  life_raft_hru_expiry: 'Life Raft HRU Expiry',
+  avr_failure: 'AVR (Voltage Regulator) Failure',
+  inverter_thermal_fault: 'Inverter Thermal Fault',
+  limit_switch_failure: 'Limit Switch Failure',
 };
 
 export function VesselDetails({ vessel: vesselProp, equipment, onClose }: VesselDetailsProps) {
   // Cast to extended type to allow optional PdM fields
   const vessel = vesselProp as ExtendedVessel;
-  const Icon = vesselIcons[vessel.type] || Ship;
+  const Icon = Ship;
   const fuelInfo = fuelTypeLabels['VLSFO']; // Default to VLSFO since fuel_type not in schema
 
   const getHealthColor = (score: number) => {
@@ -329,7 +316,7 @@ export function VesselDetails({ vessel: vesselProp, equipment, onClose }: Vessel
             <div>
               <p className="text-white/40">Position</p>
               <p className="font-medium text-white/85">
-                {vessel.position_lat.toFixed(4)}°N, {vessel.position_lng.toFixed(4)}°E
+                {vessel.position_lat.toFixed(4)}°N, {Math.abs(vessel.position_lng).toFixed(4)}°W
               </p>
             </div>
             <div>
@@ -576,7 +563,7 @@ export function VesselDetails({ vessel: vesselProp, equipment, onClose }: Vessel
             </div>
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-white/40 text-xs">Thruster Vibration</span>
+                <span className="text-white/40 text-xs">Propulsion Vibration</span>
                 <span className={`text-xs px-1.5 py-0.5 rounded ${
                   (vessel.thruster_vibration_mm_s ?? 0) > 7 
                     ? 'bg-red-500/20 text-red-400' 
@@ -618,7 +605,7 @@ export function VesselDetails({ vessel: vesselProp, equipment, onClose }: Vessel
             </div>
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-white/40 text-xs">Rope Health</span>
+                <span className="text-white/40 text-xs">Ramp System</span>
                 <span className={`text-xs px-1.5 py-0.5 rounded ${
                   (vessel.rope_health_score ?? 100) < 70 
                     ? 'bg-red-500/20 text-red-400' 
@@ -631,9 +618,9 @@ export function VesselDetails({ vessel: vesselProp, equipment, onClose }: Vessel
               </div>
               <p className="text-xs text-white/30">
                 {(vessel.rope_health_score ?? 100) < 70 
-                  ? 'ROPE_ALERT risk' 
+                  ? 'Hydraulic service needed' 
                   : (vessel.rope_health_score ?? 100) < 85 
-                  ? 'Inspect soon'
+                  ? 'Schedule inspection'
                   : 'Good condition'}
               </p>
             </div>

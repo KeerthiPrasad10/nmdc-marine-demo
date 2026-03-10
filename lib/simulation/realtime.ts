@@ -17,14 +17,14 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PU
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// UAE/Persian Gulf operating area with weather zones
-const UAE_WATERS = {
-  center: { lat: 24.5, lng: 54.5 },
+// Puget Sound operating area with weather zones
+const PUGET_SOUND_WATERS = {
+  center: { lat: 47.6, lng: -122.4 },
   bounds: {
-    minLat: 23.5,
-    maxLat: 26.5,
-    minLng: 51.5,
-    maxLng: 56.5,
+    minLat: 47.0,
+    maxLat: 48.8,
+    minLng: -123.2,
+    maxLng: -122.2,
   },
 };
 
@@ -43,58 +43,58 @@ interface WeatherZone {
 
 const WEATHER_ZONES: WeatherZone[] = [
   {
-    name: 'Abu Dhabi Coastal',
-    center: { lat: 24.5, lng: 54.4 },
+    name: 'Central Puget Sound',
+    center: { lat: 47.6, lng: -122.4 },
     radius: 0.5,
     baseConditions: {
-      windSpeed: [8, 18],
-      waveHeight: [0.5, 1.5],
+      windSpeed: [5, 15],
+      waveHeight: [0.3, 1.2],
       visibility: [8, 15],
-      temperature: [30, 38],
+      temperature: [8, 18],
     },
   },
   {
-    name: 'Dubai Maritime',
-    center: { lat: 25.2, lng: 55.3 },
+    name: 'North Sound',
+    center: { lat: 48.0, lng: -122.5 },
     radius: 0.4,
     baseConditions: {
-      windSpeed: [10, 22],
-      waveHeight: [0.8, 2.0],
+      windSpeed: [8, 20],
+      waveHeight: [0.5, 1.8],
       visibility: [6, 12],
-      temperature: [28, 36],
+      temperature: [7, 16],
     },
   },
   {
-    name: 'Fujairah Open Sea',
-    center: { lat: 25.1, lng: 56.3 },
+    name: 'Admiralty Inlet',
+    center: { lat: 48.15, lng: -122.7 },
     radius: 0.6,
+    baseConditions: {
+      windSpeed: [10, 25],
+      waveHeight: [0.8, 2.5],
+      visibility: [5, 10],
+      temperature: [6, 15],
+    },
+  },
+  {
+    name: 'San Juan Islands',
+    center: { lat: 48.55, lng: -123.0 },
+    radius: 0.5,
     baseConditions: {
       windSpeed: [12, 28],
       waveHeight: [1.0, 3.0],
-      visibility: [5, 10],
-      temperature: [26, 34],
-    },
-  },
-  {
-    name: 'Das Island Offshore',
-    center: { lat: 25.1, lng: 52.9 },
-    radius: 0.5,
-    baseConditions: {
-      windSpeed: [15, 30],
-      waveHeight: [1.5, 3.5],
       visibility: [4, 8],
-      temperature: [28, 35],
+      temperature: [6, 14],
     },
   },
   {
-    name: 'Ruwais Industrial',
-    center: { lat: 24.1, lng: 52.7 },
+    name: 'South Sound',
+    center: { lat: 47.3, lng: -122.5 },
     radius: 0.4,
     baseConditions: {
-      windSpeed: [10, 20],
-      waveHeight: [0.6, 1.8],
+      windSpeed: [5, 15],
+      waveHeight: [0.3, 1.0],
       visibility: [6, 12],
-      temperature: [32, 42],
+      temperature: [8, 18],
     },
   },
 ];
@@ -328,14 +328,14 @@ async function updateVesselPosition(vessel: {
     newLng = vessel.position_lng + Math.sin(radians) * distance;
     
     // Keep within bounds
-    newLat = Math.max(UAE_WATERS.bounds.minLat, Math.min(UAE_WATERS.bounds.maxLat, newLat));
-    newLng = Math.max(UAE_WATERS.bounds.minLng, Math.min(UAE_WATERS.bounds.maxLng, newLng));
+    newLat = Math.max(PUGET_SOUND_WATERS.bounds.minLat, Math.min(PUGET_SOUND_WATERS.bounds.maxLat, newLat));
+    newLng = Math.max(PUGET_SOUND_WATERS.bounds.minLng, Math.min(PUGET_SOUND_WATERS.bounds.maxLng, newLng));
     
     // Bounce off boundaries
-    if (newLat === UAE_WATERS.bounds.minLat || newLat === UAE_WATERS.bounds.maxLat) {
+    if (newLat === PUGET_SOUND_WATERS.bounds.minLat || newLat === PUGET_SOUND_WATERS.bounds.maxLat) {
       newHeading = (360 - newHeading) % 360;
     }
-    if (newLng === UAE_WATERS.bounds.minLng || newLng === UAE_WATERS.bounds.maxLng) {
+    if (newLng === PUGET_SOUND_WATERS.bounds.minLng || newLng === PUGET_SOUND_WATERS.bounds.maxLng) {
       newHeading = (180 - newHeading + 360) % 360;
     }
   }
@@ -420,10 +420,10 @@ async function updateVesselPosition(vessel: {
   };
 }
 
-// Update offshore assets (pipelines, compressors)
-async function updateOffshoreAssets(): Promise<number> {
+// Update terminal assets (ramps, loading systems)
+async function updateTerminalAssets(): Promise<number> {
   const { data: assets, error } = await supabase
-    .from('offshore_assets')
+    .from('terminal_assets')
     .select('*');
   
   if (error || !assets) return 0;
@@ -508,7 +508,7 @@ async function updateOffshoreAssets(): Promise<number> {
     updates.updated_at = new Date().toISOString();
     
     await supabase
-      .from('offshore_assets')
+      .from('terminal_assets')
       .update(updates)
       .eq('id', asset.id);
     
@@ -557,7 +557,7 @@ async function recordTimeSeries(vesselId: string, vessel: Record<string, unknown
 // Main simulation tick
 export async function runSimulationTick(): Promise<{
   vesselsUpdated: number;
-  offshoreAssetsUpdated: number;
+  terminalAssetsUpdated: number;
   weatherUpdated: boolean;
   simulationSpeed: number;
   simulatedTimeElapsed: number;
@@ -580,7 +580,7 @@ export async function runSimulationTick(): Promise<{
     
     if (!vessels || vessels.length === 0) {
       lastTickTime = currentTime;
-      return { vesselsUpdated: 0, offshoreAssetsUpdated: 0, weatherUpdated: false, simulationSpeed: simulationSpeedMultiplier, simulatedTimeElapsed: 0 };
+      return { vesselsUpdated: 0, terminalAssetsUpdated: 0, weatherUpdated: false, simulationSpeed: simulationSpeedMultiplier, simulatedTimeElapsed: 0 };
     }
     
     // Update each vessel
@@ -596,8 +596,8 @@ export async function runSimulationTick(): Promise<{
       await recordTimeSeries(vessel.id, { ...vessel, ...updates });
     }
     
-    // Update offshore assets
-    const offshoreUpdated = await updateOffshoreAssets();
+    // Update terminal assets
+    const terminalUpdated = await updateTerminalAssets();
     
     // Calculate fleet center for weather
     const avgLat = vessels.reduce((sum, v) => sum + v.position_lat, 0) / vessels.length;
@@ -618,7 +618,7 @@ export async function runSimulationTick(): Promise<{
     
     return {
       vesselsUpdated: vessels.length,
-      offshoreAssetsUpdated: offshoreUpdated,
+      terminalAssetsUpdated: terminalUpdated,
       weatherUpdated: !weatherError,
       simulationSpeed: simulationSpeedMultiplier,
       simulatedTimeElapsed: simulatedElapsed,
@@ -628,7 +628,7 @@ export async function runSimulationTick(): Promise<{
     lastTickTime = Date.now();
     return {
       vesselsUpdated: 0,
-      offshoreAssetsUpdated: 0,
+      terminalAssetsUpdated: 0,
       weatherUpdated: false,
       simulationSpeed: simulationSpeedMultiplier,
       simulatedTimeElapsed: 0,
@@ -663,7 +663,7 @@ export function startSimulation(intervalMs: number = 5000): void {
   console.log(`Starting enhanced real-time simulation (interval: ${intervalMs}ms, speed: ${simulationSpeedMultiplier}x)`);
   simulationInterval = setInterval(async () => {
     const result = await runSimulationTick();
-    console.log(`Simulation tick: ${result.vesselsUpdated} vessels, ${result.offshoreAssetsUpdated} offshore assets updated`);
+    console.log(`Simulation tick: ${result.vesselsUpdated} vessels, ${result.terminalAssetsUpdated} terminal assets updated`);
   }, intervalMs);
 }
 

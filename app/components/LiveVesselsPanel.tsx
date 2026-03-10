@@ -24,14 +24,13 @@ interface LiveVesselsPanelProps {
 }
 
 const TYPE_COLORS: Record<string, { color: string; label: string }> = {
-  dredger: { color: '#f97316', label: 'Dredger' },
-  hopper_dredger: { color: '#ef4444', label: 'Hopper Dredger' },
-  csd: { color: '#a855f7', label: 'Cutter Suction' },
-  tug: { color: '#10b981', label: 'Tugboat' },
-  supply: { color: '#3b82f6', label: 'Supply Vessel' },
-  barge: { color: '#f59e0b', label: 'Barge' },
-  survey: { color: '#06b6d4', label: 'Survey Vessel' },
-  crane_barge: { color: '#eab308', label: 'Crane Barge' },
+  ferry: { color: '#3b82f6', label: 'Ferry' },
+  jumbo_mark_ii: { color: '#6366f1', label: 'Jumbo Mark II' },
+  jumbo: { color: '#8b5cf6', label: 'Jumbo' },
+  super_class: { color: '#10b981', label: 'Super Class' },
+  issaquah_130: { color: '#f59e0b', label: 'Issaquah 130' },
+  olympic: { color: '#06b6d4', label: 'Olympic' },
+  evergreen_state: { color: '#eab308', label: 'Evergreen State' },
   unknown: { color: '#9ca3af', label: 'Unknown' },
 };
 
@@ -69,7 +68,7 @@ export function LiveVesselsPanel({
   const meta = fleetMeta ?? internalMeta;
   const isLoading = externalLoading ?? internalLoading;
 
-  // Fetch NMDC fleet (only if not using external data)
+  // Fetch WSDOT fleet (only if not using external data)
   const fetchFleet = useCallback(async (forceRefresh = false) => {
     if (fleetData) return; // Skip if using external data
     
@@ -203,7 +202,7 @@ export function LiveVesselsPanel({
     const vesselsWithPosition = vessels.filter(v => v.position?.lat && v.position?.lng);
 
     vesselsWithPosition.forEach(vessel => {
-      const color = getTypeColor(vessel.nmdc?.type || vessel.type);
+      const color = getTypeColor(vessel.wsdot?.vesselClass || vessel.type);
       const isSelected = selectedVessel?.mmsi === vessel.mmsi;
       const isOnline = vessel.isOnline;
 
@@ -264,7 +263,7 @@ export function LiveVesselsPanel({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Radio className={`h-4 w-4 ${meta?.rateLimited ? 'text-amber-400' : 'text-green-400'} ${!meta?.cached && !meta?.rateLimited ? 'animate-pulse' : ''}`} />
-            <span className="text-sm font-medium text-white">NMDC Fleet</span>
+            <span className="text-sm font-medium text-white">WSDOT Fleet</span>
             <span className="text-xs text-white/40">
               {onlineCount}/{vessels.length}
             </span>
@@ -344,9 +343,9 @@ export function LiveVesselsPanel({
           <div className="flex items-center gap-3">
             <div
               className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 relative"
-              style={{ backgroundColor: `${getTypeColor(selectedVessel.nmdc?.type || selectedVessel.type)}20` }}
+              style={{ backgroundColor: `${getTypeColor(selectedVessel.wsdot?.vesselClass || selectedVessel.type)}20` }}
             >
-              <Ship className="h-4 w-4" style={{ color: getTypeColor(selectedVessel.nmdc?.type || selectedVessel.type) }} />
+              <Ship className="h-4 w-4" style={{ color: getTypeColor(selectedVessel.wsdot?.vesselClass || selectedVessel.type) }} />
               {selectedVessel.isOnline && (
                 <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-[#0a0a0a]" />
               )}

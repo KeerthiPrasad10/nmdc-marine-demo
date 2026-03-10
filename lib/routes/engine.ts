@@ -1,15 +1,14 @@
 /**
- * Route Engine - Maritime routing for Persian Gulf & Arabian Sea
+ * Route Engine - Maritime routing for Puget Sound & Salish Sea
  * 
- * Custom routing solution designed specifically for NMDC operations
- * in the Persian Gulf, Gulf of Oman, and Arabian Sea.
+ * Custom routing solution designed for WSDOT Ferry operations
+ * in Puget Sound, the San Juan Islands, and the Salish Sea.
  * 
- * Uses a graph-based approach with predefined shipping lane waypoints
- * to ensure routes avoid all land masses (Qatar, Bahrain, UAE mainland,
- * Musandam, Iran coast, Oman).
+ * Uses a graph-based approach with predefined ferry lane waypoints
+ * to ensure routes follow established ferry corridors.
  */
 
-import { SeaRouteWaypoint, calculateDistanceNm, calculateBearing, isDatalasticConfigured, getDatalasticClient } from '@/lib/datalastic';
+import { SeaRouteWaypoint, calculateDistanceNm, calculateBearing } from '@/lib/datalastic';
 import { getWeatherAtLocation } from '@/lib/weather';
 import { 
   Route, 
@@ -36,98 +35,70 @@ export interface VesselProfile {
   };
 }
 
-// Default vessel profiles based on NMDC fleet types
+// Default vessel profiles for WSDOT ferry fleet
 export const VESSEL_PROFILES: Record<string, VesselProfile> = {
-  dredger: {
-    type: 'dredger',
-    cruisingSpeed: 8,
-    maxSpeed: 12,
-    fuelConsumptionRate: 45, // L/nm - dredgers are heavy
-    fuelCostPerLiter: 0.75,
+  ferry: {
+    type: 'ferry',
+    cruisingSpeed: 16,
+    maxSpeed: 21,
+    fuelConsumptionRate: 30, // L/nm - varies by class
+    fuelCostPerLiter: 0.85,
     emissionFactors: { co2PerLiter: 2.68, noxPerLiter: 0.046, soxPerLiter: 0.004 },
   },
-  tugboat: {
-    type: 'tugboat',
-    cruisingSpeed: 12,
-    maxSpeed: 16,
-    fuelConsumptionRate: 25,
-    fuelCostPerLiter: 0.75,
+  // Jumbo Mark II class (largest)
+  jumbo_mk2: {
+    type: 'jumbo_mk2',
+    cruisingSpeed: 18,
+    maxSpeed: 21,
+    fuelConsumptionRate: 45,
+    fuelCostPerLiter: 0.85,
     emissionFactors: { co2PerLiter: 2.68, noxPerLiter: 0.046, soxPerLiter: 0.004 },
   },
-  supply_vessel: {
-    type: 'supply_vessel',
-    cruisingSpeed: 14,
-    maxSpeed: 18,
-    fuelConsumptionRate: 30,
-    fuelCostPerLiter: 0.75,
-    emissionFactors: { co2PerLiter: 2.68, noxPerLiter: 0.046, soxPerLiter: 0.004 },
-  },
-  crane_barge: {
-    type: 'crane_barge',
-    cruisingSpeed: 6,
-    maxSpeed: 8,
+  // Super class
+  super_class: {
+    type: 'super_class',
+    cruisingSpeed: 16,
+    maxSpeed: 19,
     fuelConsumptionRate: 35,
-    fuelCostPerLiter: 0.75,
+    fuelCostPerLiter: 0.85,
     emissionFactors: { co2PerLiter: 2.68, noxPerLiter: 0.046, soxPerLiter: 0.004 },
   },
-  survey_vessel: {
-    type: 'survey_vessel',
-    cruisingSpeed: 10,
-    maxSpeed: 14,
-    fuelConsumptionRate: 18,
-    fuelCostPerLiter: 0.75,
-    emissionFactors: { co2PerLiter: 2.68, noxPerLiter: 0.046, soxPerLiter: 0.004 },
-  },
-  pipelay_barge: {
-    type: 'pipelay_barge',
-    cruisingSpeed: 5,
-    maxSpeed: 7,
-    fuelConsumptionRate: 50,
-    fuelCostPerLiter: 0.75,
-    emissionFactors: { co2PerLiter: 2.68, noxPerLiter: 0.046, soxPerLiter: 0.004 },
-  },
-  jack_up_barge: {
-    type: 'jack_up_barge',
-    cruisingSpeed: 4,
-    maxSpeed: 6,
-    fuelConsumptionRate: 40,
-    fuelCostPerLiter: 0.75,
-    emissionFactors: { co2PerLiter: 2.68, noxPerLiter: 0.046, soxPerLiter: 0.004 },
-  },
-  accommodation_barge: {
-    type: 'accommodation_barge',
-    cruisingSpeed: 6,
-    maxSpeed: 8,
+  // Issaquah class
+  issaquah_class: {
+    type: 'issaquah_class',
+    cruisingSpeed: 15,
+    maxSpeed: 18,
     fuelConsumptionRate: 28,
-    fuelCostPerLiter: 0.75,
+    fuelCostPerLiter: 0.85,
     emissionFactors: { co2PerLiter: 2.68, noxPerLiter: 0.046, soxPerLiter: 0.004 },
   },
-  work_barge: {
-    type: 'work_barge',
-    cruisingSpeed: 7,
-    maxSpeed: 10,
-    fuelConsumptionRate: 32,
-    fuelCostPerLiter: 0.75,
-    emissionFactors: { co2PerLiter: 2.68, noxPerLiter: 0.046, soxPerLiter: 0.004 },
+  // Olympic class (newest hybrid-electric)
+  olympic_class: {
+    type: 'olympic_class',
+    cruisingSpeed: 15,
+    maxSpeed: 17,
+    fuelConsumptionRate: 18, // More efficient hybrid-electric
+    fuelCostPerLiter: 0.85,
+    emissionFactors: { co2PerLiter: 2.68, noxPerLiter: 0.030, soxPerLiter: 0.002 },
   },
   // Default for unknown types
   default: {
     type: 'default',
-    cruisingSpeed: 10,
-    maxSpeed: 14,
-    fuelConsumptionRate: 25,
-    fuelCostPerLiter: 0.75,
+    cruisingSpeed: 15,
+    maxSpeed: 18,
+    fuelConsumptionRate: 30,
+    fuelCostPerLiter: 0.85,
     emissionFactors: { co2PerLiter: 2.68, noxPerLiter: 0.046, soxPerLiter: 0.004 },
   },
 };
 
 // ============================================================================
-// Persian Gulf & Arabian Sea Regional Routing
+// Puget Sound & Salish Sea Regional Routing
 // ============================================================================
 
 /**
- * Shipping lane network nodes for the Persian Gulf region
- * Each node represents a safe offshore waypoint in shipping lanes
+ * Ferry route network nodes for Puget Sound region
+ * Each node represents a safe waypoint along established ferry corridors
  */
 interface NetworkNode {
   id: string;
@@ -137,152 +108,78 @@ interface NetworkNode {
   connections: string[]; // IDs of connected nodes
 }
 
-// Define the maritime network for Persian Gulf / Gulf of Oman / Arabian Sea
-// 
+// Define the maritime network for Puget Sound / San Juan Islands / Salish Sea
+//
 // CRITICAL GEOGRAPHY:
-// - Abu Dhabi ISLAND is at ~24.45, 54.38 (the city)
-// - Musaffah port is on MAINLAND at 24.335, 54.44 (faces the channel)
-// - The WATER CHANNEL runs between the island and mainland (west to east)
-// - Persian Gulf OPEN WATER is to the NORTH and WEST of Abu Dhabi
-// - SOUTH of Abu Dhabi is DESERT - no water!
-// - Khalifa Port is at 24.79, 54.68 - on the coast north of the island
+// - Seattle waterfront at ~47.60, -122.34 (Colman Dock)
+// - Bainbridge Island across Elliott Bay
+// - Kitsap Peninsula to the west
+// - Whidbey Island to the north
+// - San Juan Islands in the far north
+// - Tacoma to the south
 //
 const MARITIME_NETWORK: NetworkNode[] = [
   // ============================================================================
-  // MUSAFFAH CHANNEL - Water between Abu Dhabi island and mainland
-  // Route: Musaffah → WEST through channel → Open Gulf
+  // SEATTLE / ELLIOTT BAY - Central hub
   // ============================================================================
-  { id: 'MUS_CH1', lat: 24.38, lon: 54.30, name: 'Mussafah Channel W', connections: ['MUS_CH2', 'ABU_W1'] },
-  { id: 'MUS_CH2', lat: 24.40, lon: 54.15, name: 'Channel Exit', connections: ['MUS_CH1', 'ABU_W1', 'ABU_W2'] },
+  { id: 'SEA_01', lat: 47.602, lon: -122.338, name: 'Colman Dock', connections: ['SEA_02', 'BAIN_01', 'BREM_01'] },
+  { id: 'SEA_02', lat: 47.620, lon: -122.370, name: 'Elliott Bay', connections: ['SEA_01', 'SEA_03', 'BAIN_01'] },
+  { id: 'SEA_03', lat: 47.660, lon: -122.410, name: 'Shilshole Bay', connections: ['SEA_02', 'EDM_01', 'KING_01'] },
   
   // ============================================================================
-  // ABU DHABI WEST - Open water WEST of Abu Dhabi island
-  // This is the Persian Gulf - actual navigable water
+  // BAINBRIDGE ISLAND ROUTE
   // ============================================================================
-  { id: 'ABU_W1', lat: 24.48, lon: 54.05, name: 'Abu Dhabi NW', connections: ['MUS_CH1', 'MUS_CH2', 'ABU_W2', 'ABU_N1'] },
-  { id: 'ABU_W2', lat: 24.35, lon: 53.90, name: 'Abu Dhabi W', connections: ['MUS_CH2', 'ABU_W1', 'UAE_03'] },
+  { id: 'BAIN_01', lat: 47.610, lon: -122.450, name: 'Mid-Sound Crossing', connections: ['SEA_01', 'SEA_02', 'BAIN_02'] },
+  { id: 'BAIN_02', lat: 47.623, lon: -122.510, name: 'Eagle Harbor Approach', connections: ['BAIN_01', 'BAIN_03'] },
+  { id: 'BAIN_03', lat: 47.624, lon: -122.527, name: 'Bainbridge Terminal', connections: ['BAIN_02'] },
   
   // ============================================================================
-  // ABU DHABI NORTH - Water NORTH of Abu Dhabi (to Khalifa Port)
+  // BREMERTON ROUTE
   // ============================================================================
-  { id: 'ABU_N1', lat: 24.60, lon: 54.20, name: 'Abu Dhabi N Offshore', connections: ['ABU_W1', 'ABU_N2', 'UAE_07'] },
-  { id: 'ABU_N2', lat: 24.75, lon: 54.45, name: 'W of Khalifa Port', connections: ['ABU_N1', 'KHL_01'] },
-  { id: 'KHL_01', lat: 24.80, lon: 54.62, name: 'Khalifa Port Approach', connections: ['ABU_N2', 'UAE_04'] },
+  { id: 'BREM_01', lat: 47.580, lon: -122.420, name: 'Rich Passage Approach', connections: ['SEA_01', 'BREM_02'] },
+  { id: 'BREM_02', lat: 47.560, lon: -122.530, name: 'Rich Passage', connections: ['BREM_01', 'BREM_03'] },
+  { id: 'BREM_03', lat: 47.562, lon: -122.622, name: 'Bremerton Terminal', connections: ['BREM_02'] },
   
   // ============================================================================
-  // UAE COAST - Main offshore shipping lane (Persian Gulf)
-  // All points are in WATER - verified against nautical charts
+  // EDMONDS - KINGSTON ROUTE
   // ============================================================================
-  { id: 'UAE_03', lat: 24.25, lon: 53.40, name: 'Jebel Dhanna Offshore', connections: ['ABU_W2', 'UAE_05', 'UAE_07'] },
-  { id: 'UAE_04', lat: 24.90, lon: 54.80, name: 'Jebel Ali Approach', connections: ['ABU_N2', 'UAE_06', 'UAE_07'] },
-  { id: 'UAE_05', lat: 24.40, lon: 52.80, name: 'Ruwais Offshore', connections: ['UAE_03', 'UAE_08'] },
-  { id: 'UAE_06', lat: 25.10, lon: 55.10, name: 'Dubai Offshore', connections: ['UAE_04', 'DXB_01', 'UAE_09'] },
-  { id: 'DXB_01', lat: 25.25, lon: 55.25, name: 'Dubai Port Approach', connections: ['UAE_06', 'UAE_09'] },
-  { id: 'UAE_07', lat: 24.70, lon: 53.80, name: 'Central Gulf UAE', connections: ['ABU_N1', 'UAE_03', 'UAE_04', 'CENT_01'] },
-  { id: 'UAE_08', lat: 24.70, lon: 52.50, name: 'Zirku-Das Area', connections: ['UAE_05', 'CENT_02', 'CENT_01'] },
-  { id: 'UAE_09', lat: 25.40, lon: 55.30, name: 'Sharjah Offshore', connections: ['UAE_06', 'DXB_01', 'UAE_10'] },
-  { id: 'UAE_10', lat: 25.70, lon: 55.70, name: 'N UAE Offshore', connections: ['UAE_09', 'HORM_01'] },
+  { id: 'EDM_01', lat: 47.810, lon: -122.383, name: 'Edmonds Terminal', connections: ['SEA_03', 'KING_01'] },
+  { id: 'KING_01', lat: 47.800, lon: -122.490, name: 'Mid-Sound Kingston', connections: ['SEA_03', 'EDM_01', 'KING_02'] },
+  { id: 'KING_02', lat: 47.797, lon: -122.496, name: 'Kingston Terminal', connections: ['KING_01'] },
   
   // ============================================================================
-  // CENTRAL PERSIAN GULF - main shipping lanes (deep water)
+  // MUKILTEO - CLINTON (WHIDBEY ISLAND) ROUTE
   // ============================================================================
-  { id: 'CENT_01', lat: 25.00, lon: 53.50, name: 'Central Gulf E', connections: ['UAE_07', 'UAE_08', 'CENT_02', 'CENT_03'] },
-  { id: 'CENT_02', lat: 24.80, lon: 52.90, name: 'Central Gulf C', connections: ['UAE_08', 'CENT_01', 'CENT_04'] },
-  { id: 'CENT_03', lat: 25.50, lon: 53.10, name: 'Central Gulf NE', connections: ['CENT_01', 'CENT_05', 'IRAN_01'] },
-  { id: 'CENT_04', lat: 24.60, lon: 52.50, name: 'Das Island Area', connections: ['CENT_02', 'CENT_05', 'SQAT_01'] },
-  { id: 'CENT_05', lat: 25.30, lon: 52.50, name: 'Halul Approach', connections: ['CENT_03', 'CENT_04', 'CENT_06'] },
-  { id: 'CENT_06', lat: 25.70, lon: 52.00, name: 'Halul Island Area', connections: ['CENT_05', 'QNOR_01', 'QEAS_01'] },
+  { id: 'MUK_01', lat: 47.947, lon: -122.304, name: 'Mukilteo Terminal', connections: ['MUK_02', 'EDM_01'] },
+  { id: 'MUK_02', lat: 47.960, lon: -122.370, name: 'Possession Sound', connections: ['MUK_01', 'CLIN_01'] },
+  { id: 'CLIN_01', lat: 47.975, lon: -122.352, name: 'Clinton Terminal', connections: ['MUK_02', 'WHID_01'] },
   
   // ============================================================================
-  // SOUTH OF QATAR - main route avoiding Qatar peninsula
+  // WHIDBEY ISLAND / COUPEVILLE
   // ============================================================================
-  { id: 'SQAT_01', lat: 24.200, lon: 52.200, name: 'South Qatar 1', connections: ['CENT_04', 'SQAT_02'] },
-  { id: 'SQAT_02', lat: 24.100, lon: 51.700, name: 'South Qatar 2', connections: ['SQAT_01', 'SQAT_03', 'QEAS_01'] },
-  { id: 'SQAT_03', lat: 24.150, lon: 51.200, name: 'South Qatar 3', connections: ['SQAT_02', 'SQAT_04'] },
-  { id: 'SQAT_04', lat: 24.300, lon: 50.700, name: 'SW Qatar', connections: ['SQAT_03', 'QWES_01', 'SAUD_01'] },
+  { id: 'WHID_01', lat: 48.160, lon: -122.680, name: 'Keystone Harbor', connections: ['CLIN_01', 'WHID_02'] },
+  { id: 'WHID_02', lat: 48.120, lon: -122.760, name: 'Admiralty Inlet', connections: ['WHID_01', 'PT_01'] },
+  { id: 'PT_01', lat: 48.113, lon: -122.759, name: 'Port Townsend', connections: ['WHID_02'] },
   
   // ============================================================================
-  // EAST OF QATAR - Doha approach
+  // ANACORTES - SAN JUAN ISLANDS
   // ============================================================================
-  { id: 'QEAS_01', lat: 24.800, lon: 51.800, name: 'SE Qatar', connections: ['SQAT_02', 'CENT_06', 'QEAS_02'] },
-  { id: 'QEAS_02', lat: 25.200, lon: 51.600, name: 'E Doha', connections: ['QEAS_01', 'QNOR_01'] },
+  { id: 'ANA_01', lat: 48.507, lon: -122.678, name: 'Anacortes Terminal', connections: ['ANA_02'] },
+  { id: 'ANA_02', lat: 48.530, lon: -122.800, name: 'Guemes Channel', connections: ['ANA_01', 'SJI_01', 'SJI_02'] },
+  { id: 'SJI_01', lat: 48.535, lon: -122.893, name: 'Lopez Island', connections: ['ANA_02', 'SJI_02', 'SJI_03'] },
+  { id: 'SJI_02', lat: 48.560, lon: -122.950, name: 'Shaw Island', connections: ['ANA_02', 'SJI_01', 'SJI_03', 'SJI_04'] },
+  { id: 'SJI_03', lat: 48.595, lon: -123.010, name: 'Orcas Island', connections: ['SJI_01', 'SJI_02'] },
+  { id: 'SJI_04', lat: 48.535, lon: -123.015, name: 'Friday Harbor', connections: ['SJI_02', 'SID_01'] },
+  { id: 'SID_01', lat: 48.630, lon: -123.170, name: 'Sidney BC Approach', connections: ['SJI_04'] },
   
   // ============================================================================
-  // NORTH OF QATAR - route to Bahrain/Saudi
+  // SOUTH SOUND - TACOMA / VASHON
   // ============================================================================
-  { id: 'QNOR_01', lat: 25.800, lon: 51.800, name: 'NE Qatar', connections: ['CENT_06', 'QEAS_02', 'QNOR_02'] },
-  { id: 'QNOR_02', lat: 26.200, lon: 51.400, name: 'N Qatar', connections: ['QNOR_01', 'QWES_02', 'BAHR_01'] },
-  
-  // ============================================================================
-  // WEST OF QATAR - Bahrain approach
-  // ============================================================================
-  { id: 'QWES_01', lat: 25.000, lon: 50.400, name: 'W Qatar S', connections: ['SQAT_04', 'QWES_02', 'SAUD_02'] },
-  { id: 'QWES_02', lat: 25.600, lon: 50.300, name: 'W Qatar N', connections: ['QWES_01', 'QNOR_02', 'BAHR_01'] },
-  
-  // ============================================================================
-  // BAHRAIN AREA
-  // ============================================================================
-  { id: 'BAHR_01', lat: 26.300, lon: 50.700, name: 'Bahrain E', connections: ['QNOR_02', 'QWES_02', 'BAHR_02'] },
-  { id: 'BAHR_02', lat: 26.500, lon: 50.300, name: 'Bahrain N', connections: ['BAHR_01', 'SAUD_03'] },
-  
-  // ============================================================================
-  // SAUDI ARABIA COAST
-  // ============================================================================
-  { id: 'SAUD_01', lat: 24.500, lon: 50.200, name: 'Saudi S', connections: ['SQAT_04', 'SAUD_02'] },
-  { id: 'SAUD_02', lat: 25.500, lon: 49.900, name: 'Saudi Central', connections: ['SAUD_01', 'QWES_01', 'SAUD_03'] },
-  { id: 'SAUD_03', lat: 26.600, lon: 49.800, name: 'Dammam Approach', connections: ['SAUD_02', 'BAHR_02', 'SAUD_04'] },
-  { id: 'SAUD_04', lat: 27.200, lon: 49.600, name: 'Jubail Approach', connections: ['SAUD_03', 'KWAI_01'] },
-  
-  // ============================================================================
-  // IRAN COAST (southern)
-  // ============================================================================
-  { id: 'IRAN_01', lat: 26.000, lon: 53.500, name: 'Iran SW', connections: ['CENT_03', 'IRAN_02'] },
-  { id: 'IRAN_02', lat: 26.500, lon: 53.000, name: 'Iran S Central', connections: ['IRAN_01', 'IRAN_03'] },
-  { id: 'IRAN_03', lat: 27.000, lon: 52.200, name: 'Iran SE', connections: ['IRAN_02', 'IRAN_04', 'KWAI_02'] },
-  { id: 'IRAN_04', lat: 27.200, lon: 51.400, name: 'Kangan Area', connections: ['IRAN_03', 'KWAI_02'] },
-  
-  // ============================================================================
-  // KUWAIT / IRAQ
-  // ============================================================================
-  { id: 'KWAI_01', lat: 28.200, lon: 49.200, name: 'Kuwait S', connections: ['SAUD_04', 'KWAI_02', 'KWAI_03'] },
-  { id: 'KWAI_02', lat: 28.000, lon: 50.200, name: 'Kuwait E', connections: ['IRAN_03', 'IRAN_04', 'KWAI_01'] },
-  { id: 'KWAI_03', lat: 29.000, lon: 48.800, name: 'Kuwait Port', connections: ['KWAI_01', 'KWAI_04'] },
-  { id: 'KWAI_04', lat: 29.800, lon: 48.400, name: 'Basra Approach', connections: ['KWAI_03'] },
-  
-  // ============================================================================
-  // STRAIT OF HORMUZ - detailed shipping lane
-  // ============================================================================
-  { id: 'HORM_01', lat: 25.900, lon: 56.100, name: 'Hormuz Approach', connections: ['UAE_10', 'HORM_02'] },
-  { id: 'HORM_02', lat: 26.100, lon: 56.400, name: 'Hormuz W', connections: ['HORM_01', 'HORM_03', 'IRAN_05'] },
-  { id: 'HORM_03', lat: 26.000, lon: 56.800, name: 'Hormuz Center', connections: ['HORM_02', 'HORM_04'] },
-  { id: 'HORM_04', lat: 25.700, lon: 57.100, name: 'Hormuz E', connections: ['HORM_03', 'GOOM_01'] },
-  { id: 'IRAN_05', lat: 26.500, lon: 56.600, name: 'Bandar Abbas S', connections: ['HORM_02', 'IRAN_06'] },
-  { id: 'IRAN_06', lat: 26.800, lon: 57.200, name: 'Bandar Abbas E', connections: ['IRAN_05', 'GOOM_02'] },
-  
-  // ============================================================================
-  // GULF OF OMAN - staying well offshore
-  // ============================================================================
-  { id: 'GOOM_01', lat: 25.200, lon: 57.600, name: 'Gulf of Oman NW', connections: ['HORM_04', 'GOOM_02', 'GOOM_03'] },
-  { id: 'GOOM_02', lat: 25.800, lon: 58.200, name: 'Gulf of Oman N', connections: ['GOOM_01', 'IRAN_06', 'GOOM_04'] },
-  { id: 'GOOM_03', lat: 24.600, lon: 58.000, name: 'Fujairah Offshore', connections: ['GOOM_01', 'GOOM_04', 'GOOM_05'] },
-  { id: 'GOOM_04', lat: 25.000, lon: 58.800, name: 'Gulf of Oman Central N', connections: ['GOOM_02', 'GOOM_03', 'GOOM_06'] },
-  { id: 'GOOM_05', lat: 24.000, lon: 58.500, name: 'Gulf of Oman W', connections: ['GOOM_03', 'GOOM_06', 'GOOM_07'] },
-  { id: 'GOOM_06', lat: 24.200, lon: 59.300, name: 'Gulf of Oman Central', connections: ['GOOM_04', 'GOOM_05', 'GOOM_08'] },
-  { id: 'GOOM_07', lat: 23.400, lon: 59.000, name: 'Muscat Offshore', connections: ['GOOM_05', 'GOOM_08', 'ARAB_01'] },
-  { id: 'GOOM_08', lat: 23.600, lon: 59.800, name: 'Gulf of Oman E', connections: ['GOOM_06', 'GOOM_07', 'ARAB_02'] },
-  
-  // ============================================================================
-  // ARABIAN SEA - open ocean
-  // ============================================================================
-  { id: 'ARAB_01', lat: 22.500, lon: 59.500, name: 'Arabian Sea NW', connections: ['GOOM_07', 'ARAB_02', 'ARAB_03'] },
-  { id: 'ARAB_02', lat: 22.800, lon: 60.500, name: 'Arabian Sea N', connections: ['GOOM_08', 'ARAB_01', 'ARAB_04'] },
-  { id: 'ARAB_03', lat: 21.500, lon: 59.500, name: 'Sur Offshore', connections: ['ARAB_01', 'ARAB_04', 'ARAB_05'] },
-  { id: 'ARAB_04', lat: 22.000, lon: 61.000, name: 'Arabian Sea NE', connections: ['ARAB_02', 'ARAB_03', 'ARAB_06'] },
-  { id: 'ARAB_05', lat: 20.000, lon: 59.000, name: 'Arabian Sea Central W', connections: ['ARAB_03', 'ARAB_06', 'ARAB_07'] },
-  { id: 'ARAB_06', lat: 20.500, lon: 61.500, name: 'Arabian Sea Central', connections: ['ARAB_04', 'ARAB_05', 'ARAB_08'] },
-  { id: 'ARAB_07', lat: 18.000, lon: 57.000, name: 'Duqm Offshore', connections: ['ARAB_05', 'ARAB_09'] },
-  { id: 'ARAB_08', lat: 19.000, lon: 62.500, name: 'Arabian Sea E', connections: ['ARAB_06'] },
-  { id: 'ARAB_09', lat: 17.000, lon: 55.500, name: 'Salalah Offshore', connections: ['ARAB_07'] },
+  { id: 'FNTL_01', lat: 47.520, lon: -122.393, name: 'Fauntleroy Terminal', connections: ['VASH_01', 'SLWY_01'] },
+  { id: 'VASH_01', lat: 47.508, lon: -122.464, name: 'Vashon Heights', connections: ['FNTL_01', 'VASH_02'] },
+  { id: 'VASH_02', lat: 47.390, lon: -122.513, name: 'Tahlequah', connections: ['VASH_01', 'PTDF_01'] },
+  { id: 'PTDF_01', lat: 47.306, lon: -122.514, name: 'Point Defiance', connections: ['VASH_02'] },
+  { id: 'SLWY_01', lat: 47.513, lon: -122.510, name: 'Southworth Terminal', connections: ['FNTL_01'] },
 ];
 
 // Build adjacency map for faster lookups
@@ -400,12 +297,12 @@ function calculateTotalDistance(waypoints: SeaRouteWaypoint[]): number {
 }
 
 /**
- * Check if a point is within the Persian Gulf region
- * where we have reliable maritime network coverage
+ * Check if a point is within the Puget Sound region
+ * where we have reliable ferry network coverage
  */
-function isWithinGulfRegion(lat: number, lon: number): boolean {
-  // Persian Gulf region: lat 23-28, lon 48-57
-  return lat >= 23 && lat <= 28 && lon >= 48 && lon <= 57;
+function isWithinPugetSoundRegion(lat: number, lon: number): boolean {
+  // Puget Sound region: lat 47.0-48.7, lon -123.2 to -122.0
+  return lat >= 47.0 && lat <= 48.7 && lon >= -123.2 && lon <= -122.0;
 }
 
 /**
@@ -419,9 +316,9 @@ const SHORT_ROUTE_THRESHOLD = 25; // nm
  * 
  * Strategy:
  * - For SHORT routes (< 25nm): Use direct route with land-check
- * - For routes WITHIN the Persian Gulf: Use our verified maritime network
- *   (guaranteed to follow shipping lanes and avoid all land)
- * - For routes OUTSIDE or crossing Gulf boundary: Use Datalastic API with corrections
+ * - For routes WITHIN Puget Sound: Use our verified ferry network
+ *   (guaranteed to follow ferry lanes and avoid all land)
+ * - For routes OUTSIDE or crossing region boundary: Use great circle with corrections
  * 
  * Returns waypoints that avoid land and can be further optimized
  */
@@ -495,11 +392,11 @@ export async function fetchSeaRoute(
     }
   }
   
-  // For routes WITHIN the Persian Gulf, check if direct path is clear first
-  const fromInGulf = isWithinGulfRegion(fromLat, fromLon);
-  const toInGulf = isWithinGulfRegion(toLat, toLon);
+  // For routes WITHIN Puget Sound, check if direct path is clear first
+  const fromInRegion = isWithinPugetSoundRegion(fromLat, fromLon);
+  const toInRegion = isWithinPugetSoundRegion(toLat, toLon);
   
-  if (fromInGulf && toInGulf) {
+  if (fromInRegion && toInRegion) {
     // First check if direct path crosses any land
     const landCheck = doesSegmentCrossLand(fromLat, fromLon, toLat, toLon);
     
@@ -523,41 +420,22 @@ export async function fetchSeaRoute(
     };
   }
   
-  // For routes outside the Gulf or crossing boundaries, try Datalastic API
-  if (isDatalasticConfigured()) {
-    try {
-      console.log('[RouteEngine] Requesting route from Datalastic API...');
-      const client = getDatalasticClient();
-      const response = await client.getSeaRouteByCoordinates(fromLat, fromLon, toLat, toLon);
-      
-      if (response.data.route && response.data.route.length > 0) {
-        const apiWaypoints = response.data.route;
-        
-        // Check and correct for land crossings
-        const correctedWaypoints = correctLandCrossings(apiWaypoints);
-        
-        const wasCorrected = correctedWaypoints.length > apiWaypoints.length;
-        
-        console.log('[RouteEngine] Route processed:', {
-          apiPoints: apiWaypoints.length,
-          correctedPoints: correctedWaypoints.length,
-          landCorrected: wasCorrected,
-          distance: response.data.distance.toFixed(1) + ' nm'
-        });
-        
-        return {
-          waypoints: correctedWaypoints,
-          distance: response.data.distance,
-          source: wasCorrected ? 'hybrid' : 'api',
-        };
-      }
-    } catch (error) {
-      console.warn('[RouteEngine] Datalastic API error:', error);
-    }
+  // For routes outside the region, use great circle with land correction
+  console.log('[RouteEngine] Route outside core region - using great circle with corrections');
+  
+  const gcRoute = generateGreatCircleRoute(fromLat, fromLon, toLat, toLon);
+  const correctedWaypoints = correctLandCrossings(gcRoute.waypoints);
+  
+  if (correctedWaypoints.length > 0) {
+    return {
+      waypoints: correctedWaypoints,
+      distance: calculateTotalDistance(correctedWaypoints),
+      source: 'hybrid',
+    };
   }
   
-  // Fallback to maritime network
-  console.log('[RouteEngine] Using maritime network fallback');
+  // Fallback to ferry network
+  console.log('[RouteEngine] Using ferry network fallback');
   const networkRoute = fetchSeaRouteFromNetwork(fromLat, fromLon, toLat, toLon);
   
   return {
@@ -567,71 +445,43 @@ export async function fetchSeaRoute(
 }
 
 /**
- * Check if a point is on land using accurate coastline detection
+ * Check if a point is on land using simplified detection for Puget Sound
  * 
- * IMPORTANT: The Persian Gulf is NORTH of the UAE/Qatar. Land is to the SOUTH.
- * A point is on land if it's SOUTH of (lower latitude than) the coastline.
- * 
- * This uses piecewise linear approximations of the coastline.
+ * The Puget Sound is a complex inland waterway with many peninsulas and islands.
+ * This uses bounding box approximations for the major landmasses.
  */
 function isPointOnLand(lat: number, lon: number): string | null {
-  // Qatar Peninsula - extends north into the Gulf
-  // Qatar mainland is roughly lon 50.75-51.6, lat 24.5-26.2
-  if (lon >= 50.75 && lon <= 51.6 && lat >= 24.5 && lat <= 26.2) {
-    return 'Qatar';
+  // Kitsap Peninsula - between Puget Sound and Hood Canal
+  // Rough bounding: lat 47.3-47.8, lon -122.75 to -122.55
+  if (lat >= 47.35 && lat <= 47.75 && lon >= -122.72 && lon <= -122.55) {
+    return 'Kitsap Peninsula';
   }
   
-  // Bahrain islands - small islands
-  if (lon >= 50.45 && lon <= 50.65 && lat >= 25.9 && lat <= 26.3) {
-    return 'Bahrain';
+  // Seattle / East Shore mainland
+  // East of -122.35 is generally land (Seattle, Bellevue)
+  if (lat >= 47.3 && lat <= 47.8 && lon >= -122.30 && lon <= -122.0) {
+    return 'Seattle Metro';
   }
   
-  // Musandam Peninsula (Oman) - northern tip extending into Strait of Hormuz
-  if (lon >= 56.0 && lon <= 56.45 && lat >= 25.8 && lat <= 26.4) {
-    return 'Musandam';
+  // Whidbey Island - large island in north Puget Sound
+  // Rough bounding: lat 48.0-48.4, lon -122.7 to -122.5
+  if (lat >= 48.05 && lat <= 48.35 && lon >= -122.68 && lon <= -122.50) {
+    return 'Whidbey Island';
   }
   
-  // UAE Mainland - use coastline-based detection
-  // The coastline runs roughly:
-  // - Western UAE (lon 51.5-53): coast at lat ~24.0-24.2
-  // - Abu Dhabi area (lon 53-54.5): coast at lat ~24.2-24.5
-  // - Dubai area (lon 54.5-55.5): coast at lat ~24.5-25.3
-  // - Northern Emirates (lon 55.5-56): coast curves to lat ~25.3-25.5
-  // Points SOUTH of coast (lower lat) = land
-  // Points NORTH of coast (higher lat) = water
-  if (lon >= 51.5 && lon <= 56.5) {
-    let coastLat: number;
-    
-    if (lon < 52.5) {
-      // Western UAE (Ruwais area)
-      coastLat = 24.0 + (lon - 51.5) * 0.1;
-    } else if (lon < 53.5) {
-      // Jebel Dhanna to western Abu Dhabi
-      coastLat = 24.1 + (lon - 52.5) * 0.15;
-    } else if (lon < 54.5) {
-      // Abu Dhabi coast
-      coastLat = 24.25 + (lon - 53.5) * 0.2;
-    } else if (lon < 55.3) {
-      // Abu Dhabi to Dubai
-      coastLat = 24.45 + (lon - 54.5) * 0.9;
-    } else if (lon < 56.0) {
-      // Dubai to Sharjah/Northern Emirates
-      coastLat = 25.17 + (lon - 55.3) * 0.4;
-    } else {
-      // East coast
-      coastLat = 25.45;
-    }
-    
-    // Point is on land if it's SOUTH of the coastline (lower latitude)
-    // and within the UAE land area (above 22.5)
-    if (lat < coastLat && lat > 22.5) {
-      return 'UAE Mainland';
-    }
+  // Olympic Peninsula - west of Hood Canal
+  if (lat >= 47.2 && lat <= 48.3 && lon <= -122.80) {
+    return 'Olympic Peninsula';
   }
   
-  // Iran Coast - land is NORTH of the Gulf (higher latitude)
-  if (lon >= 51.0 && lon <= 56.5 && lat >= 26.8) {
-    return 'Iran Coast';
+  // Vashon Island interior (not the terminal edges)
+  if (lat >= 47.38 && lat <= 47.52 && lon >= -122.50 && lon <= -122.42) {
+    return 'Vashon Island';
+  }
+  
+  // Bainbridge Island interior
+  if (lat >= 47.60 && lat <= 47.68 && lon >= -122.56 && lon <= -122.48) {
+    return 'Bainbridge Island';
   }
   
   return null; // Point is in water
@@ -723,7 +573,7 @@ function correctLandCrossings(waypoints: SeaRouteWaypoint[]): SeaRouteWaypoint[]
 
 /**
  * Fetch route using local maritime network (graph-based routing)
- * Uses predefined offshore waypoints to avoid land
+ * Uses predefined waypoints to avoid land
  * 
  * For points far outside network coverage, generates a hybrid route:
  * - Network routing for segments within coverage
@@ -802,12 +652,12 @@ function fetchSeaRouteFromNetwork(
         let note = '';
         if (node.name.includes('Channel')) {
           note = 'Navigate through protected channel';
-        } else if (node.name.includes('Offshore')) {
-          note = 'Enter offshore shipping lane';
+        } else if (node.name.includes('Channel')) {
+          note = 'Enter ferry shipping lane';
         } else if (node.name.includes('Approach')) {
           note = 'Final approach to destination';
-        } else if (node.name.includes('Central Gulf')) {
-          note = 'Main shipping lane - deep water';
+        } else if (node.name.includes('Sound') || node.name.includes('Mid-Sound')) {
+          note = 'Main ferry corridor';
         } else if (prevNode && nextNode) {
           const bearingIn = calculateBearing(prevNode.lat, prevNode.lon, node.lat, node.lon);
           const bearingOut = calculateBearing(node.lat, node.lon, nextNode.lat, nextNode.lon);
@@ -1195,7 +1045,7 @@ export async function generateRoute(
     ? { ...vesselProfile, cruisingSpeed: options.speed }
     : vesselProfile;
   
-  // Fetch realistic sea route from Datalastic
+  // Fetch realistic sea route using ferry network
   const { waypoints: seaWaypoints, distance: totalDistance } = await fetchSeaRoute(
     origin.lat,
     origin.lng,

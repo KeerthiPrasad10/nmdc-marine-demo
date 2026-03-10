@@ -7,9 +7,10 @@ import * as THREE from 'three';
 interface SupplyVesselModelProps {
   healthScore: number;
   isSelected?: boolean;
-  hasDP?: boolean; // Dynamic Positioning
+  hasDP?: boolean; // Large ferry class flag
 }
 
+// This model represents a WSDOT passenger/vehicle ferry
 export function SupplyVesselModel({ healthScore, isSelected = false, hasDP = true }: SupplyVesselModelProps) {
   const groupRef = useRef<THREE.Group>(null);
   const radarRef = useRef<THREE.Mesh>(null);
@@ -29,160 +30,179 @@ export function SupplyVesselModel({ healthScore, isSelected = false, hasDP = tru
   const healthColor = healthScore >= 80 ? '#10b981' : healthScore >= 60 ? '#f59e0b' : '#ef4444';
   const hullColor = '#1a1a2e';
   const superstructureColor = '#16213e';
-  const accentColor = isSelected ? '#a855f7' : '#22c55e'; // Green for supply vessels
+  const accentColor = isSelected ? '#a855f7' : '#22c55e'; // Green for WSDOT ferries
 
   return (
     <group ref={groupRef}>
-      {/* Hull - long cargo deck */}
+      {/* Hull - wide ferry hull */}
       <mesh position={[0, -0.2, 0]} castShadow>
-        <boxGeometry args={[3.5, 0.5, 1.1]} />
+        <boxGeometry args={[3.5, 0.5, 1.3]} />
         <meshStandardMaterial color={hullColor} metalness={0.3} roughness={0.7} />
       </mesh>
 
-      {/* Bow - slightly pointed */}
-      <mesh position={[1.85, -0.15, 0]} rotation={[0, Math.PI / 4, 0]} castShadow>
-        <boxGeometry args={[0.4, 0.45, 0.4]} />
+      {/* Bow - blunt ferry bow */}
+      <mesh position={[1.85, -0.15, 0]} castShadow>
+        <boxGeometry args={[0.3, 0.45, 1.1]} />
         <meshStandardMaterial color={hullColor} metalness={0.3} roughness={0.7} />
       </mesh>
 
-      {/* Main deck */}
+      {/* Stern - blunt ferry stern */}
+      <mesh position={[-1.85, -0.15, 0]} castShadow>
+        <boxGeometry args={[0.3, 0.45, 1.1]} />
+        <meshStandardMaterial color={hullColor} metalness={0.3} roughness={0.7} />
+      </mesh>
+
+      {/* Vehicle deck (main deck) */}
       <mesh position={[0, 0.08, 0]}>
-        <boxGeometry args={[3.3, 0.06, 1]} />
+        <boxGeometry args={[3.3, 0.06, 1.2]} />
         <meshStandardMaterial color="#374151" metalness={0.2} roughness={0.8} />
       </mesh>
 
-      {/* Cargo deck area (open) */}
-      <mesh position={[0.5, 0.05, 0]}>
-        <boxGeometry args={[2, 0.02, 0.9]} />
-        <meshStandardMaterial color="#1f2937" />
-      </mesh>
-      {/* Deck tie-down points */}
-      {[-0.3, 0.3, 0.9, 1.5].map((x, i) => (
-        <group key={i}>
-          <mesh position={[x, 0.12, 0.35]}>
-            <cylinderGeometry args={[0.03, 0.03, 0.08, 8]} />
-            <meshStandardMaterial color="#6b7280" metalness={0.6} />
-          </mesh>
-          <mesh position={[x, 0.12, -0.35]}>
-            <cylinderGeometry args={[0.03, 0.03, 0.08, 8]} />
-            <meshStandardMaterial color="#6b7280" metalness={0.6} />
-          </mesh>
-        </group>
+      {/* Vehicle deck lane markings */}
+      {[-0.3, 0, 0.3].map((z, i) => (
+        <mesh key={`lane-${i}`} position={[0, 0.12, z]}>
+          <boxGeometry args={[2.8, 0.005, 0.02]} />
+          <meshStandardMaterial color="#fbbf24" emissive="#fbbf24" emissiveIntensity={0.3} />
+        </mesh>
       ))}
 
-      {/* Superstructure at bow */}
-      <mesh position={[-1.1, 0.5, 0]} castShadow>
-        <boxGeometry args={[1, 0.8, 0.9]} />
+      {/* Passenger superstructure - forward section */}
+      <mesh position={[0.6, 0.55, 0]} castShadow>
+        <boxGeometry args={[1.4, 0.8, 1.0]} />
         <meshStandardMaterial color={superstructureColor} metalness={0.2} roughness={0.8} />
       </mesh>
 
-      {/* Bridge deck */}
-      <mesh position={[-1.1, 0.95, 0]} castShadow>
+      {/* Passenger superstructure - aft section */}
+      <mesh position={[-0.6, 0.55, 0]} castShadow>
+        <boxGeometry args={[1.2, 0.8, 1.0]} />
+        <meshStandardMaterial color={superstructureColor} metalness={0.2} roughness={0.8} />
+      </mesh>
+
+      {/* Passenger deck windows - forward port side */}
+      <mesh position={[0.6, 0.6, 0.51]}>
+        <boxGeometry args={[1.2, 0.3, 0.02]} />
+        <meshStandardMaterial color="#1e40af" emissive="#1e40af" emissiveIntensity={0.3} />
+      </mesh>
+      {/* Passenger deck windows - forward starboard side */}
+      <mesh position={[0.6, 0.6, -0.51]}>
+        <boxGeometry args={[1.2, 0.3, 0.02]} />
+        <meshStandardMaterial color="#1e40af" emissive="#1e40af" emissiveIntensity={0.3} />
+      </mesh>
+      {/* Passenger deck windows - aft port side */}
+      <mesh position={[-0.6, 0.6, 0.51]}>
+        <boxGeometry args={[1.0, 0.3, 0.02]} />
+        <meshStandardMaterial color="#1e40af" emissive="#1e40af" emissiveIntensity={0.3} />
+      </mesh>
+      {/* Passenger deck windows - aft starboard side */}
+      <mesh position={[-0.6, 0.6, -0.51]}>
+        <boxGeometry args={[1.0, 0.3, 0.02]} />
+        <meshStandardMaterial color="#1e40af" emissive="#1e40af" emissiveIntensity={0.3} />
+      </mesh>
+
+      {/* Bridge deck (pilot house) */}
+      <mesh position={[0, 1.05, 0]} castShadow>
         <boxGeometry args={[0.9, 0.35, 0.85]} />
         <meshStandardMaterial color={superstructureColor} metalness={0.2} roughness={0.8} />
       </mesh>
 
-      {/* Bridge windows */}
-      <mesh position={[-0.65, 0.55, 0]}>
-        <boxGeometry args={[0.02, 0.35, 0.7]} />
-        <meshStandardMaterial color="#1e40af" emissive="#1e40af" emissiveIntensity={0.3} />
-      </mesh>
-      <mesh position={[-0.65, 1, 0]}>
+      {/* Bridge windows - forward */}
+      <mesh position={[0.46, 1.08, 0]}>
         <boxGeometry args={[0.02, 0.25, 0.65]} />
-        <meshStandardMaterial color="#1e40af" emissive="#1e40af" emissiveIntensity={0.3} />
+        <meshStandardMaterial color="#1e40af" emissive="#1e40af" emissiveIntensity={0.4} />
+      </mesh>
+      {/* Bridge windows - aft */}
+      <mesh position={[-0.46, 1.08, 0]}>
+        <boxGeometry args={[0.02, 0.25, 0.65]} />
+        <meshStandardMaterial color="#1e40af" emissive="#1e40af" emissiveIntensity={0.4} />
       </mesh>
 
       {/* Mast */}
-      <mesh position={[-1.1, 1.35, 0]} castShadow>
+      <mesh position={[0, 1.45, 0]} castShadow>
         <cylinderGeometry args={[0.03, 0.04, 0.5, 8]} />
         <meshStandardMaterial color="#6b7280" />
       </mesh>
 
       {/* Radar */}
-      <group position={[-1.1, 1.6, 0]}>
+      <group position={[0, 1.7, 0]}>
         <mesh ref={radarRef}>
           <boxGeometry args={[0.3, 0.03, 0.06]} />
           <meshStandardMaterial color="#f59e0b" />
         </mesh>
       </group>
 
-      {/* Funnel */}
-      <mesh position={[-1.4, 0.8, 0]} castShadow>
-        <boxGeometry args={[0.25, 0.35, 0.3]} />
+      {/* Funnels (twin stacks) */}
+      <mesh position={[0.3, 0.85, 0.3]} castShadow>
+        <boxGeometry args={[0.2, 0.4, 0.2]} />
+        <meshStandardMaterial color={accentColor} metalness={0.3} roughness={0.7} />
+      </mesh>
+      <mesh position={[0.3, 0.85, -0.3]} castShadow>
+        <boxGeometry args={[0.2, 0.4, 0.2]} />
         <meshStandardMaterial color={accentColor} metalness={0.3} roughness={0.7} />
       </mesh>
 
-      {/* Crane for cargo handling */}
-      <group position={[-0.3, 0.1, 0]}>
-        {/* Crane pedestal */}
-        <mesh position={[0, 0.2, 0]}>
-          <cylinderGeometry args={[0.08, 0.1, 0.3, 8]} />
-          <meshStandardMaterial color="#f59e0b" />
-        </mesh>
-        {/* Crane arm */}
-        <mesh position={[0.4, 0.45, 0]} rotation={[0, 0, 0.3]}>
-          <boxGeometry args={[0.8, 0.08, 0.08]} />
-          <meshStandardMaterial color="#f59e0b" />
-        </mesh>
-      </group>
+      {/* Bow loading ramp */}
+      <mesh position={[1.95, 0.0, 0]} castShadow>
+        <boxGeometry args={[0.15, 0.05, 0.8]} />
+        <meshStandardMaterial color="#4b5563" metalness={0.5} roughness={0.5} />
+      </mesh>
+      {/* Bow ramp hinges */}
+      <mesh position={[1.8, 0.1, 0.35]}>
+        <cylinderGeometry args={[0.03, 0.03, 0.06, 8]} />
+        <meshStandardMaterial color="#6b7280" metalness={0.6} />
+      </mesh>
+      <mesh position={[1.8, 0.1, -0.35]}>
+        <cylinderGeometry args={[0.03, 0.03, 0.06, 8]} />
+        <meshStandardMaterial color="#6b7280" metalness={0.6} />
+      </mesh>
 
-      {/* DP thrusters (if equipped) */}
+      {/* Stern loading ramp */}
+      <mesh position={[-1.95, 0.0, 0]} castShadow>
+        <boxGeometry args={[0.15, 0.05, 0.8]} />
+        <meshStandardMaterial color="#4b5563" metalness={0.5} roughness={0.5} />
+      </mesh>
+
+      {/* Bow thrusters (for docking) */}
       {hasDP && (
         <>
-          {/* Bow thruster tunnel */}
           <mesh position={[1.4, -0.2, 0]} rotation={[Math.PI / 2, 0, 0]}>
-            <cylinderGeometry args={[0.08, 0.08, 1.1, 8]} />
+            <cylinderGeometry args={[0.08, 0.08, 1.3, 8]} />
             <meshStandardMaterial color="#4b5563" />
           </mesh>
           {/* Stern thrusters */}
-          <mesh position={[-1.5, -0.35, 0.3]} rotation={[0, 0, Math.PI / 2]}>
-            <cylinderGeometry args={[0.06, 0.06, 0.15, 8]} />
+          <mesh position={[-1.4, -0.2, 0]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.08, 0.08, 1.3, 8]} />
             <meshStandardMaterial color="#4b5563" />
-          </mesh>
-          <mesh position={[-1.5, -0.35, -0.3]} rotation={[0, 0, Math.PI / 2]}>
-            <cylinderGeometry args={[0.06, 0.06, 0.15, 8]} />
-            <meshStandardMaterial color="#4b5563" />
-          </mesh>
-          {/* DP indicator */}
-          <mesh position={[-1.1, 1.2, 0.3]}>
-            <boxGeometry args={[0.1, 0.05, 0.05]} />
-            <meshStandardMaterial color="#22d3ee" emissive="#22d3ee" emissiveIntensity={0.5} />
           </mesh>
         </>
       )}
 
-      {/* Cargo on deck (containers/equipment) */}
-      <mesh position={[0.8, 0.25, 0]} castShadow>
-        <boxGeometry args={[0.6, 0.3, 0.5]} />
-        <meshStandardMaterial color="#dc2626" metalness={0.2} roughness={0.8} />
-      </mesh>
-      <mesh position={[0.2, 0.2, 0.2]} castShadow>
-        <boxGeometry args={[0.4, 0.2, 0.35]} />
-        <meshStandardMaterial color="#2563eb" metalness={0.2} roughness={0.8} />
-      </mesh>
-
-      {/* Safety rails */}
-      <mesh position={[0.3, 0.18, 0.5]}>
-        <boxGeometry args={[2.5, 0.1, 0.02]} />
+      {/* Safety rails - port side */}
+      <mesh position={[0, 0.18, 0.62]}>
+        <boxGeometry args={[3.2, 0.1, 0.02]} />
         <meshStandardMaterial color="#9ca3af" />
       </mesh>
-      <mesh position={[0.3, 0.18, -0.5]}>
-        <boxGeometry args={[2.5, 0.1, 0.02]} />
+      {/* Safety rails - starboard side */}
+      <mesh position={[0, 0.18, -0.62]}>
+        <boxGeometry args={[3.2, 0.1, 0.02]} />
         <meshStandardMaterial color="#9ca3af" />
       </mesh>
 
       {/* Life rafts */}
-      <mesh position={[-1.3, 0.25, 0.45]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.1, 0.1, 0.08, 12]} />
-        <meshStandardMaterial color="#f97316" />
-      </mesh>
-      <mesh position={[-1.3, 0.25, -0.45]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.1, 0.1, 0.08, 12]} />
-        <meshStandardMaterial color="#f97316" />
-      </mesh>
+      {[0.4, -0.4].map((x, i) => (
+        <group key={`raft-${i}`}>
+          <mesh position={[x, 0.95, 0.52]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.1, 0.1, 0.08, 12]} />
+            <meshStandardMaterial color="#f97316" />
+          </mesh>
+          <mesh position={[x, 0.95, -0.52]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.1, 0.1, 0.08, 12]} />
+            <meshStandardMaterial color="#f97316" />
+          </mesh>
+        </group>
+      ))}
 
       {/* Health indicator */}
-      <mesh position={[-1.1, 1.75, 0]}>
+      <mesh position={[0, 1.85, 0]}>
         <sphereGeometry args={[0.05, 16, 16]} />
         <meshStandardMaterial color={healthColor} emissive={healthColor} emissiveIntensity={0.8} />
       </mesh>
@@ -191,4 +211,3 @@ export function SupplyVesselModel({ healthScore, isSelected = false, hasDP = tru
 }
 
 export default SupplyVesselModel;
-

@@ -362,13 +362,13 @@ function getEquipmentCompatibilityImpacts(change: ProposedChange, state: FleetSt
   const impacts: ImpactItem[] = [];
   const newFuelType = change.parameters.newFuelType as string;
   
-  if (newFuelType === 'LNG') {
+  if (newFuelType === 'DIESEL_ELECTRIC' || newFuelType === 'Hybrid') {
     impacts.push({
       id: 'equipment-retrofit',
       category: 'maintenance',
       direction: 'upstream',
-      title: 'Engine Retrofit Required',
-      description: 'LNG conversion requires significant engine modifications and crew training.',
+      title: 'Hybrid-Electric Retrofit Required',
+      description: 'Diesel-electric or hybrid conversion requires battery systems, motor installation, and crew training.',
       severity: 'critical',
       quantitativeImpact: {
         metric: 'Retrofit Cost',
@@ -659,9 +659,10 @@ function getEmissionsImpacts(change: ProposedChange, state: FleetState): ImpactI
   let reductionFactor = 1.0;
   if (change.type === 'fuel_switch') {
     const newFuel = change.parameters.newFuelType as string;
-    if (newFuel === 'LNG') reductionFactor = 0.75;
-    else if (newFuel === 'MDO') reductionFactor = 0.9;
-    else if (newFuel === 'Hybrid') reductionFactor = 0.8;
+    if (newFuel === 'DIESEL_ELECTRIC') reductionFactor = 0.60;
+    else if (newFuel === 'BIODIESEL') reductionFactor = 0.85;
+    else if (newFuel === 'Hybrid') reductionFactor = 0.70;
+    else if (newFuel === 'ULSD') reductionFactor = 0.92;
   }
   
   const projectedEmissions = currentDailyEmissions * reductionFactor;
@@ -924,9 +925,9 @@ function getESGScoreImpacts(change: ProposedChange, state: FleetState): ImpactIt
   switch (change.type) {
     case 'fuel_switch':
       const newFuel = change.parameters.newFuelType as string;
-      if (newFuel === 'LNG') {
-        scoreChange = 5;
-        description = 'LNG transition improves environmental score';
+      if (newFuel === 'DIESEL_ELECTRIC') {
+        scoreChange = 8;
+        description = 'Diesel-electric conversion significantly improves environmental score';
       } else if (newFuel === 'Hybrid') {
         scoreChange = 3;
         description = 'Hybrid operation improves environmental score';
@@ -1166,63 +1167,62 @@ function calculateConfidence(impacts: ImpactItem[]): number {
 export function generateMockFleetState(): FleetState {
   return {
     vessels: [
-      { id: 'v1', name: 'Al Mirfa', type: 'dredger', status: 'operational', location: { lat: 24.5, lng: 54.0 }, healthScore: 85, fuelLevel: 72, crewCount: 45, dailyOperatingCost: 85000, dailyRevenue: 120000, emissionsPerDay: 45 },
-      { id: 'v2', name: 'Al Hamra', type: 'dredger', status: 'operational', location: { lat: 24.6, lng: 54.1 }, healthScore: 78, fuelLevel: 65, crewCount: 42, dailyOperatingCost: 82000, dailyRevenue: 115000, emissionsPerDay: 42 },
-      { id: 'v3', name: 'SEP-550', type: 'jack_up_barge', status: 'operational', project: 'ZADCO', location: { lat: 24.4, lng: 53.9 }, healthScore: 73, fuelLevel: 80, crewCount: 35, dailyOperatingCost: 65000, dailyRevenue: 95000, emissionsPerDay: 28 },
-      { id: 'v4', name: 'PLB-648', type: 'pipe_lay_barge', status: 'maintenance', location: { lat: 24.3, lng: 54.2 }, healthScore: 60, fuelLevel: 45, crewCount: 50, dailyOperatingCost: 95000, dailyRevenue: 140000, emissionsPerDay: 55 },
+      { id: 'v1', name: 'M/V Puyallup', type: 'ferry', status: 'operational', location: { lat: 47.60, lng: -122.34 }, healthScore: 90, fuelLevel: 80, crewCount: 25, dailyOperatingCost: 15000, dailyRevenue: 30000, emissionsPerDay: 15 },
+      { id: 'v2', name: 'M/V Tacoma', type: 'ferry', status: 'operational', location: { lat: 47.56, lng: -122.62 }, healthScore: 85, fuelLevel: 75, crewCount: 24, dailyOperatingCost: 14500, dailyRevenue: 29000, emissionsPerDay: 14 },
+      { id: 'v3', name: 'M/V Wenatchee', type: 'ferry', status: 'maintenance', location: { lat: 47.62, lng: -122.52 }, healthScore: 70, fuelLevel: 60, crewCount: 22, dailyOperatingCost: 16000, dailyRevenue: 32000, emissionsPerDay: 18 },
+      { id: 'v4', name: 'M/V Spokane', type: 'ferry', status: 'operational', location: { lat: 47.81, lng: -122.38 }, healthScore: 88, fuelLevel: 90, crewCount: 26, dailyOperatingCost: 15500, dailyRevenue: 31000, emissionsPerDay: 16 },
     ],
     projects: [
-      { id: 'p1', name: 'ZADCO Upper Zakum', client: 'ZADCO', status: 'active', priority: 'critical', progress: 45, budget: { allocated: 15000000, spent: 6750000 }, deadline: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), assignedVessels: ['v1', 'v3'], dailyBurnRate: 150000, penaltyPerDayDelay: 50000 },
-      { id: 'p2', name: 'ADNOC LNG Terminal', client: 'ADNOC', status: 'active', priority: 'high', progress: 30, budget: { allocated: 25000000, spent: 7500000 }, deadline: new Date(Date.now() + 120 * 24 * 60 * 60 * 1000), assignedVessels: ['v2', 'v4'], dailyBurnRate: 200000, penaltyPerDayDelay: 75000 },
-      { id: 'p3', name: 'Ras Al Khair Expansion', client: 'Saudi Aramco', status: 'planning', priority: 'medium', progress: 10, budget: { allocated: 8000000, spent: 800000 }, deadline: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000), assignedVessels: [], dailyBurnRate: 80000, penaltyPerDayDelay: 25000 },
+      { id: 'r1', name: 'Seattle-Bainbridge Route', client: 'WSDOT', status: 'active', priority: 'critical', progress: 90, budget: { allocated: 5000000, spent: 4500000 }, deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), assignedVessels: ['v1'], dailyBurnRate: 10000, penaltyPerDayDelay: 5000 },
+      { id: 'r2', name: 'Edmonds-Kingston Route', client: 'WSDOT', status: 'active', priority: 'high', progress: 80, budget: { allocated: 4000000, spent: 3200000 }, deadline: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000), assignedVessels: ['v2', 'v4'], dailyBurnRate: 8000, penaltyPerDayDelay: 4000 },
+      { id: 'r3', name: 'Mukilteo-Clinton Route', client: 'WSDOT', status: 'active', priority: 'medium', progress: 75, budget: { allocated: 3000000, spent: 2250000 }, deadline: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), assignedVessels: ['v3'], dailyBurnRate: 6000, penaltyPerDayDelay: 3000 },
     ],
     crew: [
-      { id: 'c1', name: 'Ahmed Hassan', role: 'Captain', vesselId: 'v1', certifications: ['Master Mariner', 'STCW'], availability: 'assigned' },
-      { id: 'c2', name: 'Mohammed Ali', role: 'Chief Engineer', vesselId: 'v1', certifications: ['Marine Engineering', 'STCW'], availability: 'assigned' },
-      { id: 'c3', name: 'Youssef Ibrahim', role: 'Captain', vesselId: 'v2', certifications: ['Master Mariner', 'STCW'], availability: 'assigned' },
-      { id: 'c4', name: 'Omar Khalid', role: 'First Officer', vesselId: 'v3', certifications: ['Officer of Watch', 'STCW'], availability: 'leave' },
-      { id: 'c5', name: 'Khalid Saeed', role: 'Engineer', certifications: ['Marine Engineering'], availability: 'training' },
+      { id: 'c1', name: 'Captain Smith', role: 'Captain', vesselId: 'v1', certifications: ['Master', 'STCW'], availability: 'assigned' },
+      { id: 'c2', name: 'Chief Engineer Jones', role: 'Chief Engineer', vesselId: 'v1', certifications: ['Engineer', 'STCW'], availability: 'assigned' },
+      { id: 'c3', name: 'Captain Davis', role: 'Captain', vesselId: 'v2', certifications: ['Master', 'STCW'], availability: 'assigned' },
+      { id: 'c4', name: 'First Mate Miller', role: 'First Officer', vesselId: 'v3', certifications: ['Officer', 'STCW'], availability: 'leave' },
+      { id: 'c5', name: 'Engineer White', role: 'Engineer', certifications: ['Engineer'], availability: 'training' },
     ],
     maintenance: [
-      { id: 'm1', vesselId: 'v1', type: 'Engine Overhaul', scheduledDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000), estimatedDuration: 7, priority: 'high', canDefer: false },
-      { id: 'm2', vesselId: 'v3', type: 'Crane Inspection', scheduledDate: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000), estimatedDuration: 3, priority: 'medium', canDefer: true },
-      { id: 'm3', vesselId: 'v2', type: 'Hull Cleaning', scheduledDate: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000), estimatedDuration: 2, priority: 'low', canDefer: true },
+      { id: 'm1', vesselId: 'v1', type: 'Engine Inspection', scheduledDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000), estimatedDuration: 2, priority: 'high', canDefer: false },
+      { id: 'm2', vesselId: 'v3', type: 'Propulsion System Overhaul', scheduledDate: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000), estimatedDuration: 5, priority: 'critical', canDefer: false },
+      { id: 'm3', vesselId: 'v2', type: 'Safety Equipment Check', scheduledDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), estimatedDuration: 1, priority: 'low', canDefer: true },
     ],
     supplyChain: {
       spareParts: [
-        { id: 'sp1', name: 'Main Engine Bearings', quantity: 4, reorderPoint: 5, leadTimeDays: 21 },
-        { id: 'sp2', name: 'Hydraulic Pumps', quantity: 2, reorderPoint: 3, leadTimeDays: 14 },
-        { id: 'sp3', name: 'Generator Parts Kit', quantity: 8, reorderPoint: 4, leadTimeDays: 7 },
+        { id: 'sp1', name: 'Main Engine Filter', quantity: 10, reorderPoint: 5, leadTimeDays: 7 },
+        { id: 'sp2', name: 'Hydraulic Pump Seal Kit', quantity: 3, reorderPoint: 3, leadTimeDays: 14 },
+        { id: 'sp3', name: 'Navigation Sensor', quantity: 1, reorderPoint: 2, leadTimeDays: 21 },
       ],
       fuelContracts: [
-        { id: 'fc1', fuelType: 'HFO', pricePerUnit: 450, minCommitment: 10000, expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) },
-        { id: 'fc2', fuelType: 'MDO', pricePerUnit: 680, minCommitment: 5000, expiryDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000) },
-        { id: 'fc3', fuelType: 'LNG', pricePerUnit: 520, minCommitment: 3000, expiryDate: new Date(Date.now() + 730 * 24 * 60 * 60 * 1000) },
+        { id: 'fc1', fuelType: 'ULSD', pricePerUnit: 0.85, minCommitment: 50000, expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) },
+        { id: 'fc2', fuelType: 'BIODIESEL', pricePerUnit: 0.95, minCommitment: 20000, expiryDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000) },
       ],
       portContracts: [
-        { id: 'pc1', portName: 'Abu Dhabi Port', berthAvailability: 0.7, dailyRate: 15000 },
-        { id: 'pc2', portName: 'Jebel Ali', berthAvailability: 0.25, dailyRate: 18000 },
-        { id: 'pc3', portName: 'Khalifa Port', berthAvailability: 0.85, dailyRate: 12000 },
+        { id: 'pc1', portName: 'Seattle Terminal', berthAvailability: 0.8, dailyRate: 5000 },
+        { id: 'pc2', portName: 'Bainbridge Terminal', berthAvailability: 0.6, dailyRate: 4000 },
+        { id: 'pc3', portName: 'Edmonds Terminal', berthAvailability: 0.75, dailyRate: 4500 },
       ],
     },
     compliance: {
-      imo2030Progress: 65,
-      ciiRatings: { v1: 'B', v2: 'C', v3: 'B', v4: 'C' },
+      imo2030Progress: 75,
+      ciiRatings: { v1: 'A', v2: 'B', v3: 'C', v4: 'A' },
       upcomingAudits: [
-        { date: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000), type: 'ISM Audit' },
-        { date: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), type: 'CII Verification' },
+        { date: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), type: 'USCG Inspection' },
+        { date: new Date(Date.now() + 120 * 24 * 60 * 60 * 1000), type: 'Environmental Audit' },
       ],
       certificates: [
         { name: 'SOLAS', vesselId: 'v1', expiryDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000) },
-        { name: 'ISM', vesselId: 'v2', expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) },
+        { name: 'USCG COI', vesselId: 'v2', expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) },
       ],
     },
     financials: {
-      monthlyBudget: 5000000,
-      currentSpend: 3200000,
-      carbonCreditBalance: 5000,
-      carbonCreditPrice: 85,
-      insurancePremiumBase: 2500000,
+      monthlyBudget: 1500000,
+      currentSpend: 900000,
+      carbonCreditBalance: 1000,
+      carbonCreditPrice: 95,
+      insurancePremiumBase: 1000000,
     },
   };
 }

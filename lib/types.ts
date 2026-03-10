@@ -1,19 +1,10 @@
 // Core vessel types
-export type VesselType = 
-  | 'tugboat' 
-  | 'supply_vessel' 
-  | 'crane_barge' 
-  | 'dredger' 
-  | 'survey_vessel'
-  | 'pipelay_barge'      // NMDC Energy - pipelaying operations
-  | 'jack_up_barge'      // NMDC Energy - jack-up platforms
-  | 'accommodation_barge' // NMDC Energy - offshore accommodation
-  | 'work_barge';         // NMDC Energy - general work barges
+export type VesselType = 'ferry' | 'tugboat' | 'supply_vessel' | 'crane_barge' | 'dredger' | 'survey_vessel';
 export type VesselStatus = 'operational' | 'maintenance' | 'idle' | 'alert';
 export type AlertType = 'weather' | 'equipment' | 'fuel' | 'safety';
 export type AlertSeverity = 'critical' | 'warning' | 'info';
 export type MitigationPriority = 'immediate' | 'high' | 'medium' | 'low';
-export type EquipmentType = 'engine' | 'hydraulics' | 'electrical' | 'navigation' | 'crane' | 'propulsion';
+export type EquipmentType = 'engine' | 'hydraulics' | 'electrical' | 'navigation' | 'propulsion' | 'safety_systems';
 
 export interface Position {
   lat: number;
@@ -61,9 +52,10 @@ export interface Vessel {
   emissions: Emissions;
   crew: CrewStatus;
   equipment: EquipmentStatus[];
-  project: string;
+  route: string;
   destination: Position | null;
   lastUpdate: Date;
+  vessel_class?: string;
 }
 
 export interface WeatherCondition {
@@ -140,4 +132,3 @@ export interface StreamEvent {
   data: Vessel | Alert | WeatherCondition | MaintenancePrediction | FleetMetrics;
   timestamp: Date;
 }
-

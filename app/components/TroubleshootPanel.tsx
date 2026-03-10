@@ -4,10 +4,10 @@
 import { useState, useRef, useEffect, FormEvent, useCallback } from 'react';
 import { Vessel, Weather } from '@/lib/supabase';
 import type { QueryResponse, Source, KnowledgeBase } from '@/lib/sdk/resolve-sdk';
-import { NMDC_FLEET, getNMDCVesselByMMSI, getNMDCVesselTypeName, getNMDCCompanyName, type NMDCVessel } from '@/lib/nmdc/fleet';
+import { WSDOT_FLEET, getWSDOTVesselByMMSI, getWSDOTVesselClassName, type WSDOTVessel } from '@/lib/wsdot/fleet';
 import { DynamicRenderer, type UIResponse, type MultiResponse, type DynamicRendererHandlers } from './troubleshoot';
 
-// Flexible alert type that works with both Supabase Alert and NMDCAlert
+// Flexible alert type that works with both Supabase Alert and WSDOTAlert
 interface FlexibleAlert {
   id: string;
   severity: string;
@@ -49,18 +49,19 @@ interface AppContext {
     specs?: {
       length?: number;
       breadth?: number;
-      depth?: number;
-      dredgingDepth?: number;
-      pumpPower?: string;
-      craneCapacity?: number;
-      accommodation?: number;
-      deckArea?: number;
+      displacement?: number;
+      maxSpeed?: number;
+      horsepower?: number;
+      passengerCapacity?: number;
+      vehicleCapacity?: number;
       yearBuilt?: number;
+      yearRebuilt?: number;
+      propulsionType?: string;
       age?: number;
     };
     
     // Documentation
-    datasheetUrl?: string;
+    routeInfo?: string;
   } | null;
   
   activeAlerts?: Array<{
@@ -379,7 +380,7 @@ export function TroubleshootPanel({
   const buildAppContext = useCallback((): AppContext => {
     const context: AppContext = {};
 
-    // Vessel context - combine runtime data with NMDC fleet config
+    // Vessel context - combine runtime data with WSDOT fleet config
     if (selectedVessel) {
       const v = selectedVessel as Record<string, unknown>;
       
@@ -387,17 +388,17 @@ export function TroubleshootPanel({
       const mmsi = typeof v.mmsi === 'string' ? v.mmsi : 
                    typeof v.id === 'string' && v.id.match(/^\d{9}$/) ? v.id : undefined;
       
-      // Look up full NMDC vessel config for rich data
-      const nmdcVessel: NMDCVessel | undefined = mmsi ? getNMDCVesselByMMSI(mmsi) : undefined;
+      // Look up full WSDOT vessel config for rich data
+      const wsdotVessel: WSDOTVessel | undefined = mmsi ? getWSDOTVesselByMMSI(mmsi) : undefined;
       
-      // Support both position_lat/lng (from NMDC) and current_lat/lng (legacy)
+      // Support both position_lat/lng and current_lat/lng (legacy)
       const lat = typeof v.position_lat === 'number' ? v.position_lat : 
                   typeof v.current_lat === 'number' ? v.current_lat : undefined;
       const lng = typeof v.position_lng === 'number' ? v.position_lng : 
                   typeof v.current_lng === 'number' ? v.current_lng : undefined;
       
       // Calculate vessel age
-      const yearBuilt = nmdcVessel?.specs?.yearBuilt;
+      const yearBuilt = wsdotVessel?.specs?.yearBuilt;
       const currentYear = new Date().getFullYear();
       const age = yearBuilt ? currentYear - yearBuilt : undefined;
       
@@ -405,10 +406,10 @@ export function TroubleshootPanel({
         // Identity
         name: selectedVessel.name,
         mmsi: mmsi,
-        imo: nmdcVessel?.imo || (typeof v.imo === 'string' ? v.imo : undefined),
-        type: nmdcVessel ? getNMDCVesselTypeName(nmdcVessel.type) : selectedVessel.type,
-        subType: nmdcVessel?.subType,
-        company: nmdcVessel ? getNMDCCompanyName(nmdcVessel.company) : undefined,
+        imo: typeof v.imo === 'string' ? v.imo : undefined,
+        type: wsdotVessel ? getWSDOTVesselClassName(wsdotVessel.vesselClass) : selectedVessel.type,
+        subType: wsdotVessel?.vesselClass,
+        company: 'WSDOT Ferries',
         
         // Current state
         status: typeof v.status === 'string' ? v.status : undefined,
@@ -420,26 +421,24 @@ export function TroubleshootPanel({
         heading: typeof v.heading === 'number' ? v.heading : undefined,
         
         // Assignment
-        project: nmdcVessel?.project || (typeof v.project === 'string' ? v.project : undefined),
-        captain: nmdcVessel?.captain,
-        crewCount: nmdcVessel?.crewCount || (typeof v.crew_count === 'number' ? v.crew_count : undefined),
+        project: wsdotVessel?.route || (typeof v.project === 'string' ? v.project : undefined),
+        captain: wsdotVessel?.captain,
+        crewCount: wsdotVessel?.crewCount || (typeof v.crew_count === 'number' ? v.crew_count : undefined),
         
         // Specifications
-        specs: nmdcVessel?.specs ? {
-          length: nmdcVessel.specs.length,
-          breadth: nmdcVessel.specs.breadth,
-          depth: nmdcVessel.specs.depth,
-          dredgingDepth: nmdcVessel.specs.dredgingDepth,
-          pumpPower: nmdcVessel.specs.pumpPower,
-          craneCapacity: nmdcVessel.specs.craneCapacity,
-          accommodation: nmdcVessel.specs.accommodation,
-          deckArea: nmdcVessel.specs.deckArea,
-          yearBuilt: nmdcVessel.specs.yearBuilt,
+        specs: wsdotVessel?.specs ? {
+          length: wsdotVessel.specs.length,
+          breadth: wsdotVessel.specs.breadth,
+          displacement: wsdotVessel.specs.displacement,
+          maxSpeed: wsdotVessel.specs.maxSpeed,
+          horsepower: wsdotVessel.specs.horsepower,
+          passengerCapacity: wsdotVessel.passengerCapacity,
+          vehicleCapacity: wsdotVessel.vehicleCapacity,
+          yearBuilt: wsdotVessel.specs.yearBuilt,
+          yearRebuilt: wsdotVessel.specs.yearRebuilt,
+          propulsionType: wsdotVessel.specs.propulsionType,
           age: age,
         } : undefined,
-        
-        // Documentation
-        datasheetUrl: nmdcVessel?.datasheetUrl,
       };
     }
 

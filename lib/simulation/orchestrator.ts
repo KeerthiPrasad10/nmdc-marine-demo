@@ -106,34 +106,34 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
-// UAE/Persian Gulf WATER boundaries (avoiding land)
-// These coordinates are specifically in the Persian Gulf and Gulf of Oman
+// Puget Sound WATER boundaries (avoiding land)
+// These coordinates are specifically in Puget Sound, Washington
 const BOUNDS = {
-  lat: { min: 24.2, max: 26.2 },
-  lng: { min: 52.5, max: 56.0 },
+  lat: { min: 47.0, max: 48.8 },
+  lng: { min: -123.2, max: -122.2 },
 };
 
 // Key water locations for spawning vessels
 const WATER_ZONES = [
-  { name: 'Abu Dhabi Port', lat: 24.45, lng: 54.37 },
-  { name: 'Dubai Port', lat: 25.27, lng: 55.28 },
-  { name: 'Jebel Ali', lat: 25.02, lng: 55.03 },
-  { name: 'Fujairah', lat: 25.13, lng: 56.35 },
-  { name: 'Das Island', lat: 25.15, lng: 52.87 },
-  { name: 'Zirku Island', lat: 24.88, lng: 53.07 },
-  { name: 'Mubarraz', lat: 24.23, lng: 53.35 },
-  { name: 'Offshore Field 1', lat: 24.8, lng: 53.5 },
-  { name: 'Offshore Field 2', lat: 25.5, lng: 54.2 },
-  { name: 'Offshore Field 3', lat: 24.6, lng: 54.8 },
+  { name: 'Seattle Terminal', lat: 47.6023, lng: -122.3393 },
+  { name: 'Bainbridge Island', lat: 47.6234, lng: -122.5092 },
+  { name: 'Bremerton', lat: 47.5618, lng: -122.6264 },
+  { name: 'Edmonds', lat: 47.8137, lng: -122.3838 },
+  { name: 'Kingston', lat: 47.7965, lng: -122.4946 },
+  { name: 'Anacortes', lat: 48.5071, lng: -122.6779 },
+  { name: 'Friday Harbor', lat: 48.5353, lng: -123.0137 },
+  { name: 'Mukilteo', lat: 47.9482, lng: -122.3044 },
+  { name: 'Vashon Island', lat: 47.5085, lng: -122.4635 },
+  { name: 'Port Townsend', lat: 48.1134, lng: -122.7603 },
 ];
 
 // Weather zones with characteristics
 const WEATHER_ZONES = [
-  { name: 'Abu Dhabi Coastal', lat: 24.4, lng: 54.4, baseTemp: 32, baseWind: 12, baseWave: 0.8 },
-  { name: 'Dubai Maritime', lat: 25.2, lng: 55.3, baseTemp: 33, baseWind: 15, baseWave: 1.0 },
-  { name: 'Fujairah Open Sea', lat: 25.1, lng: 56.3, baseTemp: 30, baseWind: 18, baseWave: 1.5 },
-  { name: 'Das Island Offshore', lat: 25.1, lng: 52.9, baseTemp: 31, baseWind: 20, baseWave: 1.8 },
-  { name: 'Ruwais Industrial', lat: 24.1, lng: 52.7, baseTemp: 34, baseWind: 14, baseWave: 0.6 },
+  { name: 'Central Sound', lat: 47.6, lng: -122.4, baseTemp: 12, baseWind: 12, baseWave: 0.8 },
+  { name: 'North Sound', lat: 48.0, lng: -122.5, baseTemp: 11, baseWind: 15, baseWave: 1.0 },
+  { name: 'Admiralty Inlet', lat: 48.15, lng: -122.7, baseTemp: 10, baseWind: 18, baseWave: 1.5 },
+  { name: 'San Juan Islands', lat: 48.55, lng: -123.0, baseTemp: 10, baseWind: 20, baseWave: 1.8 },
+  { name: 'South Sound', lat: 47.3, lng: -122.5, baseTemp: 12, baseWind: 10, baseWave: 0.6 },
 ];
 
 // ============================================================================

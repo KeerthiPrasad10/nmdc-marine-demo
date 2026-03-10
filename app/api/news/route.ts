@@ -36,15 +36,15 @@ interface PerigonResponse {
 
 // Impact category for fleet operations
 export type FleetImpact = 
-  | 'weather_alert'      // Storms, cyclones, high seas
-  | 'port_disruption'    // Port closures, congestion
-  | 'fuel_prices'        // Oil/fuel price changes
+  | 'weather_alert'      // Storms, wind, high seas
+  | 'port_disruption'    // Terminal closures, congestion
+  | 'fuel_prices'        // Fuel price changes
   | 'regulatory'         // New regulations, compliance
-  | 'security'           // Piracy, geopolitical risks
-  | 'market'             // Industry trends, contracts
-  | 'environmental'      // Emissions, environmental rules
+  | 'security'           // Security risks, threats
+  | 'market'             // Ridership trends, service changes
+  | 'environmental'      // Emissions, marine protection
   | 'incident'           // Accidents, groundings, spills
-  | 'infrastructure'     // New ports, channel dredging
+  | 'infrastructure'     // Terminal upgrades, new routes
   | 'general';           // General industry news
 
 // Recommended action based on news
@@ -92,48 +92,48 @@ const CACHE_DURATION_MS = 10 * 60 * 1000; // 10 minutes
 // Keywords that indicate operational impact
 const IMPACT_KEYWORDS = {
   weather_alert: {
-    keywords: ['storm', 'cyclone', 'hurricane', 'typhoon', 'monsoon', 'high seas', 'rough weather', 'wind warning', 'wave height', 'swell', 'flooding'],
-    operations: ['Vessel movements', 'Offshore operations', 'Crew safety'],
-    description: 'Weather conditions may affect vessel operations',
+    keywords: ['storm', 'wind advisory', 'high seas', 'rough weather', 'wind warning', 'wave height', 'swell', 'flooding', 'fog', 'visibility', 'gale'],
+    operations: ['Ferry sailings', 'Passenger safety', 'Schedule delays'],
+    description: 'Weather conditions may affect ferry operations',
   },
   port_disruption: {
-    keywords: ['port closure', 'port congestion', 'berth', 'terminal', 'dock strike', 'port delay', 'anchorage', 'waiting time'],
-    operations: ['Supply chain', 'Vessel scheduling', 'Cargo operations'],
-    description: 'Port conditions may impact scheduling',
+    keywords: ['terminal closure', 'terminal congestion', 'berth', 'dock strike', 'terminal delay', 'slip closure', 'loading ramp'],
+    operations: ['Ferry scheduling', 'Passenger routing', 'Vehicle loading'],
+    description: 'Terminal conditions may impact ferry schedules',
   },
   fuel_prices: {
-    keywords: ['oil price', 'fuel price', 'bunker', 'brent crude', 'wti', 'diesel', 'lng price', 'opec', 'fuel cost', 'energy price'],
-    operations: ['Operating costs', 'Fuel budgeting', 'Route planning'],
+    keywords: ['oil price', 'fuel price', 'diesel', 'marine diesel', 'fuel cost', 'energy price', 'bunker fuel'],
+    operations: ['Operating costs', 'Fuel budgeting', 'Fare planning'],
     description: 'Fuel cost changes affect operating expenses',
   },
   regulatory: {
-    keywords: ['imo', 'regulation', 'compliance', 'emission standard', 'ballast water', 'solas', 'marpol', 'flag state', 'classification', 'inspection'],
+    keywords: ['uscg', 'regulation', 'compliance', 'emission standard', 'solas', 'fhwa', 'dot regulation', 'inspection', 'coast guard', 'ada compliance'],
     operations: ['Compliance', 'Fleet upgrades', 'Documentation'],
     description: 'Regulatory changes may require action',
   },
   security: {
-    keywords: ['piracy', 'hijack', 'armed robbery', 'security alert', 'geopolitical', 'sanctions', 'war risk', 'red sea', 'houthi', 'iran', 'strait of hormuz'],
-    operations: ['Route planning', 'Security protocols', 'Insurance'],
+    keywords: ['security alert', 'threat', 'suspicious', 'terrorism', 'security breach', 'homeland security', 'tsa maritime'],
+    operations: ['Security protocols', 'Passenger screening', 'Emergency response'],
     description: 'Security situation may affect operations',
   },
   environmental: {
-    keywords: ['emission', 'carbon', 'ets', 'green shipping', 'decarbonization', 'sustainability', 'environmental', 'pollution', 'scrubber'],
-    operations: ['Environmental compliance', 'Fleet strategy', 'Reporting'],
+    keywords: ['emission', 'carbon', 'orca', 'whale', 'marine mammal', 'decarbonization', 'sustainability', 'environmental', 'pollution', 'noise reduction'],
+    operations: ['Environmental compliance', 'Speed restrictions', 'Route adjustments'],
     description: 'Environmental requirements impact',
   },
   incident: {
-    keywords: ['collision', 'grounding', 'fire', 'explosion', 'sinking', 'capsize', 'oil spill', 'rescue', 'mayday', 'accident', 'casualty'],
+    keywords: ['collision', 'grounding', 'fire', 'ferry accident', 'sinking', 'allision', 'oil spill', 'rescue', 'mayday', 'accident', 'casualty'],
     operations: ['Safety protocols', 'Risk assessment', 'Insurance'],
     description: 'Industry incident - review safety protocols',
   },
   infrastructure: {
-    keywords: ['dredging', 'channel', 'new port', 'expansion', 'infrastructure', 'waterway', 'navigation', 'depth'],
-    operations: ['Route access', 'Project opportunities', 'Navigation'],
-    description: 'Infrastructure changes may create opportunities',
+    keywords: ['terminal upgrade', 'new ferry', 'expansion', 'infrastructure', 'electrification', 'hybrid ferry', 'charging station', 'terminal renovation'],
+    operations: ['Route access', 'Service planning', 'Fleet modernization'],
+    description: 'Infrastructure changes may affect operations',
   },
   market: {
-    keywords: ['contract', 'tender', 'charter rate', 'freight rate', 'market', 'demand', 'fleet', 'newbuild', 'acquisition', 'merger'],
-    operations: ['Business development', 'Market positioning', 'Fleet planning'],
+    keywords: ['ridership', 'passenger volume', 'tourism', 'commuter', 'fare', 'service expansion', 'fleet', 'new vessel', 'ferry service'],
+    operations: ['Service planning', 'Capacity management', 'Revenue forecasting'],
     description: 'Market developments for awareness',
   },
 };
@@ -144,25 +144,26 @@ const REGION_CONFIG: Record<string, {
   vessels: string[]; // vessel names in this region
   isHomeRegion: boolean;
 }> = {
-  uae_gulf: {
-    keywords: ['uae', 'abu dhabi', 'dubai', 'qatar', 'saudi', 'bahrain', 'oman', 'kuwait',
-      'persian gulf', 'arabian gulf', 'gulf of oman', 'strait of hormuz',
-      'jebel ali', 'khalifa port', 'mina zayed', 'fujairah', 'khor fakkan',
-      'adnoc', 'nmdc', 'dp world', 'adpc', 'npcc', 'ruwais', 'zakum', 'ghasha'],
-    vessels: ['GHASHA', 'ARZANA', 'AL SADR', 'AL MIRFA', 'AL HAMRA', 'KHALEEJ BAY', 
-      'MARAWAH', 'AL YASSAT', 'SHARK BAY', 'JANANAH', 'AL JABER XII', 'AL GHALLAN',
-      'BARRACUDA', 'INCHCAPE 5', 'UNIQUE SURVEYOR 1', 'DLS-4200', 'DELMA 2000',
-      'PLB-648', 'DLB-750', 'DLB-1000', 'SEP-450', 'SEP-550', 'SEP-650', 'SEP-750',
-      'UMM SHAIF', 'NPCC SAADIYAT', 'NPCC YAS'],
+  puget_sound: {
+    keywords: ['puget sound', 'seattle', 'bainbridge', 'bremerton', 'kingston', 'edmonds',
+      'anacortes', 'friday harbor', 'san juan', 'orcas island', 'lopez island',
+      'whidbey island', 'mukilteo', 'clinton', 'vashon', 'southworth', 'fauntleroy',
+      'wsdot', 'washington state ferries', 'wsf', 'washington dot'],
+    vessels: ['M/V PUYALLUP', 'M/V TACOMA', 'M/V WENATCHEE', 'M/V SPOKANE',
+      'M/V WALLA WALLA', 'M/V HYAK', 'M/V KALEETAN', 'M/V YAKIMA',
+      'M/V ELWHA', 'M/V CATHLAMET', 'M/V CHELAN', 'M/V ISSAQUAH',
+      'M/V KITSAP', 'M/V KITTITAS', 'M/V SAMISH', 'M/V TOKITAE',
+      'M/V CHIMACUM', 'M/V SUQUAMISH', 'M/V TILLIKUM', 'M/V SEALTH',
+      'M/V SALISH', 'M/V KENNEWICK'],
     isHomeRegion: true,
   },
-  red_sea: {
-    keywords: ['red sea', 'suez', 'bab el mandeb', 'houthi', 'yemen', 'egypt suez'],
-    vessels: [], // Vessels transiting through
+  pacific_northwest: {
+    keywords: ['pacific northwest', 'washington state', 'oregon coast', 'british columbia', 'strait of juan de fuca', 'admiralty inlet'],
+    vessels: [], // Vessels potentially affected by regional events
     isHomeRegion: false,
   },
-  indian_ocean: {
-    keywords: ['indian ocean', 'arabian sea', 'india', 'pakistan', 'somalia', 'maldives'],
+  west_coast: {
+    keywords: ['west coast', 'pacific coast', 'california', 'alaska marine highway'],
     vessels: [],
     isHomeRegion: false,
   },
@@ -173,11 +174,11 @@ const REGION_CONFIG: Record<string, {
   },
 };
 
-// Dredging/offshore specific keywords
+// Ferry/passenger vessel specific keywords
 const INDUSTRY_KEYWORDS = [
-  'dredging', 'offshore', 'marine construction', 'reclamation', 'subsea',
-  'anchor handling', 'supply vessel', 'tug', 'barge', 'jack-up',
-  'offshore oil', 'offshore gas', 'platform', 'pipeline', 'drilling',
+  'ferry', 'passenger vessel', 'vehicle ferry', 'ro-ro', 'car ferry',
+  'commuter ferry', 'ferry terminal', 'ferry service', 'ferry route',
+  'ferry ridership', 'ferry schedule', 'passenger safety', 'ferry electrification',
 ];
 
 // Generate recommended actions based on news type and region
@@ -260,15 +261,15 @@ function generateRecommendedActions(
         type: 'review',
         priority: 'immediate',
         description: 'Review security protocols and risk assessment',
-        estimatedImpact: 'May affect routing decisions',
+        estimatedImpact: 'May affect ferry operations',
       });
-      if (region === 'red_sea' || title.toLowerCase().includes('red sea')) {
+      if (region === 'puget_sound') {
         actions.push({
           id: actionId(),
-          type: 'reroute',
+          type: 'alert_crew',
           priority: 'immediate',
-          description: 'Consider Cape of Good Hope routing for transiting vessels',
-          estimatedImpact: '+7-10 days transit time',
+          description: 'Brief ferry crews on security protocols and passenger screening',
+          affectedVessels: affectedVessels.slice(0, 5),
         });
       }
       break;
@@ -436,7 +437,7 @@ function formatArticle(article: PerigonArticle): NewsArticle {
   const isActionable = 
     regionInfo.vessels.length > 0 || 
     impactAnalysis.level === 'critical' ||
-    (impactAnalysis.level === 'high' && regionInfo.region === 'uae_gulf');
+    (impactAnalysis.level === 'high' && regionInfo.region === 'puget_sound');
   
   return {
     id: article.articleId,
@@ -462,45 +463,43 @@ function formatArticle(article: PerigonArticle): NewsArticle {
   };
 }
 
-// NMDC-specific queries - dredging, marine construction, offshore EPC
-const NMDC_QUERIES = [
-  // Direct industry terms
-  'dredging',
-  '"marine construction"',
-  '"land reclamation"',
-  '"offshore construction"',
-  // ADNOC projects (NMDC's main client)
-  'ADNOC offshore',
-  'ADNOC pipeline',
-  'ADNOC platform',
-  // UAE ports (maritime operations only)
-  '"Khalifa Port"',
-  '"Jebel Ali Port"',
-  '"Fujairah Port"',
-  '"Ruwais"',
-  // Offshore oil & gas UAE
-  '"offshore UAE"',
-  '"subsea pipeline"',
-  // Shipping disruptions affecting Gulf
-  '"Strait of Hormuz" shipping',
-  '"Red Sea" shipping',
+// WSDOT ferry-specific queries - ferry operations, Puget Sound, passenger transport
+const WSDOT_QUERIES = [
+  // Direct ferry terms
+  '"Washington State Ferries"',
+  '"WSDOT ferry"',
+  '"Puget Sound ferry"',
+  // Ferry routes and terminals
+  '"Seattle Bainbridge ferry"',
+  '"Anacortes San Juan ferry"',
+  '"Edmonds Kingston ferry"',
+  '"Mukilteo Clinton ferry"',
+  // Regional maritime
+  '"Puget Sound" maritime',
+  '"ferry service" Washington',
+  // Industry topics
+  '"ferry electrification"',
+  '"passenger ferry" safety',
+  // Weather affecting ferry operations
+  '"Puget Sound" weather maritime',
+  '"strait of juan de fuca" shipping',
 ];
 
 // MUST match one of these - very strict
 const MUST_MATCH_KEYWORDS = [
-  // Core NMDC business
-  'dredging', 'dredger', 'reclamation', 
-  'marine construction', 'offshore construction',
-  'subsea', 'pipeline', 'pipelay',
-  'offshore platform', 'offshore oil', 'offshore gas',
-  // Key UAE clients/projects
-  'adnoc', 'nmdc', 'npcc',
-  // UAE ports (only in maritime context)
-  'khalifa port', 'jebel ali port', 'fujairah port', 'ruwais terminal',
-  // Critical shipping lanes
-  'strait of hormuz', 'bab el-mandeb',
-  // Vessels/shipping in Gulf
-  'persian gulf', 'arabian gulf',
+  // Core WSDOT ferry business
+  'ferry', 'ferries', 'passenger vessel', 'car ferry',
+  'washington state ferries', 'wsdot ferry', 'wsf',
+  // Puget Sound operations
+  'puget sound', 'seattle ferry', 'bainbridge ferry',
+  'san juan ferry', 'anacortes ferry',
+  // Ferry terminals
+  'ferry terminal', 'colman dock', 'pier 52',
+  // Regional maritime
+  'strait of juan de fuca', 'admiralty inlet',
+  // Ferry industry
+  'ferry electrification', 'hybrid ferry', 'passenger safety',
+  'ferry ridership', 'ferry service',
 ];
 
 // MUST NOT match these - filters out noise
@@ -512,8 +511,8 @@ const MUST_NOT_KEYWORDS = [
   'fashion', 'luxury', 'retail', 'shopping',
 ];
 
-// Check if article is relevant to NMDC operations
-function isRelevantToNMDC(article: PerigonArticle): boolean {
+// Check if article is relevant to WSDOT ferry operations
+function isRelevantToWSDOT(article: PerigonArticle): boolean {
   const text = `${article.title} ${article.description}`.toLowerCase();
   
   // Must NOT contain noise keywords
@@ -561,12 +560,12 @@ export async function GET(request: Request) {
   }
 
   try {
-    // Fetch news using NMDC-specific queries
+    // Fetch news using WSDOT-specific queries
     const allArticles: PerigonArticle[] = [];
     const seenIds = new Set<string>();
     
-    // Run queries in parallel for speed - use all NMDC queries
-    const queryPromises = NMDC_QUERIES.map(async (query) => {
+    // Run queries in parallel for speed - use all WSDOT queries
+    const queryPromises = WSDOT_QUERIES.map(async (query) => {
       const params = new URLSearchParams({
         apiKey,
         q: query,
@@ -608,7 +607,7 @@ export async function GET(request: Request) {
     if (allArticles.length < 5) {
       const fallbackParams = new URLSearchParams({
         apiKey,
-        q: 'dredging OR "offshore oil" OR "marine construction" OR ADNOC OR "subsea pipeline"',
+        q: '"ferry" OR "Washington State Ferries" OR "Puget Sound" OR "ferry terminal" OR "passenger ferry"',
         size: '30',
         sortBy: 'date',
         showReprints: 'false',
@@ -635,8 +634,8 @@ export async function GET(request: Request) {
       }
     }
     
-    // STRICT FILTER: Only keep articles relevant to NMDC operations
-    const relevantArticles = allArticles.filter(isRelevantToNMDC);
+    // STRICT FILTER: Only keep articles relevant to WSDOT ferry operations
+    const relevantArticles = allArticles.filter(isRelevantToWSDOT);
     
     // If no relevant articles found, return empty with message
     if (relevantArticles.length === 0) {
@@ -659,7 +658,7 @@ export async function GET(request: Request) {
         fetchedAt: new Date().toISOString(),
         articles: [],
         total: 0,
-        message: 'No news matching UAE/Gulf maritime operations found',
+        message: 'No news matching Puget Sound ferry operations found',
         impactSummary: {},
       });
     }

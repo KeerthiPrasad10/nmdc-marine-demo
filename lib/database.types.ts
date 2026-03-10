@@ -632,6 +632,7 @@ export type Database = {
         | "crane_barge"
         | "dredger"
         | "survey_vessel"
+        | "ferry"
       weather_condition: "clear" | "cloudy" | "rain" | "storm" | "fog"
       weather_severity: "normal" | "advisory" | "warning" | "severe"
     }

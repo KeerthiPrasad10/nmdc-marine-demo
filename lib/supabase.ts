@@ -44,7 +44,7 @@ export type FuelConsumptionLog = { id: string; vessel_id: string | null; [key: s
 
 // Placeholder enum types
 export type FuelType = 'VLSFO' | 'ULSFO' | 'MGO' | 'MDO' | 'HFO' | 'LNG' | 'METHANOL' | 'BIOFUEL';
-export type VesselClass = 'heavy_duty_csd' | 'derrick_barge' | 'hopper_dredger' | 'auxiliary_tug' | 'supply_vessel' | 'survey_vessel' | 'crane_barge' | 'accommodation_barge';
+export type VesselClass = 'jumbo_mark_ii' | 'jumbo' | 'super_class' | 'issaquah_130' | 'olympic' | 'evergreen_state' | 'ferry';
 export type FailureMode = 'bearing_wear' | 'piston_ring_wear' | 'fuel_injector_fouling' | 'turbocharger_failure' | 'cooling_system_failure' | 'lube_oil_degradation';
 export type ComplianceStatus = 'compliant' | 'non_compliant' | 'pending' | 'expired';
 export type RegulationType = 'IMO' | 'MARPOL' | 'SOLAS' | 'ISM' | 'MLC' | 'ISPS' | 'LOCAL';
@@ -65,18 +65,18 @@ export type VesselWithCompliance = Vessel & {
 };
 
 // New types for enhanced data model (uncomment when tables exist)
-// export type OffshoreAsset = Database['public']['Tables']['offshore_assets']['Row'];
+// export type TerminalAsset = Database['public']['Tables']['terminal_assets']['Row'];
 // export type AssetTimeseries = Database['public']['Tables']['asset_timeseries']['Row'];
 // export type SafetyEvent = Database['public']['Tables']['safety_events']['Row'];
 
-// Placeholder types for offshore assets
-export type OffshoreAsset = { id: string; name: string; asset_type: string; [key: string]: unknown };
+// Placeholder types for terminal assets
+export type TerminalAsset = { id: string; name: string; asset_type: string; [key: string]: unknown };
 export type AssetTimeseries = { id: string; asset_id: string; [key: string]: unknown };
 export type SafetyEvent = { id: string; asset_id: string | null; [key: string]: unknown };
 
 // New enum types (placeholders)
-export type AssetType = 'pipeline' | 'platform' | 'compressor' | 'wellhead' | 'other';
-export type AssetSubtype = 'Subsea Pipeline' | 'Platform Compressor' | 'Offshore Platform' | 'FPSO' | 'Drilling Rig';
+export type AssetType = 'terminal' | 'dock' | 'maintenance_yard' | 'fueling_station' | 'other';
+export type AssetSubtype = 'Ferry Terminal' | 'Maintenance Facility' | 'Fueling Station' | 'Passenger Terminal' | 'Vehicle Staging';
 export type OpMode = 'ONLINE' | 'STANDBY' | 'MAINT' | 'OFFLINE';
 export type SafetyState = 'GREEN' | 'AMBER' | 'RED';
 

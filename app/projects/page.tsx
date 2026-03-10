@@ -21,7 +21,7 @@ import {
   PROJECT_STATUS_CONFIG,
   getProjectStats,
   type ProjectSite 
-} from '@/lib/nmdc/projects';
+} from '@/lib/wsdot/projects';
 
 interface VesselInfo {
   mmsi: string;
@@ -231,7 +231,7 @@ export default function ProjectsPage() {
               </Link>
               <div>
                 <h1 className="text-xl font-bold">Project Sites</h1>
-                <p className="text-sm text-white/50">NMDC Active & Planned Projects</p>
+                <p className="text-sm text-white/50">WSDOT Active & Planned Routes</p>
               </div>
             </div>
 
@@ -425,16 +425,16 @@ export default function ProjectsPage() {
                       {/* Scope */}
                       {selectedProject.scope && (
                         <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-white/10">
-                          {selectedProject.scope.dredgeVolume && (
+                          {selectedProject.scope.routeLength && (
                             <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg">
                               <Waves className="h-4 w-4 text-orange-400" />
-                              <span className="text-sm">{selectedProject.scope.dredgeVolume}</span>
+                              <span className="text-sm">{selectedProject.scope.routeLength}</span>
                             </div>
                           )}
-                          {selectedProject.scope.depth && (
+                          {selectedProject.scope.travelTime && (
                             <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg">
                               <TrendingUp className="h-4 w-4 text-blue-400" />
-                              <span className="text-sm">{selectedProject.scope.depth}</span>
+                              <span className="text-sm">{selectedProject.scope.travelTime}</span>
                             </div>
                           )}
                           {selectedProject.scope.area && (

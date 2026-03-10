@@ -89,7 +89,7 @@ async function handleSmartOptimization(body: {
   const {
     vesselId,
     vesselName = 'Unknown Vessel',
-    vesselType = 'supply_vessel',
+    vesselType = 'ferry',
     origin,
     destination,
     priorities = { fuel: 60, time: 50, emissions: 40, cost: 50, safety: 70, comfort: 30 },
@@ -200,7 +200,7 @@ async function handleSingleRouteOptimization(body: {
   const {
     vesselId,
     vesselName = 'Unknown Vessel',
-    vesselType = 'supply_vessel',
+    vesselType = 'ferry',
     origin,
     destination,
     priorities = { time: 50, fuel: 50, cost: 50, emissions: 50, safety: 50 },
@@ -289,7 +289,7 @@ async function handleMultiStopOptimization(body: {
   const {
     vesselId,
     vesselName = 'Unknown Vessel',
-    vesselType = 'supply_vessel',
+    vesselType = 'ferry',
     origin,
     stops,
     returnToOrigin = false,

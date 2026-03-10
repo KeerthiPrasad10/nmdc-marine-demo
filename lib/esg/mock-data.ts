@@ -11,18 +11,13 @@ import { getVesselIssues, VESSEL_ISSUES, getVesselIssueSummary } from '../vessel
 // Degraded equipment = higher emissions due to inefficiency
 export function generateVesselEmissions(vessels: Array<{ id: string; name: string; type: string }>): VesselEmissions[] {
   return vessels.map(vessel => {
+    // WSDOT ferry emission baselines (tonnes per month)
+    // Ferries vary by class size
     const baseEmissions = {
-      crane_barge: { co2: 45, nox: 850, sox: 120, pm: 25 },
-      dredger: { co2: 62, nox: 1100, sox: 160, pm: 35 },
-      supply_vessel: { co2: 28, nox: 520, sox: 75, pm: 15 },
-      survey_vessel: { co2: 18, nox: 340, sox: 48, pm: 10 },
-      tugboat: { co2: 22, nox: 410, sox: 58, pm: 12 },
-      pipelay_barge: { co2: 52, nox: 920, sox: 135, pm: 28 },
-      derrick_barge: { co2: 58, nox: 1020, sox: 150, pm: 32 },
-      jack_up: { co2: 48, nox: 880, sox: 128, pm: 26 },
+      ferry: { co2: 35, nox: 650, sox: 90, pm: 18 },
     };
 
-    const base = baseEmissions[vessel.type as keyof typeof baseEmissions] || baseEmissions.supply_vessel;
+    const base = baseEmissions.ferry;
     
     // Get vessel health from PM issues
     const vesselSummary = getVesselIssueSummary(vessel.id);
@@ -63,7 +58,7 @@ export function generateVesselEmissions(vessels: Array<{ id: string; name: strin
       period: 'monthly',
       emissions,
       fuelConsumed,
-      fuelType: Math.random() > 0.7 ? 'LNG' : Math.random() > 0.5 ? 'MDO' : 'HFO',
+      fuelType: Math.random() > 0.7 ? 'ULSD' : Math.random() > 0.5 ? 'MGO' : 'BIODIESEL',
       distance: 800 + Math.random() * 1500,
       operatingHours: 400 + Math.random() * 300,
       efficiency,
@@ -73,8 +68,8 @@ export function generateVesselEmissions(vessels: Array<{ id: string; name: strin
         bestInClass: 12,
       },
       ciiRating,
-      etsEligible: vessel.type === 'supply_vessel' || vessel.type === 'dredger',
-      // NEW: Link to PM issues
+      etsEligible: true, // All WSDOT ferries
+      // Link to PM issues
       healthScore: vesselSummary.worstHealth,
       hasMaintenanceIssues: vesselSummary.issueCount > 0,
       maintenanceImpact: vesselSummary.hasCritical 
@@ -144,26 +139,26 @@ export function generateComplianceTargets(): ComplianceTarget[] {
   
   return [
     {
-      id: 'imo-2030',
-      name: 'IMO 2030 Target',
+      id: 'wa-clean-fleet',
+      name: 'WA State Clean Fleet Goal',
       type: 'IMO2030',
       targetValue: 40,
       currentValue: 28,
-      unit: '% reduction from 2008',
+      unit: '% reduction from 2019',
       deadline: new Date(2030, 0, 1),
       status: 'on_track',
-      description: 'Reduce carbon intensity by 40% by 2030',
+      description: 'Reduce fleet carbon intensity by 40% by 2030 per WA State climate goals',
     },
     {
-      id: 'imo-2050',
-      name: 'IMO 2050 Target',
+      id: 'hybrid-conversion',
+      name: 'Hybrid-Electric Conversion',
       type: 'IMO2050',
-      targetValue: 70,
-      currentValue: 28,
-      unit: '% reduction from 2008',
-      deadline: new Date(2050, 0, 1),
+      targetValue: 100,
+      currentValue: 35,
+      unit: '% fleet converted',
+      deadline: new Date(2040, 0, 1),
       status: 'on_track',
-      description: 'Reduce total GHG emissions by 70% by 2050',
+      description: 'Convert entire fleet to hybrid-electric or all-electric propulsion',
     },
     {
       id: 'cii-2024',
@@ -188,15 +183,15 @@ export function generateComplianceTargets(): ComplianceTarget[] {
       description: `All vessels must meet EEXI requirements. ${criticalCount} critical equipment issues may impact compliance.`,
     },
     {
-      id: 'eu-ets',
-      name: 'EU ETS Preparation',
+      id: 'epa-tier4',
+      name: 'EPA Tier 4 Emissions',
       type: 'ETS',
       targetValue: 100,
       currentValue: 85,
       unit: '% readiness',
-      deadline: new Date(2024, 0, 1),
+      deadline: new Date(2026, 0, 1),
       status: 'on_track',
-      description: 'Prepare for EU Emissions Trading System inclusion',
+      description: 'Compliance with EPA Tier 4 marine diesel emission standards',
     },
   ];
 }
@@ -216,7 +211,7 @@ export function generateESGScore(): ESGScore {
     });
   });
   
-  const avgHealth = vesselCount > 0 ? totalHealthScore / (vesselCount * 3) : 75; // 3 issues per vessel
+  const avgHealth = vesselCount > 0 ? totalHealthScore / (vesselCount * 3) : 75;
   
   // Environmental score affected by equipment health
   const envBaseScore = 72;
@@ -235,24 +230,24 @@ export function generateESGScore(): ESGScore {
         { name: 'Carbon Emissions', score: carbonScore, weight: 0.35 },
         { name: 'Fuel Efficiency', score: fuelEfficiencyScore, weight: 0.25 },
         { name: 'Waste Management', score: 82, weight: 0.15 },
-        { name: 'Biodiversity Impact', score: 70, weight: 0.15 },
+        { name: 'Marine Ecosystem Impact', score: 70, weight: 0.15 },
         { name: 'Water Usage', score: 78, weight: 0.10 },
       ],
     },
     social: {
       score: 81,
       factors: [
-        { name: 'Crew Safety', score: criticalCount > 2 ? 82 : 88, weight: 0.30 },
-        { name: 'Training & Development', score: 79, weight: 0.25 },
+        { name: 'Passenger Safety', score: criticalCount > 2 ? 82 : 88, weight: 0.30 },
+        { name: 'Crew Training & Development', score: 79, weight: 0.25 },
         { name: 'Work-Life Balance', score: 75, weight: 0.20 },
-        { name: 'Diversity & Inclusion', score: 82, weight: 0.15 },
-        { name: 'Community Engagement', score: 78, weight: 0.10 },
+        { name: 'Community Impact', score: 82, weight: 0.15 },
+        { name: 'Accessibility', score: 85, weight: 0.10 },
       ],
     },
     governance: {
       score: 78,
       factors: [
-        { name: 'Regulatory Compliance', score: criticalCount > 3 ? 85 : 92, weight: 0.30 },
+        { name: 'USCG Compliance', score: criticalCount > 3 ? 85 : 92, weight: 0.30 },
         { name: 'Risk Management', score: criticalCount > 2 ? 68 : 75, weight: 0.25 },
         { name: 'Transparency', score: 72, weight: 0.20 },
         { name: 'Ethics & Integrity', score: 85, weight: 0.15 },
@@ -278,14 +273,14 @@ export function generateDecarbonizationPathway(): DecarbonizationPathway {
   
   return {
     id: 'pathway-main',
-    name: 'NMDC Net Zero 2050',
+    name: 'WSDOT Ferries Net Zero 2050',
     phases: [
       {
         year: 2025,
         targetReduction: 15,
         initiatives: [
           'Fleet speed optimization',
-          'Shore power connections',
+          'Shore power connections at terminals',
           'Hull coating upgrades',
           criticalCount > 2 ? 'Critical equipment overhaul' : 'Predictive maintenance rollout',
         ],
@@ -296,8 +291,8 @@ export function generateDecarbonizationPathway(): DecarbonizationPathway {
         year: 2030,
         targetReduction: 40,
         initiatives: [
-          'LNG fuel conversion (5 vessels)',
-          'Battery hybrid systems',
+          'Hybrid-electric conversion (5 vessels)',
+          'Battery energy storage systems',
           'AI route optimization',
         ],
         investment: 45000000,
@@ -307,8 +302,8 @@ export function generateDecarbonizationPathway(): DecarbonizationPathway {
         year: 2040,
         targetReduction: 70,
         initiatives: [
-          'Ammonia/methanol fuel adoption',
-          'New green vessel acquisitions',
+          'All-electric ferry construction',
+          'Hydrogen fuel cell pilot vessels',
           'Carbon capture systems',
         ],
         investment: 120000000,
@@ -319,8 +314,8 @@ export function generateDecarbonizationPathway(): DecarbonizationPathway {
         targetReduction: 100,
         initiatives: [
           'Full fleet zero-emission',
-          'Hydrogen fuel cells',
-          'Carbon offset programs',
+          'Hydrogen fuel cells fleet-wide',
+          'Renewable shore power at all terminals',
         ],
         investment: 85000000,
         expectedSavings: 45000000,
@@ -375,9 +370,9 @@ export function generateEmissionsTrend(months: number = 12): Array<{
   return data;
 }
 
-// NEW: Get ESG impact summary from PM issues
+// Get ESG impact summary from PM issues
 export function getESGImpactFromMaintenance(): {
-  totalEmissionsImpact: number; // additional tonnes CO2 from degraded equipment
+  totalEmissionsImpact: number;
   affectedVessels: Array<{
     vesselName: string;
     equipmentIssue: string;
@@ -385,7 +380,7 @@ export function getESGImpactFromMaintenance(): {
     recommendation: string;
   }>;
   complianceRisk: 'low' | 'medium' | 'high';
-  financialImpact: number; // estimated cost of carbon penalties
+  financialImpact: number;
 } {
   const affectedVessels: Array<{
     vesselName: string;
@@ -400,10 +395,8 @@ export function getESGImpactFromMaintenance(): {
   Object.values(VESSEL_ISSUES).forEach(vesselIssues => {
     vesselIssues.issues.forEach(issue => {
       if (issue.pmPrediction.priority === 'critical' || issue.pmPrediction.priority === 'high') {
-        // Estimate extra emissions from degraded equipment
-        // Lower health = higher emissions (inverse relationship)
         const healthPenalty = (100 - issue.healthScore) / 100;
-        const estimatedExtraEmissions = healthPenalty * 15; // Up to 15 tonnes extra per month
+        const estimatedExtraEmissions = healthPenalty * 15;
         
         totalExtraEmissions += estimatedExtraEmissions;
         
@@ -419,9 +412,8 @@ export function getESGImpactFromMaintenance(): {
     });
   });
   
-  // Calculate financial impact (EU ETS carbon price ~$80-100/tonne)
-  const carbonPrice = 90; // USD per tonne
-  const financialImpact = totalExtraEmissions * carbonPrice * 12; // Annual impact
+  const carbonPrice = 90;
+  const financialImpact = totalExtraEmissions * carbonPrice * 12;
   
   return {
     totalEmissionsImpact: Math.round(totalExtraEmissions),

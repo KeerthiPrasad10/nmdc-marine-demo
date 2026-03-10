@@ -203,12 +203,11 @@ export const VESSEL_TYPE_MAP: Record<string, string> = {
   'container': 'container_ship',
   'bulk_carrier': 'bulk_carrier',
   'passenger': 'passenger_vessel',
-  'tugboat': 'tugboat',
-  'tug': 'tugboat',
-  'offshore': 'offshore_vessel',
-  'supply': 'supply_vessel',
+  'tugboat': 'ferry',
+  'tug': 'ferry',
+  'ferry': 'ferry',
+  'supply': 'ferry',
   'platform': 'platform',
-  'dredger': 'dredger',
   'fishing': 'fishing_vessel',
   'sailing': 'sailing_vessel',
   'pleasure': 'pleasure_craft',
@@ -603,7 +602,7 @@ class DatalasticAPI {
   }
 
   /**
-   * Get port by UNLOCODE (e.g., AEAUH for Abu Dhabi)
+   * Get port by UNLOCODE (e.g., USSEA for Seattle)
    */
   async getPortByCode(unlocode: string): Promise<DatalasticPort | null> {
     const result = await this.searchPorts({ unlocode, limit: 1 });
@@ -872,11 +871,10 @@ export function getVesselTypeColor(type: string): string {
     cargo: '#3b82f6',
     container: '#8b5cf6',
     passenger: '#ec4899',
-    tug: '#10b981',
-    tugboat: '#10b981',
-    offshore: '#f59e0b',
+    tug: '#3b82f6',
+    tugboat: '#3b82f6',
+    ferry: '#3b82f6',
     supply: '#06b6d4',
-    dredger: '#a855f7',
     fishing: '#22c55e',
     sailing: '#0ea5e9',
     military: '#6b7280',

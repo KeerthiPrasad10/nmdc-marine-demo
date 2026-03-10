@@ -3,7 +3,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { NMDC_FLEET } from '@/lib/nmdc/fleet';
+import { WSDOT_FLEET } from '@/lib/wsdot/fleet';
 import { RouteOptimizationPanel } from '@/app/components/RouteOptimization';
 import { RouteOptimizationResult } from '@/lib/route-optimization/types';
 import {
@@ -18,49 +18,33 @@ import {
   X,
 } from 'lucide-react';
 
-// Comprehensive Middle East ports - verified coordinates
+// Puget Sound ferry terminals - verified coordinates
 const DESTINATIONS = [
-  // === UAE Ports ===
-  { id: 'musaffah', name: '🇦🇪 Musaffah (NMDC Base)', lat: 24.33506, lng: 54.43968 },
-  { id: 'abu-dhabi', name: '🇦🇪 Abu Dhabi Port', lat: 24.4821, lng: 54.50214 },
-  { id: 'khalifa', name: '🇦🇪 Khalifa Port', lat: 24.78751, lng: 54.67621 },
-  { id: 'jebel-ali', name: '🇦🇪 Jebel Ali (Dubai)', lat: 25.00328, lng: 55.05206 },
-  { id: 'dubai', name: '🇦🇪 Port Rashid, Dubai', lat: 25.27754, lng: 55.29378 },
-  { id: 'das-island', name: '🇦🇪 Das Island (ADNOC)', lat: 25.1465, lng: 52.891 },
-  { id: 'ruwais', name: '🇦🇪 Ruwais Terminal', lat: 24.15887, lng: 52.73211 },
-  { id: 'jebel-dhanna', name: '🇦🇪 Jebel Dhanna', lat: 24.18434, lng: 52.59507 },
-  { id: 'fujairah', name: '🇦🇪 Port of Fujairah', lat: 25.16122, lng: 56.36583 },
-  { id: 'zirku', name: '🇦🇪 Zirku Island', lat: 24.87291, lng: 53.08971 },
-  { id: 'sharjah', name: '🇦🇪 Sharjah Port', lat: 25.36205, lng: 55.37989 },
-  { id: 'khor-fakkan', name: '🇦🇪 Khor Fakkan', lat: 25.35783, lng: 56.36544 },
-  { id: 'arzanah', name: '🇦🇪 Arzanah Island', lat: 24.77533, lng: 52.5631 },
-  { id: 'mubarraz', name: '🇦🇪 Mubarraz Island', lat: 24.53195, lng: 53.34188 },
-  { id: 'zakum', name: '🇦🇪 Zakum Field', lat: 24.88638, lng: 53.68538 },
-  // === Qatar Ports ===
-  { id: 'doha', name: '🇶🇦 Doha Port', lat: 25.305, lng: 51.552 },
-  { id: 'ras-laffan', name: '🇶🇦 Ras Laffan', lat: 25.90255, lng: 51.61554 },
-  { id: 'mesaieed', name: '🇶🇦 Mesaieed', lat: 24.93598, lng: 51.59607 },
-  { id: 'hamad-port', name: '🇶🇦 Hamad Port', lat: 25.02946, lng: 51.6245 },
-  // === Saudi Arabia Ports ===
-  { id: 'dammam', name: '🇸🇦 Dammam', lat: 26.441, lng: 50.1485 },
-  { id: 'ras-tanura', name: '🇸🇦 Ras Tanura', lat: 26.67255, lng: 50.1219 },
-  { id: 'jubail', name: '🇸🇦 Al Jubail', lat: 27.035, lng: 49.6795 },
-  // === Kuwait Ports ===
-  { id: 'kuwait', name: '🇰🇼 Kuwait Port', lat: 29.3663, lng: 48.00172 },
-  { id: 'mina-ahmadi', name: '🇰🇼 Mina Al Ahmadi', lat: 29.0663, lng: 48.16348 },
-  // === Bahrain Ports ===
-  { id: 'mina-sulman', name: '🇧🇭 Mina Sulman', lat: 26.18934, lng: 50.6087 },
-  { id: 'khalifa-salman', name: '🇧🇭 Khalifa Bin Salman', lat: 26.19784, lng: 50.71145 },
-  // === Oman Ports ===
-  { id: 'muscat', name: '🇴🇲 Muscat', lat: 23.62733, lng: 58.57026 },
-  { id: 'sohar', name: '🇴🇲 Sohar', lat: 24.50074, lng: 56.62371 },
-  { id: 'salalah', name: '🇴🇲 Salalah', lat: 16.95312, lng: 54.00435 },
-  { id: 'duqm', name: '🇴🇲 Duqm', lat: 19.67459, lng: 57.70646 },
-  // === Iran Ports ===
-  { id: 'bandar-abbas', name: '🇮🇷 Bandar Abbas', lat: 27.17667, lng: 56.27861 },
-  // === Iraq Ports ===
-  { id: 'basrah', name: '🇮🇶 Basrah', lat: 30.54325, lng: 47.80325 },
-  { id: 'umm-qasr', name: '🇮🇶 Umm Qasr', lat: 30.02737, lng: 47.973 },
+  // === Central Puget Sound ===
+  { id: 'seattle', name: '⛴️ Seattle (Colman Dock)', lat: 47.6023, lng: -122.3393 },
+  { id: 'bainbridge', name: '⛴️ Bainbridge Island', lat: 47.6234, lng: -122.5092 },
+  { id: 'bremerton', name: '⛴️ Bremerton', lat: 47.5618, lng: -122.6264 },
+  // === North Sound ===
+  { id: 'edmonds', name: '⛴️ Edmonds', lat: 47.8137, lng: -122.3838 },
+  { id: 'kingston', name: '⛴️ Kingston', lat: 47.7965, lng: -122.4946 },
+  { id: 'mukilteo', name: '⛴️ Mukilteo', lat: 47.9482, lng: -122.3044 },
+  { id: 'clinton', name: '⛴️ Clinton (Whidbey)', lat: 47.9752, lng: -122.3494 },
+  // === San Juan Islands ===
+  { id: 'anacortes', name: '⛴️ Anacortes', lat: 48.5071, lng: -122.6779 },
+  { id: 'friday-harbor', name: '⛴️ Friday Harbor', lat: 48.5353, lng: -123.0137 },
+  { id: 'orcas', name: '⛴️ Orcas Island', lat: 48.5975, lng: -122.9083 },
+  { id: 'lopez', name: '⛴️ Lopez Island', lat: 48.5709, lng: -122.8852 },
+  { id: 'shaw', name: '⛴️ Shaw Island', lat: 48.5841, lng: -122.9297 },
+  // === South Sound ===
+  { id: 'fauntleroy', name: '⛴️ Fauntleroy', lat: 47.5227, lng: -122.3934 },
+  { id: 'vashon', name: '⛴️ Vashon Island', lat: 47.5085, lng: -122.4635 },
+  { id: 'southworth', name: '⛴️ Southworth', lat: 47.5117, lng: -122.5005 },
+  { id: 'tahlequah', name: '⛴️ Tahlequah', lat: 47.3327, lng: -122.5074 },
+  { id: 'pt-defiance', name: '⛴️ Point Defiance', lat: 47.3067, lng: -122.5144 },
+  // === Strait of Juan de Fuca ===
+  { id: 'port-townsend', name: '⛴️ Port Townsend', lat: 48.1134, lng: -122.7603 },
+  { id: 'coupeville', name: '⛴️ Coupeville (Whidbey)', lat: 48.1594, lng: -122.6741 },
+  { id: 'sidney-bc', name: '🇨🇦 Sidney, BC', lat: 48.6508, lng: -123.3993 },
 ];
 
 // Custom dropdown component
@@ -227,7 +211,7 @@ function Dropdown<T extends { id?: string; mmsi?: string; name: string }>({
 
 export default function RoutesPage() {
   const router = useRouter();
-  const [selectedVessel, setSelectedVessel] = useState<typeof NMDC_FLEET[0] | null>(null);
+  const [selectedVessel, setSelectedVessel] = useState<typeof WSDOT_FLEET[0] | null>(null);
   const [selectedDestination, setSelectedDestination] = useState<typeof DESTINATIONS[0] | null>(null);
   const [optimizationResult, setOptimizationResult] = useState<RouteOptimizationResult | null>(null);
   const [isOptimizing, setIsOptimizing] = useState(false);
@@ -240,14 +224,14 @@ export default function RoutesPage() {
     setError(null);
 
     try {
-      // Use Musaffah (NMDC Base) as the default origin
-      // This is where most NMDC vessels are stationed
-      const musaffahLat = 24.335;
-      const musaffahLng = 54.44;
+      // Use Seattle (Colman Dock) as the default origin
+      // This is where most WSDOT ferries are stationed
+      const seattleLat = 47.6023;
+      const seattleLng = -122.3393;
       
-      // Add small random offset to simulate vessels in the Musaffah area
-      const vesselLat = musaffahLat + (Math.random() - 0.5) * 0.05;
-      const vesselLng = musaffahLng + (Math.random() - 0.5) * 0.05;
+      // Add small random offset to simulate vessels in the Seattle area
+      const vesselLat = seattleLat + (Math.random() - 0.5) * 0.05;
+      const vesselLng = seattleLng + (Math.random() - 0.5) * 0.05;
 
       const response = await fetch('/api/route-optimizer', {
         method: 'POST',
@@ -329,7 +313,7 @@ export default function RoutesPage() {
           <div className="flex items-center gap-4 flex-wrap">
             {/* Vessel Dropdown */}
             <Dropdown
-              options={NMDC_FLEET}
+              options={WSDOT_FLEET}
               value={selectedVessel}
               onChange={setSelectedVessel}
               placeholder="Select vessel..."
@@ -434,7 +418,7 @@ export default function RoutesPage() {
             <div className="flex items-center gap-6 mt-8 text-xs text-white/30">
               <div className="flex items-center gap-2">
                 <Ship className="w-4 h-4" />
-                <span>{NMDC_FLEET.length} NMDC vessels</span>
+                <span>{WSDOT_FLEET.length} WSDOT ferries</span>
               </div>
               <div className="w-1 h-1 rounded-full bg-white/20" />
               <div className="flex items-center gap-2">

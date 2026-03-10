@@ -331,8 +331,8 @@ function getEnvironmentalConditions(lat: number, lng: number): EnvironmentalCond
     'S': 180, 'SW': 225, 'W': 270, 'NW': 315
   };
   
-  // Simulate ocean current based on location (Persian Gulf patterns)
-  // Generally flows counter-clockwise in Persian Gulf
+  // Simulate ocean current based on location (Puget Sound patterns)
+  // Generally flows with tidal patterns in Puget Sound
   const currentSpeed = 0.5 + Math.random() * 1; // 0.5-1.5 knots typical
   const currentDirection = (lng > 54) ? 315 : 135; // Rough approximation
   

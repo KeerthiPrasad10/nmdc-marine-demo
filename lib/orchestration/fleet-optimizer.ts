@@ -130,16 +130,17 @@ export interface FleetOptimizationResult {
 
 const FUEL_COST_USD_PER_LITER = 0.85; // Marine diesel
 const AVERAGE_VESSEL_SPEED_KNOTS = 10;
-const DAILY_OPERATING_COST_USD = 15000; // Average for offshore vessels
+const DAILY_OPERATING_COST_USD = 15000; // Average for ferry vessels
 
 // Fuel consumption rates by vessel type (liters per nautical mile)
 const FUEL_CONSUMPTION_RATES: Record<string, number> = {
-  dredger: 85,
-  crane_barge: 45,
-  supply_vessel: 35,
-  tugboat: 25,
-  survey_vessel: 20,
-  barge: 0, // Towed
+  ferry_jumbo_mark_ii: 65,
+  ferry_jumbo: 55,
+  ferry_super: 45,
+  ferry_issaquah_130: 35,
+  ferry_olympic: 30,
+  ferry_evergreen_state: 25,
+  ferry: 40,
   default: 40,
 };
 

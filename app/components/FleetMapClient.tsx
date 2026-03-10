@@ -28,11 +28,13 @@ const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 const MAX_ROUTE_POINTS = 50;
 
 const vesselColors: Record<string, string> = {
-  tugboat: '#34d399',      // emerald-400
-  supply_vessel: '#60a5fa', // blue-400
-  crane_barge: '#fbbf24',   // amber-400
-  dredger: '#a78bfa',       // violet-400
-  survey_vessel: '#f472b6', // pink-400
+  ferry: '#38bdf8',            // sky-400
+  jumbo_mark_ii: '#60a5fa',    // blue-400
+  jumbo: '#818cf8',            // indigo-400
+  super: '#34d399',            // emerald-400
+  issaquah_130: '#fbbf24',     // amber-400
+  olympic: '#a78bfa',          // violet-400
+  evergreen_state: '#f472b6',  // pink-400
 };
 
 const statusColors: Record<string, string> = {
@@ -42,56 +44,24 @@ const statusColors: Record<string, string> = {
   alert: '#ef4444',         // red-500
 };
 
-// SVG icons for different vessel types - these look like actual ships
 const vesselSVGs: Record<string, string> = {
-  tugboat: `<svg viewBox="0 0 32 32" fill="currentColor">
-    <path d="M6 20l2-8h16l2 8H6z" opacity="0.9"/>
-    <path d="M10 12V8h4v4h-4z" opacity="0.8"/>
-    <path d="M4 20c0 2 2 4 12 4s12-2 12-4H4z"/>
-    <circle cx="16" cy="22" r="1.5" fill="white" opacity="0.6"/>
-  </svg>`,
-  
-  supply_vessel: `<svg viewBox="0 0 32 32" fill="currentColor">
-    <path d="M4 18l3-10h18l3 10H4z" opacity="0.9"/>
-    <rect x="12" y="8" width="8" height="6" rx="1" opacity="0.8"/>
-    <path d="M2 18c0 3 3 6 14 6s14-3 14-6H2z"/>
-    <rect x="8" y="14" width="4" height="3" fill="white" opacity="0.4"/>
-    <rect x="20" y="14" width="4" height="3" fill="white" opacity="0.4"/>
-  </svg>`,
-  
-  crane_barge: `<svg viewBox="0 0 32 32" fill="currentColor">
-    <path d="M2 20l2-6h24l2 6H2z" opacity="0.9"/>
-    <path d="M2 20c0 2 3 4 14 4s14-2 14-4H2z"/>
-    <path d="M20 14V4l6 10h-6z" opacity="0.8"/>
-    <rect x="18" y="6" width="4" height="8" opacity="0.7"/>
-    <line x1="20" y1="4" x2="8" y2="10" stroke="currentColor" stroke-width="1.5"/>
-  </svg>`,
-  
-  dredger: `<svg viewBox="0 0 32 32" fill="currentColor">
-    <path d="M4 18l2-8h20l2 8H4z" opacity="0.9"/>
-    <path d="M2 18c0 3 3 6 14 6s14-3 14-6H2z"/>
-    <rect x="8" y="10" width="6" height="5" rx="1" opacity="0.8"/>
-    <path d="M22 10l4-6v12l-4-6z" opacity="0.7"/>
-    <circle cx="24" cy="10" r="2" fill="white" opacity="0.5"/>
-  </svg>`,
-  
-  survey_vessel: `<svg viewBox="0 0 32 32" fill="currentColor">
-    <path d="M6 18l2-8h16l2 8H6z" opacity="0.9"/>
-    <path d="M4 18c0 3 2 6 12 6s12-3 12-6H4z"/>
-    <rect x="13" y="6" width="6" height="8" rx="1" opacity="0.8"/>
-    <circle cx="16" cy="4" r="2" opacity="0.7"/>
-    <line x1="16" y1="6" x2="16" y2="2" stroke="currentColor" stroke-width="1"/>
-    <rect x="8" y="12" width="3" height="4" fill="white" opacity="0.4"/>
-    <rect x="21" y="12" width="3" height="4" fill="white" opacity="0.4"/>
+  ferry: `<svg viewBox="0 0 32 32" fill="currentColor">
+    <path d="M3 20l3-10h20l3 10H3z" opacity="0.9"/>
+    <path d="M1 20c0 3 3 6 15 6s15-3 15-6H1z"/>
+    <rect x="8" y="10" width="16" height="7" rx="1.5" opacity="0.8"/>
+    <rect x="10" y="6" width="12" height="4" rx="1" opacity="0.7"/>
+    <rect x="9" y="12" width="3" height="2.5" rx="0.5" fill="white" opacity="0.5"/>
+    <rect x="14" y="12" width="3" height="2.5" rx="0.5" fill="white" opacity="0.5"/>
+    <rect x="19" y="12" width="3" height="2.5" rx="0.5" fill="white" opacity="0.5"/>
   </svg>`,
 };
 
 function createVesselIcon(vessel: Vessel, isSelected: boolean): L.DivIcon {
-  const color = vesselColors[vessel.type] || '#60a5fa';
+  const color = vesselColors[vessel.vessel_class || vessel.type] || '#38bdf8';
   const statusColor = statusColors[vessel.status || 'operational'];
   const size = isSelected ? 44 : 32;
   const rotation = vessel.heading || 0;
-  const svg = vesselSVGs[vessel.type] || vesselSVGs.supply_vessel;
+  const svg = vesselSVGs.ferry;
 
   return L.divIcon({
     className: 'vessel-marker-wrapper',
@@ -196,10 +166,10 @@ export function FleetMapClient({
         return;
       }
 
-      // Initialize map centered on UAE/Persian Gulf waters
+      // Initialize map centered on Puget Sound, Washington
       const map = L.map(containerRef.current, {
-        center: [24.8, 54.0], // Centered on Abu Dhabi offshore
-        zoom: 8,
+        center: [47.75, -122.45],
+        zoom: 9,
         zoomControl: true,
         attributionControl: false,
       });
@@ -262,7 +232,7 @@ export function FleetMapClient({
       if (route.waypoints.length < 2) return;
 
       const latLngs = route.waypoints.map(wp => [wp.lat, wp.lng] as [number, number]);
-      const vesselColor = vesselColors[vessels.find(v => v.id === route.vesselId)?.type || 'supply_vessel'] || '#5b8a8a';
+      const vesselColor = vesselColors[vessels.find(v => v.id === route.vesselId)?.vessel_class || 'ferry'] || '#38bdf8';
 
       // Draw dashed route line
       const routeLine = L.polyline(latLngs, {
@@ -328,7 +298,7 @@ export function FleetMapClient({
 
     validVessels.forEach((vessel) => {
       const isSelected = vessel.id === selectedVessel;
-      const color = vesselColors[vessel.type] || '#60a5fa';
+      const color = vesselColors[vessel.vessel_class || vessel.type] || '#38bdf8';
       const currentPos: [number, number] = [vessel.position_lat, vessel.position_lng];
 
       // Update route history
@@ -387,10 +357,10 @@ export function FleetMapClient({
         marker.bindPopup(`
           <div style="min-width: 240px; font-family: system-ui, sans-serif;">
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-              <div style="width: 24px; height: 24px; color: ${color};">${vesselSVGs[vessel.type] || vesselSVGs.supply_vessel}</div>
+              <div style="width: 24px; height: 24px; color: ${color};">${vesselSVGs.ferry}</div>
               <div>
                 <h3 style="font-weight: 600; font-size: 14px; margin: 0; color: white;">${vessel.name}</h3>
-                <span style="font-size: 11px; color: rgba(255,255,255,0.5); text-transform: capitalize;">${vessel.type.replace('_', ' ')}</span>
+                <span style="font-size: 11px; color: rgba(255,255,255,0.5); text-transform: capitalize;">${(vessel.vessel_class || vessel.type).replace(/_/g, ' ')}</span>
               </div>
             </div>
             

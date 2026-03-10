@@ -5,11 +5,7 @@ import { Vessel } from '@/lib/supabase';
 import { getWeatherAtLocation, getWeatherIcon } from '@/lib/weather';
 import type { VesselIssueSummary } from '@/lib/vessel-issues';
 import {
-  Anchor,
   Ship,
-  Construction,
-  Waves,
-  Radar,
   Fuel,
   Heart,
   Users,
@@ -17,19 +13,12 @@ import {
   AlertTriangle,
   Wrench,
   Clock,
-  Cloud,
   ChevronRight,
   Cpu,
   MapPin,
-  Briefcase,
+  Anchor,
+  Route,
 } from 'lucide-react';
-
-interface AssignedProject {
-  id: string;
-  name: string;
-  client: string;
-  priority?: 'critical' | 'high' | 'medium' | 'low';
-}
 
 interface VesselCardProps {
   vessel: Vessel;
@@ -38,35 +27,30 @@ interface VesselCardProps {
   compact?: boolean;
   linkToDetail?: boolean;
   issueSummary?: VesselIssueSummary;
-  assignedProject?: AssignedProject;
+  assignedProject?: {
+    id: string;
+    name: string;
+    client: string;
+    priority?: 'critical' | 'high' | 'medium' | 'low';
+  };
 }
 
-const vesselIcons: Record<string, typeof Ship> = {
-  tugboat: Anchor,
-  supply_vessel: Ship,
-  crane_barge: Construction,
-  dredger: Waves,
-  survey_vessel: Radar,
-};
-
-const vesselTypeLabels: Record<string, string> = {
-  tugboat: 'Tugboat',
-  supply_vessel: 'Supply Vessel',
-  crane_barge: 'Crane Barge',
-  dredger: 'Dredger',
-  survey_vessel: 'Survey Vessel',
-  pipelay_barge: 'Pipelay Barge',
-  jack_up_barge: 'Jack-Up Barge',
-  accommodation_barge: 'Accommodation Barge',
-  work_barge: 'Work Barge',
-  derrick_barge: 'Derrick Barge',
+const vesselClassLabels: Record<string, string> = {
+  jumbo_mark_ii: 'Jumbo Mark II',
+  jumbo: 'Jumbo',
+  super: 'Super Class',
+  issaquah_130: 'Issaquah 130',
+  olympic: 'Olympic (Kwa-di Tabil)',
+  evergreen_state: 'Evergreen State',
+  ferry: 'Ferry',
 };
 
 function getVesselTypeDisplay(vessel: Vessel): string {
   if (vessel.vessel_class) {
-    return vessel.vessel_class.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    return vesselClassLabels[vessel.vessel_class] ||
+      vessel.vessel_class.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   }
-  return vesselTypeLabels[vessel.type] || vessel.type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  return vesselClassLabels[vessel.type] || vessel.type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
 const statusConfig = {
@@ -85,7 +69,7 @@ const statusConfig = {
   idle: {
     color: 'bg-white/40',
     textColor: 'text-white/40',
-    label: 'Idle',
+    label: 'At Dock',
     icon: Clock,
   },
   alert: {
@@ -97,11 +81,10 @@ const statusConfig = {
 };
 
 export function VesselCard({ vessel, onClick, selected, compact = false, linkToDetail = false, issueSummary, assignedProject }: VesselCardProps) {
-  const Icon = vesselIcons[vessel.type] || Ship;
+  const Icon = Ship;
   const status = statusConfig[vessel.status || 'operational'];
   const StatusIcon = status.icon;
 
-  // More muted colors - only show color for problems
   const healthColor =
     (vessel.health_score ?? 100) >= 70
       ? 'text-white/60'
@@ -116,17 +99,6 @@ export function VesselCard({ vessel, onClick, selected, compact = false, linkToD
       ? 'text-amber-400'
       : 'text-rose-400';
 
-  // Get local weather for this vessel
-  const localWeather = getWeatherAtLocation(vessel.position_lat, vessel.position_lng);
-  const weatherEmoji = getWeatherIcon(localWeather.condition);
-  const riskColors = {
-    low: 'text-white/40',
-    moderate: 'text-amber-400',
-    high: 'text-rose-400',
-    critical: 'text-red-500',
-  };
-
-  // Determine if vessel has equipment issues that need attention
   const hasIssues = issueSummary && issueSummary.issueCount > 0;
   const issueIndicatorColor = issueSummary?.hasCritical 
     ? 'bg-rose-500' 
@@ -134,7 +106,6 @@ export function VesselCard({ vessel, onClick, selected, compact = false, linkToD
       ? 'bg-amber-500' 
       : 'bg-yellow-500';
 
-  // Compact mode for sidebar - clean, minimal design
   if (compact) {
     const vesselType = getVesselTypeDisplay(vessel);
     
@@ -151,7 +122,6 @@ export function VesselCard({ vessel, onClick, selected, compact = false, linkToD
               : 'border-white/5 bg-transparent hover:border-white/10'
         }`}
       >
-        {/* Equipment Issue Indicator Bar */}
         {hasIssues && issueSummary?.hasHighPriority && (
           <div className={`absolute left-0 top-0 bottom-0 w-1 ${issueIndicatorColor}`} />
         )}
@@ -167,7 +137,6 @@ export function VesselCard({ vessel, onClick, selected, compact = false, linkToD
             }`}
           >
             <Icon className="h-3.5 w-3.5" />
-            {/* Issue count badge */}
             {hasIssues && (
               <span className={`absolute -top-1 -right-1 h-3.5 w-3.5 rounded-full ${issueIndicatorColor} text-[9px] font-bold text-white flex items-center justify-center`}>
                 {issueSummary.issueCount}
@@ -192,25 +161,15 @@ export function VesselCard({ vessel, onClick, selected, compact = false, linkToD
                 <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
               )}
             </div>
-            {/* Project assignment - always show vessel type, then project below */}
             <p className="text-[10px] text-white/30 truncate capitalize">{vesselType}</p>
-            {assignedProject && (
+            {vessel.project && (
               <div className="flex items-center gap-1 mt-0.5">
-                <Briefcase className={`h-2.5 w-2.5 flex-shrink-0 ${
-                  assignedProject.priority === 'critical' ? 'text-rose-400' :
-                  assignedProject.priority === 'high' ? 'text-amber-400' :
-                  'text-cyan-400'
-                }`} />
-                <span className={`text-[10px] font-medium truncate ${
-                  assignedProject.priority === 'critical' ? 'text-rose-400' :
-                  assignedProject.priority === 'high' ? 'text-amber-400' :
-                  'text-cyan-400'
-                }`}>
-                  {assignedProject.name}
+                <Route className="h-2.5 w-2.5 flex-shrink-0 text-cyan-400" />
+                <span className="text-[10px] font-medium truncate text-cyan-400">
+                  {vessel.project}
                 </span>
               </div>
             )}
-            {/* Show equipment health if has issues, otherwise show fuel/speed */}
             {hasIssues ? (
               <div className="flex items-center gap-1.5 mt-0.5">
                 <AlertTriangle className="h-3 w-3 text-amber-400" />
@@ -228,13 +187,12 @@ export function VesselCard({ vessel, onClick, selected, compact = false, linkToD
               </div>
             )}
           </div>
-          {/* Links on hover */}
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
             <Link
               href={`/vessel/${vessel.mmsi || vessel.id}`}
               onClick={(e) => e.stopPropagation()}
               className="p-1.5 rounded bg-primary-500/20 hover:bg-primary-500/30 text-primary-400 transition-all"
-              title="Digital Twin"
+              title="Vessel Detail"
             >
               <Cpu className="h-3.5 w-3.5" />
             </Link>
@@ -261,7 +219,6 @@ export function VesselCard({ vessel, onClick, selected, compact = false, linkToD
           : 'hover:border-primary-500/30'
       }`}
     >
-      {/* Header */}
       <div className="flex items-center gap-3 p-4 border-b border-white/8">
         <div
           className={`flex h-10 w-10 items-center justify-center rounded-lg ${
@@ -284,9 +241,7 @@ export function VesselCard({ vessel, onClick, selected, compact = false, linkToD
         </div>
       </div>
 
-      {/* Body */}
       <div className="p-4 space-y-3">
-        {/* Health & Fuel */}
         <div className="grid grid-cols-2 gap-3">
           <div className="flex items-center gap-2">
             <Heart className={`h-4 w-4 ${healthColor}`} />
@@ -333,7 +288,6 @@ export function VesselCard({ vessel, onClick, selected, compact = false, linkToD
           </div>
         </div>
 
-        {/* Stats row */}
         <div className="flex items-center justify-between text-xs pt-2 border-t border-white/8">
           <div className="flex items-center gap-1 text-white/40">
             <Navigation className="h-3.5 w-3.5" />
@@ -344,11 +298,10 @@ export function VesselCard({ vessel, onClick, selected, compact = false, linkToD
             <span>{vessel.crew_count ?? 0} crew</span>
           </div>
           <div className="text-white/40 truncate max-w-[100px]" title={vessel.project ?? ''}>
-            {vessel.project ?? 'Unassigned'}
+            {vessel.project ?? 'No Route'}
           </div>
         </div>
 
-        {/* Detail Links */}
         {linkToDetail && (
           <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/8">
             <Link
@@ -357,7 +310,7 @@ export function VesselCard({ vessel, onClick, selected, compact = false, linkToD
               onClick={(e) => e.stopPropagation()}
             >
               <Cpu className="w-3 h-3" />
-              <span>Digital Twin</span>
+              <span>Vessel Detail</span>
             </Link>
             <Link
               href={`/live/${vessel.mmsi || vessel.id}`}

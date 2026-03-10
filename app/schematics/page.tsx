@@ -23,7 +23,7 @@ const PNID_RESOLVE_URL = 'https://resolve-pnid.vercel.app';
 
 // Vessel system categories for quick access
 const SYSTEM_CATEGORIES = [
-  { id: 'dredging', label: 'Dredging Systems', icon: Anchor, color: 'text-blue-400' },
+  { id: 'passenger', label: 'Passenger Systems', icon: Anchor, color: 'text-blue-400' },
   { id: 'propulsion', label: 'Propulsion', icon: Cpu, color: 'text-emerald-400' },
   { id: 'hydraulic', label: 'Hydraulics', icon: Gauge, color: 'text-amber-400' },
   { id: 'electrical', label: 'Electrical', icon: Layers, color: 'text-purple-400' },

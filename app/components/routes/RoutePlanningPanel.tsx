@@ -141,69 +141,34 @@ export function RoutePlanningPanel({
     }
   }, [origin, destination, intermediateStops, onWaypointsChange]);
 
-  // All Middle East ports with accurate coordinates from Datalastic API
+  // WSDOT Ferry Terminals and Puget Sound locations
   const commonPorts = [
-    // === UAE Ports ===
-    { name: '🇦🇪 Musaffah (NMDC)', lat: 24.33506, lng: 54.43968 },
-    { name: '🇦🇪 Abu Dhabi', lat: 24.4821, lng: 54.50214 },
-    { name: '🇦🇪 Khalifa Port', lat: 24.78751, lng: 54.67621 },
-    { name: '🇦🇪 Jebel Ali (Dubai)', lat: 25.00328, lng: 55.05206 },
-    { name: '🇦🇪 Dubai', lat: 25.27754, lng: 55.29378 },
-    { name: '🇦🇪 Das Island', lat: 25.1465, lng: 52.891 },
-    { name: '🇦🇪 Ruwais', lat: 24.15887, lng: 52.73211 },
-    { name: '🇦🇪 Jebel Dhanna', lat: 24.18434, lng: 52.59507 },
-    { name: '🇦🇪 Fujairah', lat: 25.16122, lng: 56.36583 },
-    { name: '🇦🇪 Zirku Island', lat: 24.87291, lng: 53.08971 },
-    { name: '🇦🇪 Sharjah', lat: 25.36205, lng: 55.37989 },
-    { name: '🇦🇪 Khor Fakkan', lat: 25.35783, lng: 56.36544 },
-    { name: '🇦🇪 Arzanah', lat: 24.77533, lng: 52.5631 },
-    { name: '🇦🇪 Mubarraz', lat: 24.53195, lng: 53.34188 },
-    { name: '🇦🇪 Zakum', lat: 24.88638, lng: 53.68538 },
-    // === Qatar Ports ===
-    { name: '🇶🇦 Doha', lat: 25.305, lng: 51.552 },
-    { name: '🇶🇦 Ras Laffan', lat: 25.90255, lng: 51.61554 },
-    { name: '🇶🇦 Mesaieed', lat: 24.93598, lng: 51.59607 },
-    { name: '🇶🇦 Hamad Port', lat: 25.02946, lng: 51.6245 },
-    { name: '🇶🇦 Halul Island', lat: 25.6635, lng: 52.4175 },
-    // === Saudi Arabia Ports (Gulf Coast) ===
-    { name: '🇸🇦 Dammam', lat: 26.441, lng: 50.1485 },
-    { name: '🇸🇦 Ras Tanura', lat: 26.67255, lng: 50.1219 },
-    { name: '🇸🇦 Al Jubail', lat: 27.035, lng: 49.6795 },
-    { name: '🇸🇦 Ras Al Khair', lat: 27.55828, lng: 49.18322 },
-    // Note: Red Sea ports below - routing from Gulf will fail
-    { name: '🇸🇦 Jeddah (Red Sea)', lat: 21.48182, lng: 39.14713 },
-    { name: '🇸🇦 Yanbu (Red Sea)', lat: 24.0665, lng: 38.0675 },
-    { name: '🇸🇦 King Abdullah (Red Sea)', lat: 22.52477, lng: 39.09416 },
-    // === Kuwait Ports ===
-    { name: '🇰🇼 Kuwait', lat: 29.3663, lng: 48.00172 },
-    { name: '🇰🇼 Shuwaikh', lat: 29.359635, lng: 47.923489 },
-    { name: '🇰🇼 Mina Al Ahmadi', lat: 29.0663, lng: 48.16348 },
-    { name: '🇰🇼 Shuaiba', lat: 29.03937, lng: 48.16788 },
-    // === Bahrain Ports ===
-    { name: '🇧🇭 Mina Sulman', lat: 26.18934, lng: 50.6087 },
-    { name: '🇧🇭 Khalifa Bin Salman', lat: 26.19784, lng: 50.71145 },
-    { name: '🇧🇭 Sitrah', lat: 26.15065, lng: 50.6529 },
-    // === Oman Ports ===
-    { name: '🇴🇲 Muscat', lat: 23.62733, lng: 58.57026 },
-    { name: '🇴🇲 Sohar', lat: 24.50074, lng: 56.62371 },
-    { name: '🇴🇲 Salalah', lat: 16.95312, lng: 54.00435 },
-    { name: '🇴🇲 Duqm', lat: 19.67459, lng: 57.70646 },
-    { name: '🇴🇲 Khasab', lat: 26.2042, lng: 56.24992 },
-    { name: '🇴🇲 Sur', lat: 22.57859, lng: 59.52914 },
-    // === Iraq Ports ===
-    { name: '🇮🇶 Basrah', lat: 30.54325, lng: 47.80325 },
-    { name: '🇮🇶 Umm Qasr', lat: 30.02737, lng: 47.973 },
-    { name: '🇮🇶 Khor Al Zubair', lat: 30.19381, lng: 47.8767 },
-    // === Iran Ports ===
-    { name: '🇮🇷 Bandar Abbas', lat: 27.17667, lng: 56.27861 },
-    { name: '🇮🇷 Chabahar', lat: 25.31749, lng: 60.60548 },
-    { name: '🇮🇷 Kangan', lat: 27.8305, lng: 52.05661 },
-    { name: '🇮🇷 Lengeh', lat: 26.54945, lng: 54.88763 },
-    { name: '🇮🇷 Qeshm Island', lat: 26.95164, lng: 55.75161 },
-    // === Yemen Ports ===
-    { name: '🇾🇪 Aden', lat: 12.79113, lng: 44.96292 },
-    { name: '🇾🇪 Hudaidah', lat: 14.83994, lng: 42.93277 },
-    { name: '🇾🇪 Al Mukalla', lat: 14.52996, lng: 49.13709 },
+    // === WSDOT Ferry Terminals ===
+    { name: '⛴️ Seattle (Colman Dock)', lat: 47.6025, lng: -122.3387 },
+    { name: '⛴️ Bainbridge Island', lat: 47.6227, lng: -122.5105 },
+    { name: '⛴️ Bremerton', lat: 47.5617, lng: -122.6244 },
+    { name: '⛴️ Kingston', lat: 47.7965, lng: -122.4945 },
+    { name: '⛴️ Edmonds', lat: 47.8134, lng: -122.3836 },
+    { name: '⛴️ Mukilteo', lat: 47.9477, lng: -122.3043 },
+    { name: '⛴️ Clinton (Whidbey Island)', lat: 47.9754, lng: -122.3491 },
+    { name: '⛴️ Coupeville (Whidbey Island)', lat: 48.1574, lng: -122.6785 },
+    { name: '⛴️ Port Townsend', lat: 48.1119, lng: -122.7603 },
+    { name: '⛴️ Anacortes', lat: 48.5076, lng: -122.6776 },
+    { name: '⛴️ Friday Harbor (San Juan)', lat: 48.5353, lng: -123.0139 },
+    { name: '⛴️ Orcas Island', lat: 48.5976, lng: -122.9436 },
+    { name: '⛴️ Lopez Island', lat: 48.5706, lng: -122.8837 },
+    { name: '⛴️ Shaw Island', lat: 48.5837, lng: -122.9273 },
+    { name: '⛴️ Fauntleroy (West Seattle)', lat: 47.5226, lng: -122.3929 },
+    { name: '⛴️ Vashon Island', lat: 47.5083, lng: -122.4615 },
+    { name: '⛴️ Southworth', lat: 47.5122, lng: -122.5005 },
+    { name: '⛴️ Tahlequah (Vashon)', lat: 47.3328, lng: -122.5068 },
+    { name: '⛴️ Point Defiance (Tacoma)', lat: 47.3064, lng: -122.5145 },
+    // === Key Puget Sound Locations ===
+    { name: '📍 Tacoma', lat: 47.2529, lng: -122.4443 },
+    { name: '📍 Olympia', lat: 47.0379, lng: -122.9007 },
+    { name: '📍 Bellingham', lat: 48.7519, lng: -122.4787 },
+    { name: '📍 Everett', lat: 47.9790, lng: -122.2021 },
+    { name: '📍 Sidney, BC (International)', lat: 48.6500, lng: -123.3962 },
   ];
 
   const handleOptimize = useCallback(async () => {

@@ -4,7 +4,7 @@ export interface Project {
   id: string;
   name: string;
   client: string;
-  type: 'construction' | 'decommissioning' | 'installation' | 'maintenance' | 'dredging' | 'survey';
+  type: 'scheduled_service' | 'maintenance' | 'special_event' | 'emergency' | 'seasonal' | 'charter' | 'construction';
   status: 'planning' | 'active' | 'delayed' | 'completed' | 'on-hold';
   priority: 'critical' | 'high' | 'medium' | 'low';
   location: {

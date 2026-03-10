@@ -42,7 +42,7 @@ const scenarioIcons: Record<CrisisScenario['type'], LucideIcon> = {
   storm_response: CloudRain,
   fuel_crisis: Fuel,
   safety_incident: Shield,
-  crane_efficiency: Cpu,
+  schedule_optimization: Cpu,
 };
 
 export default function DemoPage() {

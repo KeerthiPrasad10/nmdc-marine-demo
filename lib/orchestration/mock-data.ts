@@ -1,106 +1,109 @@
 import { Project, VesselAssignment, ScheduleConflict, FleetMetrics } from './types';
-import { getVesselIssues, VESSEL_ISSUES, VesselIssues } from '../vessel-issues';
-import { getNMDCVesselByMMSI } from '../nmdc/fleet';
+import { getVesselIssues, VESSEL_ISSUES } from '../vessel-issues';
+import { WSDOT_FLEET } from '../wsdot/fleet';
 
-// Generate mock projects - ALIGNED with lib/nmdc/projects.ts PROJECT_SITES
-// Uses actual vessel MMSIs to match vessels with equipment issues
+// Helper to find WSDOT vessel by MMSI
+function getWSDOTVesselByMMSI(mmsi: string) {
+  return WSDOT_FLEET.find(v => v.mmsi === mmsi);
+}
+
+// Generate mock projects (routes/service areas for WSDOT ferries)
 export function generateMockProjects(): Project[] {
   const now = new Date();
   
   return [
     {
-      id: 'proj-adnoc-001',
-      name: 'ADNOC Offshore Pipeline Installation',
-      client: 'ADNOC',
-      type: 'construction',
+      id: 'route-seattle-bainbridge',
+      name: 'Seattle - Bainbridge Island Route',
+      client: 'WSDOT',
+      type: 'construction', // reuse type for route service
       status: 'active',
       priority: 'critical',
-      location: { name: 'Ruwais Offshore, Abu Dhabi', lat: 24.1, lng: 52.7 },
+      location: { name: 'Puget Sound Central', lat: 47.62, lng: -122.50 },
       schedule: {
-        startDate: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
-        endDate: new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000),
+        startDate: new Date(now.getFullYear(), 0, 1),
+        endDate: new Date(now.getFullYear(), 11, 31),
         weatherWindow: {
           start: new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000),
           end: new Date(now.getTime() + 20 * 24 * 60 * 60 * 1000),
         },
       },
       requirements: {
-        vesselTypes: ['pipelay_barge', 'derrick_barge'],
-        crewCount: 300,
-        equipment: ['Tensioner system', 'Stinger', 'Heavy lift crane'],
+        vesselTypes: ['ferry'],
+        crewCount: 50,
+        equipment: ['Vehicle ramp', 'Passenger facilities'],
       },
-      assignedVessels: ['470339000', '471026000', '470284000'], // DLB-750, DELMA 2000, DLB-1000
-      progress: 35,
-      budget: { allocated: 125000000, spent: 43750000, currency: 'USD' },
+      assignedVessels: ['366983000', '366982000', '366981000'], // Puyallup, Tacoma, Wenatchee
+      progress: 75,
+      budget: { allocated: 12000000, spent: 9000000, currency: 'USD' },
     },
     {
-      id: 'proj-zakum',
-      name: 'Upper Zakum Platform Hook-up',
-      client: 'ZADCO',
+      id: 'route-mukilteo-clinton',
+      name: 'Mukilteo - Clinton Route',
+      client: 'WSDOT',
       type: 'construction',
       status: 'active',
       priority: 'high',
-      location: { name: 'Upper Zakum Field', lat: 24.85, lng: 53.45 },
+      location: { name: 'Whidbey Island Crossing', lat: 47.95, lng: -122.35 },
       schedule: {
-        startDate: new Date(now.getTime() - 45 * 24 * 60 * 60 * 1000),
-        endDate: new Date(now.getTime() + 45 * 24 * 60 * 60 * 1000),
+        startDate: new Date(now.getFullYear(), 0, 1),
+        endDate: new Date(now.getFullYear(), 11, 31),
       },
       requirements: {
-        vesselTypes: ['jack_up'],
-        crewCount: 260,
-        equipment: ['Jacking system', 'Crane', 'Welding equipment'],
+        vesselTypes: ['ferry'],
+        crewCount: 30,
+        equipment: ['Vehicle ramp', 'Navigation systems'],
       },
-      assignedVessels: ['470114000', '470426000', '470395000'], // SEP-550, SEP-650, SEP-750
-      progress: 42,
-      budget: { allocated: 76000000, spent: 31920000, currency: 'USD' },
+      assignedVessels: ['366979000', '366978000'], // Tokitae, Chetzemoka
+      progress: 68,
+      budget: { allocated: 8000000, spent: 5440000, currency: 'USD' },
     },
     {
-      id: 'proj-001',
-      name: 'Khalifa Port Expansion Phase 3',
-      client: 'Abu Dhabi Ports',
-      type: 'dredging',
+      id: 'route-anacortes-sji',
+      name: 'Anacortes - San Juan Islands Route',
+      client: 'WSDOT',
+      type: 'construction',
       status: 'active',
       priority: 'high',
-      location: { name: 'Khalifa Port, Abu Dhabi', lat: 24.8, lng: 54.6 },
+      location: { name: 'San Juan Islands', lat: 48.53, lng: -123.01 },
       schedule: {
-        startDate: new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000),
-        endDate: new Date(now.getTime() + 120 * 24 * 60 * 60 * 1000),
+        startDate: new Date(now.getFullYear(), 0, 1),
+        endDate: new Date(now.getFullYear(), 11, 31),
       },
       requirements: {
-        vesselTypes: ['dredger'],
-        crewCount: 80,
-        equipment: ['Suction dredge', 'Survey equipment'],
+        vesselTypes: ['ferry'],
+        crewCount: 60,
+        equipment: ['Vehicle ramp', 'Extended navigation'],
       },
-      assignedVessels: ['470563000', '471072000'], // AL SADR, ARZANA
-      progress: 35,
-      budget: { allocated: 230000000, spent: 80500000, currency: 'USD' },
+      assignedVessels: ['366980000', '366977000'], // Samish, Chelan
+      progress: 55,
+      budget: { allocated: 15000000, spent: 8250000, currency: 'USD' },
     },
     {
-      id: 'proj-006',
-      name: 'Das Island Support Base',
-      client: 'ADNOC Offshore',
+      id: 'route-pt-defiance',
+      name: 'Point Defiance - Tahlequah Route',
+      client: 'WSDOT',
       type: 'construction',
       status: 'active',
       priority: 'medium',
-      location: { name: 'Das Island', lat: 25.15, lng: 52.87 },
+      location: { name: 'South Sound', lat: 47.30, lng: -122.52 },
       schedule: {
-        startDate: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000),
-        endDate: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),
+        startDate: new Date(now.getFullYear(), 0, 1),
+        endDate: new Date(now.getFullYear(), 11, 31),
       },
       requirements: {
-        vesselTypes: ['supply_vessel', 'tug'],
-        crewCount: 45,
-        equipment: ['Standard marine equipment'],
+        vesselTypes: ['ferry'],
+        crewCount: 20,
+        equipment: ['Vehicle ramp'],
       },
-      assignedVessels: ['470927000', '470337000'], // UMM SHAIF, NPCC SAADIYAT
-      progress: 75,
-      budget: { allocated: 40000000, spent: 30000000, currency: 'USD' },
+      assignedVessels: ['366976000'], // Steilacoom II (placeholder)
+      progress: 80,
+      budget: { allocated: 4000000, spent: 3200000, currency: 'USD' },
     },
   ];
 }
 
 // Generate vessel assignments for Gantt chart
-// Now dynamically assigns projects to actual vessels passed in
 export function generateMockAssignments(projects: Project[], vessels: Array<{ id: string; name: string }>): VesselAssignment[] {
   const assignments: VesselAssignment[] = [];
   const now = new Date();
@@ -135,13 +138,11 @@ export function generateMockAssignments(projects: Project[], vessels: Array<{ id
     const vessel = vessels.find(v => v.id === mmsi);
     if (!vessel) return;
     
-    // Find the most critical issue for this vessel
     const criticalIssue = vesselIssues.issues.find(i => i.pmPrediction.priority === 'critical');
     const highIssue = vesselIssues.issues.find(i => i.pmPrediction.priority === 'high');
     const mainIssue = criticalIssue || highIssue;
     
     if (mainIssue) {
-      // Calculate maintenance window based on time to failure
       const daysUntilMaintenance = mainIssue.pmPrediction.priority === 'critical' ? 5 : 15;
       const maintenanceDuration = mainIssue.pmPrediction.priority === 'critical' ? 7 : 5;
       
@@ -166,37 +167,32 @@ export function generateMockAssignments(projects: Project[], vessels: Array<{ id
 export function generateMockConflicts(): ScheduleConflict[] {
   const conflicts: ScheduleConflict[] = [];
   
-  // Generate conflicts from actual vessel issues
   Object.entries(VESSEL_ISSUES).forEach(([mmsi, vesselIssues]) => {
-    const vessel = getNMDCVesselByMMSI(mmsi);
+    const vessel = getWSDOTVesselByMMSI(mmsi);
     if (!vessel) return;
     
     vesselIssues.issues.forEach((issue, index) => {
       if (issue.pmPrediction.priority === 'critical' || issue.pmPrediction.priority === 'high') {
-        // Map vessel to project
-        const projectMapping: Record<string, string> = {
-          '470339000': 'proj-adnoc-001', // DLB-750
-          '471026000': 'proj-adnoc-001', // DELMA 2000
-          '470284000': 'proj-adnoc-001', // DLB-1000
-          '470285000': 'proj-adnoc-001', // PLB-648
-          '470114000': 'proj-zakum',     // SEP-550
-          '470426000': 'proj-zakum',     // SEP-650
-          '470395000': 'proj-zakum',     // SEP-750
-          '470340000': 'proj-zakum',     // SEP-450
-          '470927000': 'proj-006',       // UMM SHAIF
-          '470337000': 'proj-006',       // NPCC SAADIYAT
-          '470642000': 'proj-006',       // NPCC YAS
-          '470212000': 'proj-adnoc-001', // DLS-4200
+        // Map vessel to route
+        const routeMapping: Record<string, string> = {
+          '366983000': 'route-seattle-bainbridge',
+          '366982000': 'route-seattle-bainbridge',
+          '366981000': 'route-seattle-bainbridge',
+          '366979000': 'route-mukilteo-clinton',
+          '366978000': 'route-mukilteo-clinton',
+          '366980000': 'route-anacortes-sji',
+          '366977000': 'route-anacortes-sji',
+          '366976000': 'route-pt-defiance',
         };
         
-        const projectId = projectMapping[mmsi] || 'proj-001';
+        const routeId = routeMapping[mmsi] || 'route-seattle-bainbridge';
         
         conflicts.push({
           id: `conflict-${mmsi}-${index}`,
           type: 'equipment_risk',
           severity: issue.pmPrediction.priority === 'critical' ? 'critical' : 'warning',
           affectedVessels: [mmsi],
-          affectedProjects: [projectId],
+          affectedProjects: [routeId],
           description: `${vessel.name} ${issue.equipmentName} at ${issue.healthScore}% health - ${issue.pmPrediction.predictedIssue}`,
           suggestedResolution: issue.pmPrediction.recommendedAction,
         });
@@ -209,13 +205,12 @@ export function generateMockConflicts(): ScheduleConflict[] {
     id: 'conflict-weather-001',
     type: 'weather_risk',
     severity: 'warning',
-    affectedVessels: ['470339000', '471026000', '470284000'], // DLB-750, DELMA 2000, DLB-1000
-    affectedProjects: ['proj-adnoc-001'],
-    description: 'High wind advisory (35+ knots) forecasted for Ruwais offshore area in 5 days',
-    suggestedResolution: 'Accelerate current pipe-lay phase or prepare for 2-day standby',
+    affectedVessels: ['366983000', '366982000', '366981000'],
+    affectedProjects: ['route-seattle-bainbridge'],
+    description: 'High wind advisory (35+ knots) forecasted for central Puget Sound in 3 days',
+    suggestedResolution: 'Prepare contingency schedule and notify passengers of potential delays',
   });
   
-  // Sort: critical first, then by vessel name
   return conflicts.sort((a, b) => {
     if (a.severity === 'critical' && b.severity !== 'critical') return -1;
     if (b.severity === 'critical' && a.severity !== 'critical') return 1;
@@ -223,11 +218,10 @@ export function generateMockConflicts(): ScheduleConflict[] {
   });
 }
 
-// Generate fleet metrics - now includes PM issue counts
+// Generate fleet metrics
 export function generateFleetMetrics(vessels: Array<{ id: string; status: string }>): FleetMetrics {
   const activeVessels = vessels.filter(v => v.status === 'operational').length;
   
-  // Count vessels with PM issues
   let criticalIssueCount = 0;
   let highIssueCount = 0;
   
@@ -242,21 +236,21 @@ export function generateFleetMetrics(vessels: Array<{ id: string; status: string
     totalVessels: vessels.length,
     activeVessels,
     utilization: Math.round((activeVessels / vessels.length) * 100),
-    activeProjects: 4, // ADNOC Pipeline, Zakum Hook-up, Khalifa Port, Das Island
-    completedProjects: 12,
-    upcomingMaintenance: criticalIssueCount + highIssueCount, // Based on actual PM issues
-    conflictCount: criticalIssueCount + Math.floor(highIssueCount / 2) + 1, // +1 for weather
-    revenuePerDay: 850000, // ~$850K/day for major offshore projects
+    activeProjects: 4, // 4 active routes
+    completedProjects: 0,
+    upcomingMaintenance: criticalIssueCount + highIssueCount,
+    conflictCount: criticalIssueCount + Math.floor(highIssueCount / 2) + 1,
+    revenuePerDay: 650000, // ~$650K/day for ferry operations
   };
 }
 
-// NEW: Get maintenance schedule summary for a vessel based on PM issues
+// Get maintenance schedule summary for a vessel based on PM issues
 export function getVesselMaintenanceSchedule(mmsi: string): {
   vesselName: string;
   criticalItems: number;
   highPriorityItems: number;
   nextMaintenanceDate: Date | null;
-  estimatedDowntime: number; // days
+  estimatedDowntime: number;
   issues: Array<{
     equipment: string;
     priority: string;
@@ -276,7 +270,7 @@ export function getVesselMaintenanceSchedule(mmsi: string): {
   const issues = vesselIssues.issues.map(issue => {
     if (issue.pmPrediction.priority === 'critical') {
       criticalItems++;
-      totalDowntime += 7; // Critical items need longer maintenance
+      totalDowntime += 7;
       if (!earliestMaintenance) {
         earliestMaintenance = new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000);
       }
@@ -308,7 +302,7 @@ export function getVesselMaintenanceSchedule(mmsi: string): {
   };
 }
 
-// NEW: Get project risk assessment based on assigned vessel PM issues
+// Get route risk assessment based on assigned vessel PM issues
 export function getProjectRiskFromPM(projectId: string, assignedVesselMMSIs: string[]): {
   overallRisk: 'critical' | 'high' | 'medium' | 'low';
   vesselRisks: Array<{
@@ -318,7 +312,7 @@ export function getProjectRiskFromPM(projectId: string, assignedVesselMMSIs: str
     healthScore: number;
     impactOnProject: string;
   }>;
-  totalDowntimeRisk: number; // estimated days at risk
+  totalDowntimeRisk: number;
   recommendations: string[];
 } {
   const vesselRisks: Array<{
@@ -338,9 +332,8 @@ export function getProjectRiskFromPM(projectId: string, assignedVesselMMSIs: str
     const vesselIssues = getVesselIssues(mmsi);
     if (!vesselIssues) return;
     
-    // Find worst issue for this vessel
     const worstIssue = vesselIssues.issues.reduce((worst, current) => {
-      const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+      const priorityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
       if (priorityOrder[current.pmPrediction.priority] < priorityOrder[worst.pmPrediction.priority]) {
         return current;
       }
@@ -363,9 +356,9 @@ export function getProjectRiskFromPM(projectId: string, assignedVesselMMSIs: str
       worstIssue: worstIssue.pmPrediction.predictedIssue,
       healthScore: worstIssue.healthScore,
       impactOnProject: worstIssue.pmPrediction.priority === 'critical' 
-        ? 'May cause project delay of 7+ days'
+        ? 'May cause route service disruption for 7+ days'
         : worstIssue.pmPrediction.priority === 'high'
-        ? 'Potential 3-5 day impact if unaddressed'
+        ? 'Potential 3-5 day service reduction if unaddressed'
         : 'Minimal impact with scheduled maintenance',
     });
   });

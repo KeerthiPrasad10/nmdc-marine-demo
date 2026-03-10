@@ -1,1145 +1,79 @@
-// NMDC Fleet Vessel Profiles with specifications and documentation links
-// Data sourced from official NMDC Group resources:
-// - Fleet Page: https://nmdc-group.com/en/about-us/fleet-and-equipment
-// - Investor Presentations: https://nmdc-group.com/assets/files/investor-presentation/
-// - Integrated Reports: https://www.nmdc-group.com/assets/files/annual-reports/
-// 
-// Note: NMDC does not publish individual vessel PDF brochures. Specifications are from the fleet page.
-// For detailed fleet information, refer to the Investor Presentations and Integrated Reports.
-
 export interface VesselProfile {
-  id: string;
-  name: string;
-  type: 'dredger' | 'tugboat' | 'supply_vessel' | 'crane_barge' | 'survey_vessel' 
-      | 'pipelay_barge' | 'derrick_barge' | 'jack_up_barge' | 'accommodation_barge' | 'work_barge';
-  subtype: string;
-  company: 'nmdc_group' | 'nmdc_energy';
-  
-  // Specifications
+  id: string
+  name: string
+  type: 'ferry'
+  subtype: string
+  company: string
+
   specs: {
-    lengthOverall: number; // meters
-    breadth: number; // meters
-    depth: number; // meters
-    dredgingDepth?: number; // meters (for dredgers)
-    maxSpeed?: number; // knots
-    grossTonnage?: number; // GT
-    deadweight?: number; // DWT
-    craneCapacity?: number; // tons (for crane barges)
-    accommodation?: number; // persons
-    propulsion?: string;
-    powerInstalled?: number; // kW
-    yearBuilt?: number;
-    flag?: string;
-    classNotation?: string;
-  };
-  
-  // Equipment systems for PdM
-  systems: VesselSystem[];
-  
-  // Documentation
+    lengthOverall: number
+    breadth: number
+    depth: number
+    maxSpeed?: number
+    grossTonnage?: number
+    deadweight?: number
+    accommodation?: number
+    propulsion?: string
+    powerInstalled?: number
+    yearBuilt?: number
+    yearRebuilt?: number
+    flag?: string
+    classNotation?: string
+    passengerCapacity?: number
+    vehicleCapacity?: number
+  }
+
+  systems: VesselSystem[]
+
   docs: {
-    fleetPageUrl?: string;
-    investorPresentationUrl?: string;
-    integratedReportUrl?: string;
-    specsUrl?: string;
-    manualUrl?: string;
-    schematicUrl?: string;
-  };
-  
-  // Official page
-  officialUrl: string;
-  imageUrl?: string;
-  
-  // Description
-  description: string;
-  capabilities: string[];
+    fleetPageUrl?: string
+    investorPresentationUrl?: string
+    integratedReportUrl?: string
+    specsUrl?: string
+    manualUrl?: string
+    schematicUrl?: string
+  }
+
+  officialUrl: string
+  imageUrl?: string
+
+  description: string
+  capabilities: string[]
 }
 
 export interface VesselSystem {
-  id: string;
-  name: string;
-  category: 'propulsion' | 'hydraulic' | 'electrical' | 'dredging' | 'crane' | 'navigation' | 'safety' | 'hvac';
-  components: SystemComponent[];
-  maintenanceIntervalHours: number;
-  criticalityLevel: 'critical' | 'high' | 'medium' | 'low';
+  id: string
+  name: string
+  category: 'propulsion' | 'hydraulic' | 'electrical' | 'navigation' | 'safety' | 'hvac' | 'passenger'
+  components: SystemComponent[]
+  maintenanceIntervalHours: number
+  criticalityLevel: 'critical' | 'high' | 'medium' | 'low'
 }
 
 export interface SystemComponent {
-  id: string;
-  name: string;
-  type: string;
-  manufacturer?: string;
-  model?: string;
-  serialNumber?: string;
-  installDate?: string;
-  lastMaintenance?: string;
-  hoursOperated?: number;
-  failureModes: FailureMode[];
+  id: string
+  name: string
+  type: string
+  manufacturer?: string
+  model?: string
+  serialNumber?: string
+  installDate?: string
+  lastMaintenance?: string
+  hoursOperated?: number
+  failureModes: FailureMode[]
 }
 
 export interface FailureMode {
-  mode: string;
-  symptoms: string[];
-  causes: string[];
-  effects: string[];
-  mitigations: string[];
-  mtbf?: number; // Mean Time Between Failures (hours)
+  mode: string
+  symptoms: string[]
+  causes: string[]
+  effects: string[]
+  mitigations: string[]
+  mtbf?: number
 }
 
-// NMDC Dredging & Marine Fleet
-export const VESSEL_PROFILES: Record<string, VesselProfile> = {
-  // ============================================================================
-  // NMDC GROUP - Dredging & Marine Construction
-  // ============================================================================
-  
-  // Heavy Duty Cutter Suction Dredgers
-  'al-hamra': {
-    id: 'al-hamra',
-    name: 'Al Hamra',
-    type: 'dredger',
-    subtype: 'Heavy Duty Cutter Suction Dredger (CSD)',
-    company: 'nmdc_group',
-    specs: {
-      lengthOverall: 89.0,
-      breadth: 18.0,
-      depth: 5.0,
-      dredgingDepth: 18.0,
-      powerInstalled: 12500,
-      yearBuilt: 2008,
-      flag: 'UAE',
-      classNotation: 'Bureau Veritas',
-    },
-    systems: generateDredgerSystems('al-hamra'),
-    docs: {
-      fleetPageUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-      investorPresentationUrl: 'https://nmdc-group.com/assets/files/investor-presentation/2025/NMDC%20Group%20-%20Investor%20Presentation%203Q2025.pdf',
-      integratedReportUrl: 'https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf',
-    },
-    officialUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-    description: 'Heavy duty cutter suction dredger capable of dredging in challenging soil conditions including rock and coral.',
-    capabilities: [
-      'Rock dredging',
-      'Coral excavation',
-      'Deep water operations up to 18m',
-      'High production rates',
-      'Operates in exposed conditions',
-    ],
-  },
-  
-  'al-khatem': {
-    id: 'al-khatem',
-    name: 'Al Khatem',
-    type: 'dredger',
-    subtype: 'Heavy Duty Cutter Suction Dredger (CSD)',
-    company: 'nmdc_group',
-    specs: {
-      lengthOverall: 89.0,
-      breadth: 18.0,
-      depth: 4.7,
-      dredgingDepth: 18.0,
-      powerInstalled: 12000,
-      yearBuilt: 2006,
-      flag: 'UAE',
-      classNotation: 'Lloyd\'s Register',
-    },
-    systems: generateDredgerSystems('al-khatem'),
-    docs: {
-      fleetPageUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-      investorPresentationUrl: 'https://nmdc-group.com/assets/files/investor-presentation/2025/NMDC%20Group%20-%20Investor%20Presentation%203Q2025.pdf',
-      integratedReportUrl: 'https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf',
-    },
-    officialUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-    description: 'Heavy duty CSD with proven track record in major reclamation and infrastructure projects.',
-    capabilities: [
-      'Capital dredging',
-      'Maintenance dredging',
-      'Land reclamation',
-      'Rock and hard soil dredging',
-    ],
-  },
-  
-  'al-mirfa': {
-    id: 'al-mirfa',
-    name: 'Al Mirfa',
-    type: 'dredger',
-    subtype: 'Heavy Duty Cutter Suction Dredger (CSD)',
-    company: 'nmdc_group',
-    specs: {
-      lengthOverall: 85.0,
-      breadth: 17.0,
-      depth: 4.5,
-      dredgingDepth: 16.0,
-      powerInstalled: 11000,
-      yearBuilt: 2010,
-      flag: 'UAE',
-      classNotation: 'Bureau Veritas',
-    },
-    systems: generateDredgerSystems('al-mirfa'),
-    docs: {
-      fleetPageUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-      investorPresentationUrl: 'https://nmdc-group.com/assets/files/investor-presentation/2025/NMDC%20Group%20-%20Investor%20Presentation%203Q2025.pdf',
-      integratedReportUrl: 'https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf',
-    },
-    officialUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-    description: 'Modern CSD designed for efficient operation in UAE waters with advanced control systems.',
-    capabilities: [
-      'High production dredging',
-      'Channel deepening',
-      'Port development',
-      'Offshore reclamation',
-    ],
-  },
-  
-  'al-sadr': {
-    id: 'al-sadr',
-    name: 'Al Sadr',
-    type: 'dredger',
-    subtype: 'Cutter Suction Dredger (CSD)',
-    company: 'nmdc_group',
-    specs: {
-      lengthOverall: 75.0,
-      breadth: 14.0,
-      depth: 4.0,
-      dredgingDepth: 15.0,
-      powerInstalled: 8500,
-      yearBuilt: 2004,
-      flag: 'UAE',
-    },
-    systems: generateDredgerSystems('al-sadr'),
-    docs: {
-      fleetPageUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-      investorPresentationUrl: 'https://nmdc-group.com/assets/files/investor-presentation/2025/NMDC%20Group%20-%20Investor%20Presentation%203Q2025.pdf',
-      integratedReportUrl: 'https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf',
-    },
-    officialUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-    description: 'Versatile CSD suitable for a variety of dredging operations in the Gulf region.',
-    capabilities: [
-      'Channel dredging',
-      'Beach nourishment',
-      'Marina development',
-      'Medium depth operations',
-    ],
-  },
-  
-  'al-yassat': {
-    id: 'al-yassat',
-    name: 'Al Yassat',
-    type: 'dredger',
-    subtype: 'Cutter Suction Dredger (CSD)',
-    company: 'nmdc_group',
-    specs: {
-      lengthOverall: 70.0,
-      breadth: 13.0,
-      depth: 3.8,
-      dredgingDepth: 14.0,
-      powerInstalled: 7500,
-      yearBuilt: 2005,
-      flag: 'UAE',
-    },
-    systems: generateDredgerSystems('al-yassat'),
-    docs: {
-      fleetPageUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-      investorPresentationUrl: 'https://nmdc-group.com/assets/files/investor-presentation/2025/NMDC%20Group%20-%20Investor%20Presentation%203Q2025.pdf',
-      integratedReportUrl: 'https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf',
-    },
-    officialUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-    description: 'Medium-sized CSD with excellent maneuverability for confined area dredging.',
-    capabilities: [
-      'Confined area dredging',
-      'Harbor maintenance',
-      'Shallow water operations',
-      'Quick mobilization',
-    ],
-  },
-  
-  'kattouf': {
-    id: 'kattouf',
-    name: 'Kattouf',
-    type: 'dredger',
-    subtype: 'Heavy Duty Cutter Suction Dredger (CSD)',
-    company: 'nmdc_group',
-    specs: {
-      lengthOverall: 92.0,
-      breadth: 19.0,
-      depth: 5.2,
-      dredgingDepth: 20.0,
-      powerInstalled: 14000,
-      yearBuilt: 2012,
-      flag: 'UAE',
-      classNotation: 'DNV GL',
-    },
-    systems: generateDredgerSystems('kattouf'),
-    docs: {
-      fleetPageUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-      investorPresentationUrl: 'https://nmdc-group.com/assets/files/investor-presentation/2025/NMDC%20Group%20-%20Investor%20Presentation%203Q2025.pdf',
-      integratedReportUrl: 'https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf',
-    },
-    officialUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-    description: 'One of the most powerful CSDs in the NMDC fleet, capable of deepest dredging operations.',
-    capabilities: [
-      'Ultra-deep dredging up to 20m',
-      'Heavy rock cutting',
-      'High capacity pumping',
-      'Long distance discharge',
-    ],
-  },
-  
-  // Hopper Dredgers
-  'gulf-hopper': {
-    id: 'gulf-hopper',
-    name: 'Gulf Hopper',
-    type: 'dredger',
-    subtype: 'Trailing Suction Hopper Dredger (TSHD)',
-    company: 'nmdc_group',
-    specs: {
-      lengthOverall: 95.0,
-      breadth: 18.0,
-      depth: 6.5,
-      dredgingDepth: 25.0,
-      maxSpeed: 12,
-      grossTonnage: 4500,
-      powerInstalled: 8000,
-      yearBuilt: 2009,
-      flag: 'UAE',
-    },
-    systems: generateHopperSystems('gulf-hopper'),
-    docs: {
-      fleetPageUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-      investorPresentationUrl: 'https://nmdc-group.com/assets/files/investor-presentation/2025/NMDC%20Group%20-%20Investor%20Presentation%203Q2025.pdf',
-      integratedReportUrl: 'https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf',
-    },
-    officialUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-    description: 'Self-propelled hopper dredger for maintenance dredging and sand supply operations.',
-    capabilities: [
-      'Trailing suction dredging',
-      'Rainbow discharge',
-      'Bottom door discharge',
-      'Pump ashore operations',
-      'Long distance transport',
-    ],
-  },
-  
-  // Crane Barges / Heavy Lift
-  'nmdc-lifter-i': {
-    id: 'nmdc-lifter-i',
-    name: 'NMDC Lifter I',
-    type: 'crane_barge',
-    subtype: 'Heavy Lift Crane Barge',
-    company: 'nmdc_group',
-    specs: {
-      lengthOverall: 120.0,
-      breadth: 36.0,
-      depth: 8.0,
-      craneCapacity: 2000,
-      accommodation: 80,
-      powerInstalled: 6000,
-      yearBuilt: 2011,
-      flag: 'UAE',
-    },
-    systems: generateCraneBargeSystems('nmdc-lifter-i'),
-    docs: {
-      fleetPageUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-      investorPresentationUrl: 'https://nmdc-group.com/assets/files/investor-presentation/2025/NMDC%20Group%20-%20Investor%20Presentation%203Q2025.pdf',
-      integratedReportUrl: 'https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf',
-    },
-    officialUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-    description: 'Heavy lift crane barge capable of lifting major offshore structures and modules.',
-    capabilities: [
-      'Heavy lift operations up to 2000T',
-      'Platform installation',
-      'Jacket lifting',
-      'Module installation',
-      'Decommissioning support',
-    ],
-  },
-  
-  'nmdc-lifter-ii': {
-    id: 'nmdc-lifter-ii',
-    name: 'NMDC Lifter II',
-    type: 'crane_barge',
-    subtype: 'Derrick Lay Barge',
-    company: 'nmdc_group',
-    specs: {
-      lengthOverall: 196.9,
-      breadth: 43.4,
-      depth: 19.6,
-      craneCapacity: 4200,
-      accommodation: 350,
-      powerInstalled: 25000,
-      yearBuilt: 2015,
-      flag: 'UAE',
-      classNotation: 'ABS',
-    },
-    systems: generateCraneBargeSystems('nmdc-lifter-ii'),
-    docs: {
-      fleetPageUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-      investorPresentationUrl: 'https://nmdc-group.com/assets/files/investor-presentation/2025/NMDC%20Group%20-%20Investor%20Presentation%203Q2025.pdf',
-      integratedReportUrl: 'https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf',
-    },
-    officialUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-    description: 'Major derrick and pipelay barge - one of the largest in the Middle East region.',
-    capabilities: [
-      'Heavy lift up to 4200T',
-      'S-Lay pipelaying',
-      'Platform topsides installation',
-      'Offshore construction',
-      'Complex heavy lifts',
-    ],
-  },
-  
-  'heavy-lift-alpha': {
-    id: 'heavy-lift-alpha',
-    name: 'Heavy Lift Alpha',
-    type: 'crane_barge',
-    subtype: 'Sheerleg Crane Barge',
-    company: 'nmdc_group',
-    specs: {
-      lengthOverall: 85.0,
-      breadth: 28.0,
-      depth: 5.5,
-      craneCapacity: 800,
-      accommodation: 45,
-      yearBuilt: 2007,
-      flag: 'UAE',
-    },
-    systems: generateCraneBargeSystems('heavy-lift-alpha'),
-    docs: {
-      fleetPageUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-      investorPresentationUrl: 'https://nmdc-group.com/assets/files/investor-presentation/2025/NMDC%20Group%20-%20Investor%20Presentation%203Q2025.pdf',
-      integratedReportUrl: 'https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf',
-    },
-    officialUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-    description: 'Versatile sheerleg crane barge for medium-heavy lift operations.',
-    capabilities: [
-      'Medium-heavy lifts up to 800T',
-      'Subsea installations',
-      'Jacket installations',
-      'Salvage operations',
-    ],
-  },
-  
-  // Support Vessels
-  'gulf-pioneer': {
-    id: 'gulf-pioneer',
-    name: 'Gulf Pioneer',
-    type: 'tugboat',
-    subtype: 'Anchor Handling Tug Supply (AHTS)',
-    company: 'nmdc_group',
-    specs: {
-      lengthOverall: 65.0,
-      breadth: 15.0,
-      depth: 6.5,
-      maxSpeed: 14,
-      grossTonnage: 1800,
-      deadweight: 1200,
-      powerInstalled: 8000,
-      yearBuilt: 2010,
-      flag: 'UAE',
-    },
-    systems: generateTugSystems('gulf-pioneer'),
-    docs: {
-      fleetPageUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-      investorPresentationUrl: 'https://nmdc-group.com/assets/files/investor-presentation/2025/NMDC%20Group%20-%20Investor%20Presentation%203Q2025.pdf',
-      integratedReportUrl: 'https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf',
-    },
-    officialUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-    description: 'Powerful AHTS vessel for anchor handling and towing operations.',
-    capabilities: [
-      'Anchor handling',
-      'Rig towing',
-      'Supply duties',
-      'Firefighting Class 1',
-      'Offshore support',
-    ],
-  },
-  
-  'al-dhafra-tug': {
-    id: 'al-dhafra-tug',
-    name: 'Al Dhafra Tug',
-    type: 'tugboat',
-    subtype: 'Harbor Tug',
-    company: 'nmdc_group',
-    specs: {
-      lengthOverall: 32.0,
-      breadth: 10.0,
-      depth: 4.5,
-      maxSpeed: 12,
-      grossTonnage: 450,
-      powerInstalled: 3500,
-      yearBuilt: 2008,
-      flag: 'UAE',
-    },
-    systems: generateTugSystems('al-dhafra-tug'),
-    docs: {
-      fleetPageUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-      investorPresentationUrl: 'https://nmdc-group.com/assets/files/investor-presentation/2025/NMDC%20Group%20-%20Investor%20Presentation%203Q2025.pdf',
-      integratedReportUrl: 'https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf',
-    },
-    officialUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-    description: 'Compact harbor tug for port operations and dredger support.',
-    capabilities: [
-      'Ship handling',
-      'Dredger support',
-      'Barge towing',
-      'Harbor operations',
-    ],
-  },
-  
-  'harbor-force': {
-    id: 'harbor-force',
-    name: 'Harbor Force',
-    type: 'tugboat',
-    subtype: 'Harbor Tug',
-    company: 'nmdc_group',
-    specs: {
-      lengthOverall: 28.0,
-      breadth: 9.0,
-      depth: 4.0,
-      maxSpeed: 11,
-      grossTonnage: 380,
-      powerInstalled: 3000,
-      yearBuilt: 2012,
-      flag: 'UAE',
-    },
-    systems: generateTugSystems('harbor-force'),
-    docs: {
-      fleetPageUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-      investorPresentationUrl: 'https://nmdc-group.com/assets/files/investor-presentation/2025/NMDC%20Group%20-%20Investor%20Presentation%203Q2025.pdf',
-      integratedReportUrl: 'https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf',
-    },
-    officialUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-    description: 'Modern harbor tug with excellent maneuverability.',
-    capabilities: [
-      'Ship berthing assistance',
-      'Barge positioning',
-      'General towing',
-      'Emergency response',
-    ],
-  },
-  
-  'sea-guardian': {
-    id: 'sea-guardian',
-    name: 'Sea Guardian',
-    type: 'tugboat',
-    subtype: 'Emergency Response Tug',
-    company: 'nmdc_group',
-    specs: {
-      lengthOverall: 45.0,
-      breadth: 12.0,
-      depth: 5.0,
-      maxSpeed: 15,
-      grossTonnage: 800,
-      powerInstalled: 5500,
-      yearBuilt: 2014,
-      flag: 'UAE',
-    },
-    systems: generateTugSystems('sea-guardian'),
-    docs: {
-      fleetPageUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-      investorPresentationUrl: 'https://nmdc-group.com/assets/files/investor-presentation/2025/NMDC%20Group%20-%20Investor%20Presentation%203Q2025.pdf',
-      integratedReportUrl: 'https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf',
-    },
-    officialUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-    description: 'Fast emergency response and standby vessel with firefighting capabilities.',
-    capabilities: [
-      'Emergency response',
-      'Firefighting FiFi 1',
-      'Oil spill response',
-      'Standby duties',
-      'Fast transit',
-    ],
-  },
-  
-  // Supply Vessels
-  'gulf-provider': {
-    id: 'gulf-provider',
-    name: 'Gulf Provider',
-    type: 'supply_vessel',
-    subtype: 'Platform Supply Vessel (PSV)',
-    company: 'nmdc_group',
-    specs: {
-      lengthOverall: 72.0,
-      breadth: 16.0,
-      depth: 6.8,
-      maxSpeed: 13,
-      grossTonnage: 2800,
-      deadweight: 3200,
-      accommodation: 24,
-      powerInstalled: 5400,
-      yearBuilt: 2011,
-      flag: 'UAE',
-    },
-    systems: generateSupplyVesselSystems('gulf-provider'),
-    docs: {
-      fleetPageUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-      investorPresentationUrl: 'https://nmdc-group.com/assets/files/investor-presentation/2025/NMDC%20Group%20-%20Investor%20Presentation%203Q2025.pdf',
-      integratedReportUrl: 'https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf',
-    },
-    officialUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-    description: 'Modern PSV for offshore platform supply and support operations.',
-    capabilities: [
-      'Deck cargo transport',
-      'Bulk cargo (mud, cement, water)',
-      'DP2 capable',
-      'Platform supply',
-    ],
-  },
-  
-  'nmdc-supplier-i': {
-    id: 'nmdc-supplier-i',
-    name: 'NMDC Supplier I',
-    type: 'supply_vessel',
-    subtype: 'Platform Supply Vessel (PSV)',
-    company: 'nmdc_group',
-    specs: {
-      lengthOverall: 68.0,
-      breadth: 15.0,
-      depth: 6.2,
-      maxSpeed: 12,
-      grossTonnage: 2400,
-      deadweight: 2800,
-      accommodation: 20,
-      powerInstalled: 4800,
-      yearBuilt: 2009,
-      flag: 'UAE',
-    },
-    systems: generateSupplyVesselSystems('nmdc-supplier-i'),
-    docs: {
-      fleetPageUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-      investorPresentationUrl: 'https://nmdc-group.com/assets/files/investor-presentation/2025/NMDC%20Group%20-%20Investor%20Presentation%203Q2025.pdf',
-      integratedReportUrl: 'https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf',
-    },
-    officialUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-    description: 'Reliable PSV for regular offshore supply runs.',
-    capabilities: [
-      'General supply duties',
-      'Fuel transfer',
-      'Fresh water supply',
-      'Equipment transport',
-    ],
-  },
-  
-  'offshore-express': {
-    id: 'offshore-express',
-    name: 'Offshore Express',
-    type: 'supply_vessel',
-    subtype: 'Fast Supply Vessel (FSV)',
-    company: 'nmdc_group',
-    specs: {
-      lengthOverall: 55.0,
-      breadth: 12.0,
-      depth: 4.5,
-      maxSpeed: 18,
-      grossTonnage: 1200,
-      deadweight: 800,
-      accommodation: 18,
-      powerInstalled: 6000,
-      yearBuilt: 2013,
-      flag: 'UAE',
-    },
-    systems: generateSupplyVesselSystems('offshore-express'),
-    docs: {
-      fleetPageUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-      investorPresentationUrl: 'https://nmdc-group.com/assets/files/investor-presentation/2025/NMDC%20Group%20-%20Investor%20Presentation%203Q2025.pdf',
-      integratedReportUrl: 'https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf',
-    },
-    officialUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-    description: 'High-speed supply vessel for urgent offshore deliveries.',
-    capabilities: [
-      'Fast cargo delivery',
-      'Personnel transfer',
-      'Urgent supply runs',
-      'High speed transit',
-    ],
-  },
-  
-  // Survey Vessels
-  'marine-scanner': {
-    id: 'marine-scanner',
-    name: 'Marine Scanner',
-    type: 'survey_vessel',
-    subtype: 'Hydrographic Survey Vessel',
-    company: 'nmdc_group',
-    specs: {
-      lengthOverall: 42.0,
-      breadth: 10.0,
-      depth: 3.5,
-      maxSpeed: 12,
-      grossTonnage: 450,
-      accommodation: 20,
-      powerInstalled: 2000,
-      yearBuilt: 2015,
-      flag: 'UAE',
-    },
-    systems: generateSurveyVesselSystems('marine-scanner'),
-    docs: {
-      fleetPageUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-      investorPresentationUrl: 'https://nmdc-group.com/assets/files/investor-presentation/2025/NMDC%20Group%20-%20Investor%20Presentation%203Q2025.pdf',
-      integratedReportUrl: 'https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf',
-    },
-    officialUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-    description: 'Advanced hydrographic survey vessel with multibeam capabilities.',
-    capabilities: [
-      'Multibeam bathymetry',
-      'Side scan sonar',
-      'Sub-bottom profiling',
-      'Positioning surveys',
-      'Pre/post dredge surveys',
-    ],
-  },
-  
-  'deep-scanner': {
-    id: 'deep-scanner',
-    name: 'Deep Scanner',
-    type: 'survey_vessel',
-    subtype: 'Geophysical Survey Vessel',
-    company: 'nmdc_group',
-    specs: {
-      lengthOverall: 55.0,
-      breadth: 12.0,
-      depth: 4.2,
-      maxSpeed: 11,
-      grossTonnage: 750,
-      accommodation: 25,
-      powerInstalled: 2800,
-      yearBuilt: 2012,
-      flag: 'UAE',
-    },
-    systems: generateSurveyVesselSystems('deep-scanner'),
-    docs: {
-      fleetPageUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-      investorPresentationUrl: 'https://nmdc-group.com/assets/files/investor-presentation/2025/NMDC%20Group%20-%20Investor%20Presentation%203Q2025.pdf',
-      integratedReportUrl: 'https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf',
-    },
-    officialUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-    description: 'Deep water capable survey vessel for geophysical and pipeline surveys.',
-    capabilities: [
-      'Deep water surveys',
-      'Pipeline inspection',
-      'ROV operations',
-      'Geophysical surveys',
-      'Environmental monitoring',
-    ],
-  },
-  
-  'ocean-explorer': {
-    id: 'ocean-explorer',
-    name: 'Ocean Explorer',
-    type: 'survey_vessel',
-    subtype: 'Multi-Purpose Survey Vessel',
-    company: 'nmdc_group',
-    specs: {
-      lengthOverall: 48.0,
-      breadth: 11.0,
-      depth: 3.8,
-      maxSpeed: 10,
-      grossTonnage: 550,
-      accommodation: 22,
-      powerInstalled: 2200,
-      yearBuilt: 2010,
-      flag: 'UAE',
-    },
-    systems: generateSurveyVesselSystems('ocean-explorer'),
-    docs: {
-      fleetPageUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-      investorPresentationUrl: 'https://nmdc-group.com/assets/files/investor-presentation/2025/NMDC%20Group%20-%20Investor%20Presentation%203Q2025.pdf',
-      integratedReportUrl: 'https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf',
-    },
-    officialUrl: 'https://nmdc-group.com/en/about-us/fleet-and-equipment',
-    description: 'Versatile survey vessel for various offshore survey operations.',
-    capabilities: [
-      'Hydrographic surveys',
-      'Positioning',
-      'Environmental sampling',
-      'Light construction support',
-    ],
-  },
-  
-  // ============================================================================
-  // NMDC ENERGY - Offshore EPC, Pipelaying & Heavy Lift
-  // Source: https://www.nmdc-energy.com/en/about-us/fleet/
-  // Specs verified from official PDF datasheets via Exa search
-  // ============================================================================
-  
-  // Derrick Lay Barges
-  'dls-4200': {
-    id: 'dls-4200',
-    name: 'DLS-4200',
-    type: 'derrick_barge',
-    subtype: 'Derrick Lay Semi-Submersible',
-    company: 'nmdc_energy',
-    specs: {
-      lengthOverall: 196.9,   // Verified from Ulstein design docs
-      breadth: 43.4,
-      depth: 19.6,
-      craneCapacity: 4200,    // 4200 short tons (3810 metric tons)
-      accommodation: 350,
-      powerInstalled: 25000,
-      yearBuilt: 2015,
-      flag: 'UAE',
-      classNotation: 'ABS',
-    },
-    systems: generateCraneBargeSystems('dls-4200'),
-    docs: {
-      fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
-      specsUrl: 'https://www.nmdc-energy.com/assets/files/fleet/derrick%20barges/DLS-4200.pdf',
-    },
-    officialUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
-    description: 'Major derrick and pipelay vessel - one of the largest in the Middle East. 10-point mooring, pipes up to 66" diameter, water depth 10-2000m.',
-    capabilities: [
-      'Heavy lift up to 4200 short tons',
-      'S-Lay pipelaying up to 66" diameter',
-      'Platform topsides installation',
-      'Jacket installation',
-      'Deep water operations (10-2000m)',
-      '10-point mooring system',
-    ],
-  },
-  
-  'delma-2000': {
-    id: 'delma-2000',
-    name: 'DELMA 2000',
-    type: 'derrick_barge',
-    subtype: 'Pipelay Crane Vessel',
-    company: 'nmdc_energy',
-    specs: {
-      lengthOverall: 180.0,   // 232m with fixed stinger
-      breadth: 32.0,
-      depth: 15.0,
-      craneCapacity: 2000,
-      accommodation: 300,
-      yearBuilt: 2010,
-      flag: 'UAE',
-    },
-    systems: generateCraneBargeSystems('delma-2000'),
-    docs: {
-      fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
-      specsUrl: 'https://www.nmdc-energy.com/assets/files/fleet/derrick%20barges/Delma%202000.pdf',
-    },
-    officialUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
-    description: 'Major pipelay crane vessel with 2000T lift capacity. IMO: 9429455.',
-    capabilities: [
-      'Heavy lift up to 2000T',
-      'S-Lay pipelaying',
-      'Platform installation',
-      'Offshore construction',
-    ],
-  },
-  
-  // Pipelay Barges (Conventional Flat Bottom)
-  'plb-648': {
-    id: 'plb-648',
-    name: 'PLB-648',
-    type: 'pipelay_barge',
-    subtype: 'Conventional Flat Bottom Pipelay Barge',
-    company: 'nmdc_energy',
-    specs: {
-      lengthOverall: 106.0,
-      breadth: 30.0,
-      depth: 7.5,
-      craneCapacity: 600,     // Huisman 600MT + 2x160T Manitowoc
-      accommodation: 244,
-      powerInstalled: 4170,
-      yearBuilt: 1979,
-      flag: 'UAE',
-      classNotation: 'ABS Maltese Cross A1',
-    },
-    systems: generatePipelayBargeSystems('plb-648'),
-    docs: {
-      fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
-      specsUrl: 'https://www.nmdc-energy.com/assets/files/fleet/conventional%20flat%20bottom%20barges/PLB-648.pdf',
-    },
-    officialUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
-    description: 'Conventional flat bottom pipelay barge with Huisman 600MT pedestal crane. Pipes 6"-48". IMO: 8758055.',
-    capabilities: [
-      'Heavy lift up to 600T',
-      'Pipe laying 6" to 48" diameter',
-      'Flexible & cable lay',
-      '8-point mooring system',
-      'Helideck (Bell 212 certified)',
-    ],
-  },
-  
-  'dlb-750': {
-    id: 'dlb-750',
-    name: 'DLB-750',
-    type: 'pipelay_barge',
-    subtype: 'Conventional Flat Bottom Barge / Side Lay',
-    company: 'nmdc_energy',
-    specs: {
-      lengthOverall: 122.0,
-      breadth: 33.5,
-      depth: 8.8,
-      accommodation: 269,
-      flag: 'UAE',
-      classNotation: 'ABS A1 (E)',
-    },
-    systems: generatePipelayBargeSystems('dlb-750'),
-    docs: {
-      fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
-      specsUrl: 'https://www.nmdc-energy.com/assets/files/fleet/conventional%20flat%20bottom%20barges/DLB-750.pdf',
-    },
-    officialUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
-    description: 'Side lay pipelay barge with 4500m² deck area. Pipes 4"-60". IMO: 8758108.',
-    capabilities: [
-      'Pipe laying 4" to 60" diameter',
-      '10-point mooring system',
-      'Tensioners: 2x125MT',
-      'Helideck (Sikorski S61)',
-    ],
-  },
-  
-  'dlb-1000': {
-    id: 'dlb-1000',
-    name: 'DLB-1000',
-    type: 'pipelay_barge',
-    subtype: 'Conventional Flat Bottom Pipelay Barge',
-    company: 'nmdc_energy',
-    specs: {
-      lengthOverall: 121.9,
-      breadth: 36.6,
-      depth: 8.2,
-      accommodation: 269,
-      yearBuilt: 1983,
-      flag: 'UAE',
-      classNotation: 'ABS Maltese Cross 100 A1',
-    },
-    systems: generatePipelayBargeSystems('dlb-1000'),
-    docs: {
-      fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
-      specsUrl: 'https://www.nmdc-energy.com/assets/files/fleet/conventional%20flat%20bottom%20barges/DLB-1000.pdf',
-    },
-    officialUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
-    description: 'Pipelay barge built by Daewoo. Derrick crane CLYDE 52-DE-230-30-15.',
-    capabilities: [
-      'Heavy lift',
-      'Pipe laying',
-      'Flexible & cable lay',
-      '8-point mooring',
-    ],
-  },
-  
-  // Jack-Up Barges (Self-Elevating Platforms)
-  'sep-450': {
-    id: 'sep-450',
-    name: 'SEP-450',
-    type: 'jack_up_barge',
-    subtype: 'Self-Elevating Platform (Self-Propelled)',
-    company: 'nmdc_energy',
-    specs: {
-      lengthOverall: 61.0,
-      breadth: 36.0,
-      depth: 6.0,
-      craneCapacity: 300,     // Seatrax 300t main crane
-      accommodation: 219,
-      powerInstalled: 5620,   // 4x1405kW
-      flag: 'UAE',
-      classNotation: 'ABS+A1 Self Elevating Unit +AMS +ACCU',
-    },
-    systems: generateJackUpSystems('sep-450'),
-    docs: {
-      fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
-      specsUrl: 'https://www.nmdc-energy.com/assets/files/fleet/jack-up%20barges/SEP-450.pdf',
-    },
-    officialUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
-    description: 'Self-propelled jack-up with 4 triangular legs (94.2m). Helideck for Sikorsky S61N.',
-    capabilities: [
-      'Self-propelled',
-      'Self-elevating platform',
-      'Crane operations 300T',
-      'Hook up operations',
-      'Jacket & deck lifting',
-    ],
-  },
-  
-  'sep-550': {
-    id: 'sep-550',
-    name: 'SEP-550',
-    type: 'jack_up_barge',
-    subtype: 'Self-Elevating Platform',
-    company: 'nmdc_energy',
-    specs: {
-      lengthOverall: 76.0,    // 61m waterline
-      breadth: 36.0,
-      depth: 6.0,
-      accommodation: 314,     // 271 + 43 mobile
-      flag: 'UAE',
-      classNotation: 'ABS+A1 Self-Elevation Unit',
-    },
-    systems: generateJackUpSystems('sep-550'),
-    docs: {
-      fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
-      specsUrl: 'https://www.nmdc-energy.com/assets/files/fleet/jack-up%20barges/SEP-550.pdf',
-    },
-    officialUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
-    description: 'Jack-up with 4 triangular legs (66.6m). 800m² deck area.',
-    capabilities: [
-      'Self-elevating platform',
-      'Hook up operations',
-      'Sleepers & mattress installation',
-      'Jacket & deck lifting',
-    ],
-  },
-  
-  'sep-650': {
-    id: 'sep-650',
-    name: 'SEP-650',
-    type: 'jack_up_barge',
-    subtype: 'Self-Elevating Platform',
-    company: 'nmdc_energy',
-    specs: {
-      lengthOverall: 80.0,
-      breadth: 36.0,
-      depth: 6.0,
-      accommodation: 260,
-      flag: 'UAE',
-      classNotation: 'ABS+A1 Self Elevating Unit',
-    },
-    systems: generateJackUpSystems('sep-650'),
-    docs: {
-      fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
-    },
-    officialUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
-    description: 'Jack-up with 4 triangular legs. Self-propelled platform for offshore operations.',
-    capabilities: [
-      'Self-elevating platform',
-      'Crane operations',
-      'Hook up operations',
-      'Jacket installation',
-    ],
-  },
-  
-  'sep-750': {
-    id: 'sep-750',
-    name: 'SEP-750',
-    type: 'jack_up_barge',
-    subtype: 'Self-Elevating Platform',
-    company: 'nmdc_energy',
-    specs: {
-      lengthOverall: 61.0,
-      breadth: 36.0,
-      depth: 6.0,
-      craneCapacity: 162,     // Seatrax 162t main hoist
-      accommodation: 260,     // 217 + 43 mobile
-      powerInstalled: 4140,   // 3x1380kW
-      flag: 'UAE',
-      classNotation: 'ABS+A1 Self Elevating Unit',
-    },
-    systems: generateJackUpSystems('sep-750'),
-    docs: {
-      fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
-      specsUrl: 'https://www.nmdc-energy.com/assets/files/fleet/jack-up%20barges/SEP-750.pdf',
-    },
-    officialUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
-    description: 'Jack-up with 4 triangular legs (66.6m). CAP437 helideck. 800m² deck, 10T/m² capacity.',
-    capabilities: [
-      'Self-elevating platform',
-      'Crane operations 162T',
-      'Hook up operations',
-      'Drilling & demolishing',
-    ],
-  },
-  
-  // Offshore Support & Cable Lay
-  'umm-shaif': {
-    id: 'umm-shaif',
-    name: 'UMM SHAIF',
-    type: 'supply_vessel',
-    subtype: 'DP3 Offshore Support & Cable Laying Vessel',
-    company: 'nmdc_energy',
-    specs: {
-      lengthOverall: 111.56,  // 129.86m with stern extension
-      breadth: 43.4,
-      depth: 31.7,
-      craneCapacity: 300,     // 300t Huisman pedestal crane
-      accommodation: 620,     // 556-620 capacity
-      powerInstalled: 5280,
-      yearBuilt: 2009,
-      flag: 'UAE',
-      classNotation: 'ABS +A1, Accommodation Barge, +AMS-NP, +DPS-3',
-    },
-    systems: generateSupplyVesselSystems('umm-shaif'),
-    docs: {
-      fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
-      specsUrl: 'https://www.nmdc-energy.com/assets/files/fleet/offshore%20support%20and%20cable%20lay/Umm%20Shaif.pdf',
-    },
-    officialUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
-    description: 'DP3 cable laying vessel with 5000mt carousel. IMO: 8771497. 7200kW thruster power.',
-    capabilities: [
-      'DP3 positioning',
-      'Cable laying (5000mt carousel)',
-      '300T crane',
-      'Accommodation for 620 POB',
-      'Deck area 1615m²',
-    ],
-  },
-  
-  // AHTS Vessels
-  'saadiyat': {
-    id: 'saadiyat',
-    name: 'SAADIYAT',
-    type: 'tugboat',
-    subtype: 'Tug/AHTS/Supply/Fire Fighting Vessel',
-    company: 'nmdc_energy',
-    specs: {
-      lengthOverall: 48.0,
-      breadth: 13.2,
-      depth: 4.8,
-      accommodation: 28,
-      powerInstalled: 4480,   // 2x3004 HP
-      yearBuilt: 2011,
-      flag: 'UAE',
-      classNotation: 'Bureau Veritas',
-    },
-    systems: generateTugSystems('saadiyat'),
-    docs: {
-      fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
-      specsUrl: 'https://www.nmdc-energy.com/assets/files/fleet/anchor%20handling%20tug%20supply/Saadiyat.pdf',
-    },
-    officialUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
-    description: 'AHTS vessel with 75T bollard pull. IMO: 9577513. Fire fighting capable.',
-    capabilities: [
-      'Anchor handling (200T capacity)',
-      'Towing (75T bollard pull)',
-      'Supply duties (180T deck cargo)',
-      'Fire fighting',
-    ],
-  },
-  
-  'yas': {
-    id: 'yas',
-    name: 'YAS',
-    type: 'tugboat',
-    subtype: 'Tug/AHTS/Supply/Fire Fighting Vessel',
-    company: 'nmdc_energy',
-    specs: {
-      lengthOverall: 48.0,
-      breadth: 13.2,
-      depth: 4.8,
-      accommodation: 28,
-      yearBuilt: 2011,
-      flag: 'UAE',
-      classNotation: 'Bureau Veritas',
-    },
-    systems: generateTugSystems('yas'),
-    docs: {
-      fleetPageUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
-      specsUrl: 'https://www.nmdc-energy.com/assets/files/fleet/anchor%20handling%20tug%20supply/Yas.pdf',
-    },
-    officialUrl: 'https://www.nmdc-energy.com/en/about-us/fleet/',
-    description: 'Sister vessel to SAADIYAT. AHTS with 75T bollard pull.',
-    capabilities: [
-      'Anchor handling (200T capacity)',
-      'Towing (75T bollard pull)',
-      'Supply duties',
-      'Fire fighting',
-    ],
-  },
-};
-
-// Helper functions to generate system data for each vessel type
-function generateDredgerSystems(vesselId: string): VesselSystem[] {
-  return [
+function generateFerrySystems(vesselId: string, vesselClass: string): VesselSystem[] {
+  const systems: VesselSystem[] = [
     {
       id: `${vesselId}-prop`,
       name: 'Main Propulsion System',
@@ -1149,15 +83,15 @@ function generateDredgerSystems(vesselId: string): VesselSystem[] {
       components: [
         {
           id: `${vesselId}-prop-engine`,
-          name: 'Main Diesel Engines',
-          type: 'Diesel Engine',
-          manufacturer: 'Caterpillar',
+          name: vesselClass.includes('Olympic') ? 'Diesel-Electric Drive Motors' : 'Main Diesel Engines',
+          type: vesselClass.includes('Olympic') ? 'Diesel-Electric Motor' : 'Diesel Engine',
+          manufacturer: vesselClass.includes('Olympic') ? 'ABB' : 'Caterpillar',
           failureModes: [
             {
               mode: 'Overheating',
               symptoms: ['High coolant temperature', 'Reduced power output', 'Warning alarms'],
-              causes: ['Coolant leak', 'Thermostat failure', 'Blocked radiator'],
-              effects: ['Engine shutdown', 'Reduced dredging capacity'],
+              causes: ['Coolant leak', 'Thermostat failure', 'Blocked heat exchanger'],
+              effects: ['Engine shutdown', 'Reduced speed', 'Schedule delays'],
               mitigations: ['Check coolant levels daily', 'Inspect cooling system weekly'],
               mtbf: 8000,
             },
@@ -1165,141 +99,97 @@ function generateDredgerSystems(vesselId: string): VesselSystem[] {
               mode: 'Fuel injection failure',
               symptoms: ['Rough running', 'Black smoke', 'Power loss'],
               causes: ['Contaminated fuel', 'Injector wear', 'Fuel pump failure'],
-              effects: ['Reduced efficiency', 'Potential engine damage'],
-              mitigations: ['Use quality fuel', 'Regular fuel filter changes'],
+              effects: ['Reduced efficiency', 'Schedule delays'],
+              mitigations: ['Use quality marine fuel', 'Regular fuel filter changes'],
               mtbf: 6000,
+        },
+      ],
+    },
+    {
+          id: `${vesselId}-prop-cpp`,
+          name: 'Controllable Pitch Propellers',
+          type: 'CPP System',
+          manufacturer: 'Rolls-Royce',
+          failureModes: [
+            {
+              mode: 'Hub seal failure',
+              symptoms: ['Oil leak at hub', 'Pitch response sluggish', 'Oil consumption increase'],
+              causes: ['Seal wear', 'Impact damage', 'Age degradation'],
+              effects: ['Propulsion efficiency loss', 'Environmental concern'],
+              mitigations: ['Regular oil level checks', 'Scheduled seal replacement'],
+              mtbf: 12000,
             },
           ],
         },
       ],
     },
     {
-      id: `${vesselId}-cutter`,
-      name: 'Cutter Head System',
-      category: 'dredging',
-      maintenanceIntervalHours: 500,
-      criticalityLevel: 'critical',
-      components: [
-        {
-          id: `${vesselId}-cutter-head`,
-          name: 'Cutter Head',
-          type: 'Rotating Cutter',
-          manufacturer: 'IHC',
-          failureModes: [
-            {
-              mode: 'Tooth wear',
-              symptoms: ['Reduced production', 'Increased power consumption', 'Vibration'],
-              causes: ['Abrasive soil conditions', 'Hard rock cutting', 'Normal wear'],
-              effects: ['Production loss', 'Increased fuel consumption'],
-              mitigations: ['Regular tooth inspection', 'Replace worn teeth promptly'],
-              mtbf: 200,
-            },
-            {
-              mode: 'Gearbox failure',
-              symptoms: ['Unusual noise', 'Oil leakage', 'Temperature rise'],
-              causes: ['Bearing failure', 'Gear wear', 'Oil degradation'],
-              effects: ['Complete cutter failure', 'Extended downtime'],
-              mitigations: ['Oil analysis', 'Vibration monitoring', 'Temperature monitoring'],
-              mtbf: 4000,
-            },
-          ],
-        },
-        {
-          id: `${vesselId}-cutter-motor`,
-          name: 'Cutter Motor',
-          type: 'Hydraulic Motor',
-          manufacturer: 'Rexroth',
-          failureModes: [
-            {
-              mode: 'Hydraulic seal failure',
-              symptoms: ['Oil leakage', 'Pressure loss', 'Reduced torque'],
-              causes: ['Seal wear', 'Contaminated oil', 'Overheating'],
-              effects: ['Cutter performance degradation'],
-              mitigations: ['Regular seal inspection', 'Maintain oil quality'],
-              mtbf: 3000,
-            },
-          ],
-        },
-      ],
-    },
-    {
-      id: `${vesselId}-pump`,
-      name: 'Dredge Pump System',
-      category: 'dredging',
-      maintenanceIntervalHours: 2000,
-      criticalityLevel: 'critical',
-      components: [
-        {
-          id: `${vesselId}-pump-main`,
-          name: 'Main Dredge Pump',
-          type: 'Centrifugal Pump',
-          manufacturer: 'Warman',
-          failureModes: [
-            {
-              mode: 'Impeller wear',
-              symptoms: ['Reduced flow rate', 'Increased power consumption', 'Vibration'],
-              causes: ['Abrasive material', 'High solids concentration'],
-              effects: ['Reduced dredging production'],
-              mitigations: ['Monitor production rates', 'Regular impeller inspection'],
-              mtbf: 1500,
-            },
-          ],
-        },
-      ],
-    },
-    {
-      id: `${vesselId}-hydraulic`,
-      name: 'Hydraulic System',
+      id: `${vesselId}-steering`,
+      name: 'Steering System',
       category: 'hydraulic',
       maintenanceIntervalHours: 2000,
-      criticalityLevel: 'high',
+      criticalityLevel: 'critical',
       components: [
         {
-          id: `${vesselId}-hyd-pump`,
-          name: 'Main Hydraulic Pumps',
-          type: 'Piston Pump',
-          manufacturer: 'Rexroth',
+          id: `${vesselId}-steering-rudder`,
+          name: 'Rudder Actuators',
+          type: 'Hydraulic Rudder System',
+          manufacturer: 'Rolls-Royce',
           failureModes: [
             {
-              mode: 'Pump cavitation',
-              symptoms: ['Noise', 'Vibration', 'Overheating'],
-              causes: ['Air in system', 'Blocked suction', 'Low oil level'],
-              effects: ['Pump damage', 'System failure'],
-              mitigations: ['Check oil levels', 'Inspect suction lines'],
-              mtbf: 5000,
+              mode: 'Hydraulic pump failure',
+              symptoms: ['Steering response slow', 'Pressure fluctuation', 'Noise'],
+              causes: ['Pump wear', 'Contaminated fluid', 'Seal failure'],
+              effects: ['Reduced maneuverability', 'Potential loss of steering'],
+              mitigations: ['Redundant steering pumps', 'Regular oil analysis'],
+              mtbf: 10000,
             },
           ],
         },
       ],
     },
     {
-      id: `${vesselId}-winch`,
-      name: 'Anchor Winch System',
-      category: 'dredging',
+      id: `${vesselId}-ramp`,
+      name: 'Vehicle Loading Ramp System',
+      category: 'hydraulic',
       maintenanceIntervalHours: 1000,
-      criticalityLevel: 'high',
+      criticalityLevel: 'critical',
       components: [
         {
-          id: `${vesselId}-winch-main`,
-          name: 'Anchor Winches',
-          type: 'Hydraulic Winch',
-          manufacturer: 'Huisman',
+          id: `${vesselId}-ramp-bow`,
+          name: 'Bow Vehicle Ramp',
+          type: 'Hydraulic Vehicle Ramp',
           failureModes: [
             {
-              mode: 'Brake failure',
-              symptoms: ['Brake slippage', 'Overheating', 'Unusual noise'],
-              causes: ['Brake pad wear', 'Hydraulic failure', 'Overload'],
-              effects: ['Anchor control loss', 'Safety hazard'],
-              mitigations: ['Daily brake checks', 'Regular pad inspection'],
-              mtbf: 2000,
+              mode: 'Hydraulic cylinder seal failure',
+              symptoms: ['Oil seepage', 'Ramp drift', 'Slow operation'],
+              causes: ['Seal wear', 'Rod scoring', 'Contaminated fluid'],
+              effects: ['Loading delays', 'Safety concern'],
+              mitigations: ['Regular seal inspection', 'Cylinder rod protection'],
+              mtbf: 5000,
             },
             {
-              mode: 'Wire rope damage',
-              symptoms: ['Visible wire breaks', 'Corrosion', 'Kinking'],
-              causes: ['Overloading', 'Fatigue', 'Environmental exposure'],
-              effects: ['Rope failure risk', 'Operational restrictions'],
-              mitigations: ['Regular rope inspection', 'Lubrication', 'Load monitoring'],
-              mtbf: 3000,
+              mode: 'Ramp hinge pin wear',
+              symptoms: ['Ramp misalignment', 'Unusual noise', 'Vibration'],
+              causes: ['Normal wear', 'Overload', 'Corrosion'],
+              effects: ['Ramp positioning issues', 'Loading delays'],
+              mitigations: ['Lubrication schedule', 'Pin clearance checks'],
+              mtbf: 8000,
+        },
+      ],
+    },
+    {
+          id: `${vesselId}-ramp-stern`,
+          name: 'Stern Vehicle Ramp',
+          type: 'Hydraulic Vehicle Ramp',
+          failureModes: [
+            {
+              mode: 'Chain elongation',
+              symptoms: ['Ramp leveling issues', 'Chain slack', 'Sprocket skip'],
+              causes: ['Normal wear', 'Overload cycles'],
+              effects: ['Ramp alignment problems'],
+              mitigations: ['Chain tension monitoring', 'Regular measurement'],
+              mtbf: 6000,
             },
           ],
         },
@@ -1307,24 +197,39 @@ function generateDredgerSystems(vesselId: string): VesselSystem[] {
     },
     {
       id: `${vesselId}-electrical`,
-      name: 'Electrical System',
+      name: 'Electrical & Generator System',
       category: 'electrical',
       maintenanceIntervalHours: 4000,
       criticalityLevel: 'high',
       components: [
         {
           id: `${vesselId}-gen`,
-          name: 'Generators',
+          name: 'Ship Service Generators',
           type: 'Diesel Generator',
           manufacturer: 'Caterpillar',
           failureModes: [
             {
               mode: 'AVR failure',
-              symptoms: ['Voltage fluctuations', 'Unstable power'],
-              causes: ['Component aging', 'Overload'],
-              effects: ['Power quality issues', 'Equipment damage'],
-              mitigations: ['Regular testing', 'Load balancing'],
+              symptoms: ['Voltage fluctuations', 'Unstable power', 'Equipment trips'],
+              causes: ['Component aging', 'Overload', 'Moisture'],
+              effects: ['Power quality issues', 'Passenger system outages'],
+              mitigations: ['Regular testing', 'Load balancing', 'Spare AVR boards'],
               mtbf: 10000,
+        },
+      ],
+    },
+    {
+          id: `${vesselId}-emergency-gen`,
+          name: 'Emergency Generator',
+          type: 'Emergency Diesel Generator',
+          failureModes: [
+            {
+              mode: 'Auto-start failure',
+              symptoms: ['Slow cranking', 'No start on test', 'Battery low'],
+              causes: ['Battery degradation', 'Fuel supply issue', 'Starter motor wear'],
+              effects: ['No emergency power backup', 'Safety compliance issue'],
+              mitigations: ['Weekly auto-start tests', 'Battery replacement schedule'],
+              mtbf: 15000,
             },
           ],
         },
@@ -1332,106 +237,39 @@ function generateDredgerSystems(vesselId: string): VesselSystem[] {
     },
     {
       id: `${vesselId}-nav`,
-      name: 'Navigation & Positioning',
+      name: 'Navigation & Communications',
       category: 'navigation',
       maintenanceIntervalHours: 8760,
-      criticalityLevel: 'medium',
+      criticalityLevel: 'high',
       components: [
         {
-          id: `${vesselId}-dgps`,
-          name: 'DGPS System',
+          id: `${vesselId}-radar`,
+          name: 'Marine Radar Systems',
+          type: 'X-Band/S-Band Radar',
+          manufacturer: 'Furuno',
+          failureModes: [
+            {
+              mode: 'Magnetron degradation',
+              symptoms: ['Reduced range', 'Weak targets', 'Signal dropout'],
+              causes: ['Component aging', 'Power supply issues'],
+              effects: ['Reduced navigation safety', 'USCG compliance risk'],
+              mitigations: ['Annual magnetron testing', 'Planned replacement'],
+              mtbf: 12000,
+        },
+      ],
+    },
+    {
+          id: `${vesselId}-gps`,
+          name: 'GPS/DGPS System',
           type: 'Positioning System',
           manufacturer: 'Trimble',
           failureModes: [
             {
-              mode: 'Signal loss',
-              symptoms: ['Position drift', 'No fix', 'Accuracy degradation'],
-              causes: ['Antenna issue', 'Interference', 'Satellite visibility'],
-              effects: ['Dredging accuracy affected'],
-              mitigations: ['Backup positioning', 'Regular calibration'],
-              mtbf: 15000,
-            },
-          ],
-        },
-      ],
-    },
-  ];
-}
-
-function generateHopperSystems(vesselId: string): VesselSystem[] {
-  const baseSystems = generateDredgerSystems(vesselId);
-  // Add hopper-specific systems
-  baseSystems.push({
-    id: `${vesselId}-hopper`,
-    name: 'Hopper & Discharge System',
-    category: 'dredging',
-    maintenanceIntervalHours: 2000,
-    criticalityLevel: 'critical',
-    components: [
-      {
-        id: `${vesselId}-hopper-doors`,
-        name: 'Bottom Doors',
-        type: 'Hydraulic Doors',
-        failureModes: [
-          {
-            mode: 'Door seal failure',
-            symptoms: ['Leakage', 'Incomplete closure'],
-            causes: ['Seal wear', 'Debris', 'Mechanical damage'],
-            effects: ['Cargo loss', 'Draft issues'],
-            mitigations: ['Regular inspection', 'Seal replacement'],
-            mtbf: 3000,
-          },
-        ],
-      },
-      {
-        id: `${vesselId}-draghead`,
-        name: 'Trailing Draghead',
-        type: 'Suction Draghead',
-        failureModes: [
-          {
-            mode: 'Visor wear',
-            symptoms: ['Reduced suction efficiency', 'Increased power'],
-            causes: ['Abrasive seabed', 'Rock contact'],
-            effects: ['Production loss'],
-            mitigations: ['Regular inspection', 'Visor replacement'],
-            mtbf: 1000,
-          },
-        ],
-      },
-    ],
-  });
-  return baseSystems;
-}
-
-function generateCraneBargeSystems(vesselId: string): VesselSystem[] {
-  return [
-    {
-      id: `${vesselId}-crane`,
-      name: 'Main Crane System',
-      category: 'crane',
-      maintenanceIntervalHours: 500,
-      criticalityLevel: 'critical',
-      components: [
-        {
-          id: `${vesselId}-crane-main`,
-          name: 'Main Crane',
-          type: 'Heavy Lift Crane',
-          manufacturer: 'Huisman',
-          failureModes: [
-            {
-              mode: 'Hoist wire failure',
-              symptoms: ['Wire breaks visible', 'Unusual noise', 'Vibration'],
-              causes: ['Fatigue', 'Overload', 'Corrosion'],
-              effects: ['Lifting capacity restriction', 'Safety hazard'],
-              mitigations: ['MPI inspection', 'Load monitoring', 'Wire lubrication'],
-              mtbf: 2000,
-            },
-            {
-              mode: 'Slewing bearing failure',
-              symptoms: ['Grinding noise', 'Uneven rotation', 'Vibration'],
-              causes: ['Bearing wear', 'Overload', 'Lubrication failure'],
-              effects: ['Crane operation restricted'],
-              mitigations: ['Regular greasing', 'Bearing monitoring', 'Load control'],
+              mode: 'Antenna cable degradation',
+              symptoms: ['Position jumps', 'Signal-to-noise decline', 'Intermittent fix'],
+              causes: ['UV damage', 'Moisture ingress', 'Connector corrosion'],
+              effects: ['Navigation accuracy reduced'],
+              mitigations: ['Annual cable inspection', 'Connector weatherproofing'],
               mtbf: 20000,
             },
           ],
@@ -1439,595 +277,246 @@ function generateCraneBargeSystems(vesselId: string): VesselSystem[] {
       ],
     },
     {
-      id: `${vesselId}-ballast`,
-      name: 'Ballast System',
-      category: 'hydraulic',
-      maintenanceIntervalHours: 2000,
-      criticalityLevel: 'high',
-      components: [
-        {
-          id: `${vesselId}-ballast-pumps`,
-          name: 'Ballast Pumps',
-          type: 'Centrifugal Pump',
-          failureModes: [
-            {
-              mode: 'Pump failure',
-              symptoms: ['No flow', 'Cavitation', 'Motor trip'],
-              causes: ['Seal failure', 'Impeller damage', 'Motor failure'],
-              effects: ['Cannot ballast/deballast', 'Stability issues'],
-              mitigations: ['Redundant pumps', 'Regular testing'],
-              mtbf: 8000,
-            },
-          ],
-        },
-      ],
-    },
-    {
-      id: `${vesselId}-mooring`,
-      name: 'Mooring System',
+      id: `${vesselId}-safety`,
+      name: 'Safety & Life-Saving Systems',
       category: 'safety',
-      maintenanceIntervalHours: 1000,
-      criticalityLevel: 'high',
-      components: [
-        {
-          id: `${vesselId}-mooring-winches`,
-          name: 'Mooring Winches',
-          type: 'Hydraulic Winch',
-          failureModes: [
-            {
-              mode: 'Brake failure',
-              symptoms: ['Brake slip', 'Overheating'],
-              causes: ['Pad wear', 'Hydraulic issue'],
-              effects: ['Mooring safety compromised'],
-              mitigations: ['Daily checks', 'Regular maintenance'],
-              mtbf: 4000,
-            },
-          ],
-        },
-      ],
-    },
-  ];
-}
-
-function generateJackUpSystems(vesselId: string): VesselSystem[] {
-  return [
-    {
-      id: `${vesselId}-jacking`,
-      name: 'Jacking System',
-      category: 'hydraulic',
-      maintenanceIntervalHours: 250,
-      criticalityLevel: 'critical',
-      components: [
-        {
-          id: `${vesselId}-jacking-motors`,
-          name: 'Jacking Motors',
-          type: 'Hydraulic Motor',
-          manufacturer: 'Bosch Rexroth',
-          failureModes: [
-            {
-              mode: 'Pinion gear wear',
-              symptoms: ['Increased jacking time', 'Gear noise', 'Vibration'],
-              causes: ['Normal wear', 'Misalignment', 'Overload'],
-              effects: ['Slower jacking operations', 'Safety concerns'],
-              mitigations: ['Regular gear inspection', 'Alignment checks'],
-              mtbf: 5000,
-            },
-            {
-              mode: 'Hydraulic motor failure',
-              symptoms: ['No movement', 'Pressure loss', 'Overheating'],
-              causes: ['Seal failure', 'Contaminated fluid', 'Bearing wear'],
-              effects: ['Unable to jack up/down'],
-              mitigations: ['Oil analysis', 'Filter maintenance'],
-              mtbf: 8000,
-            },
-          ],
-        },
-      ],
-    },
-    {
-      id: `${vesselId}-legs`,
-      name: 'Leg System',
-      category: 'safety',
-      maintenanceIntervalHours: 500,
-      criticalityLevel: 'critical',
-      components: [
-        {
-          id: `${vesselId}-leg-structure`,
-          name: 'Leg Structure',
-          type: 'Lattice Legs',
-          failureModes: [
-            {
-              mode: 'Structural fatigue',
-              symptoms: ['Crack indications', 'Corrosion spots'],
-              causes: ['Cyclic loading', 'Environmental exposure'],
-              effects: ['Structural integrity concerns'],
-              mitigations: ['Regular NDT inspection', 'Corrosion protection'],
-              mtbf: 50000,
-            },
-          ],
-        },
-        {
-          id: `${vesselId}-spud-cans`,
-          name: 'Spud Cans',
-          type: 'Foundation',
-          failureModes: [
-            {
-              mode: 'Spud can damage',
-              symptoms: ['Uneven settlement', 'Tilting'],
-              causes: ['Seabed conditions', 'Overload'],
-              effects: ['Platform stability issues'],
-              mitigations: ['Seabed survey', 'Load monitoring'],
-              mtbf: 20000,
-            },
-          ],
-        },
-      ],
-    },
-    {
-      id: `${vesselId}-crane`,
-      name: 'Main Crane System',
-      category: 'crane',
-      maintenanceIntervalHours: 500,
-      criticalityLevel: 'high',
-      components: [
-        {
-          id: `${vesselId}-crane-main`,
-          name: 'Main Crane',
-          type: 'Pedestal Crane',
-          failureModes: [
-            {
-              mode: 'Wire rope fatigue',
-              symptoms: ['Broken wires', 'Strand distortion'],
-              causes: ['Cyclic loading', 'Sheave wear'],
-              effects: ['Lifting restriction'],
-              mitigations: ['Regular MPI', 'Sheave inspection'],
-              mtbf: 3000,
-            },
-          ],
-        },
-      ],
-    },
-    {
-      id: `${vesselId}-power`,
-      name: 'Power Generation',
-      category: 'electrical',
       maintenanceIntervalHours: 2000,
       criticalityLevel: 'critical',
       components: [
         {
-          id: `${vesselId}-generators`,
-          name: 'Main Generators',
-          type: 'Diesel Generator',
+          id: `${vesselId}-fire`,
+          name: 'Fire Detection & Suppression',
+          type: 'Integrated Fire Safety System',
           failureModes: [
             {
-              mode: 'Generator bearing failure',
-              symptoms: ['High temperature', 'Vibration', 'Noise'],
-              causes: ['Bearing wear', 'Misalignment'],
-              effects: ['Power outage risk'],
-              mitigations: ['Vibration monitoring', 'Temperature monitoring'],
-              mtbf: 15000,
+              mode: 'Detector false alarm',
+              symptoms: ['Spurious alarms', 'Passenger disruption'],
+              causes: ['Contamination', 'Humidity', 'Age'],
+              effects: ['Alarm fatigue', 'Delayed response to real events'],
+              mitigations: ['Regular detector cleaning', 'Planned replacement'],
+              mtbf: 25000,
             },
           ],
         },
-      ],
-    },
-  ];
-}
-
-function generatePipelayBargeSystems(vesselId: string): VesselSystem[] {
-  return [
-    {
-      id: `${vesselId}-tensioner`,
-      name: 'Tensioner System',
-      category: 'hydraulic',
-      maintenanceIntervalHours: 500,
-      criticalityLevel: 'critical',
-      components: [
         {
-          id: `${vesselId}-tensioner-tracks`,
-          name: 'Tensioner Tracks',
-          type: 'Track Tensioner',
-          manufacturer: 'Huisman',
+          id: `${vesselId}-liferaft`,
+          name: 'Life Rafts & Rescue Equipment',
+          type: 'SOLAS Life-Saving Appliances',
           failureModes: [
             {
-              mode: 'Track pad wear',
-              symptoms: ['Reduced grip', 'Slippage', 'Uneven pressure'],
-              causes: ['Normal wear', 'Abrasive pipe coating'],
-              effects: ['Pipe slippage risk', 'Lay tension issues'],
-              mitigations: ['Regular pad inspection', 'Pressure monitoring'],
-              mtbf: 2000,
-            },
-            {
-              mode: 'Hydraulic cylinder leak',
-              symptoms: ['Pressure drop', 'Oil seepage', 'Uneven clamping'],
-              causes: ['Seal wear', 'Contaminated fluid'],
-              effects: ['Tensioner malfunction'],
-              mitigations: ['Seal inspection', 'Fluid analysis'],
-              mtbf: 4000,
+              mode: 'HRU expiry',
+              symptoms: ['Service date passed', 'Inspection overdue'],
+              causes: ['Time-based degradation'],
+              effects: ['USCG non-compliance', 'Safety risk'],
+              mitigations: ['Tracking system', 'Annual service schedule'],
+              mtbf: 17520,
             },
           ],
         },
       ],
     },
     {
-      id: `${vesselId}-stinger`,
-      name: 'Stinger System',
-      category: 'hydraulic',
-      maintenanceIntervalHours: 1000,
-      criticalityLevel: 'critical',
-      components: [
-        {
-          id: `${vesselId}-stinger-structure`,
-          name: 'Stinger Structure',
-          type: 'Articulated Stinger',
-          failureModes: [
-            {
-              mode: 'Hinge pin wear',
-              symptoms: ['Play in joints', 'Alignment issues'],
-              causes: ['Cyclic loading', 'Corrosion'],
-              effects: ['Pipe overbend risk'],
-              mitigations: ['Regular inspection', 'Pin replacement'],
-              mtbf: 5000,
-            },
-            {
-              mode: 'Roller wear',
-              symptoms: ['Pipe coating damage', 'Increased friction'],
-              causes: ['Normal wear', 'Pipe movement'],
-              effects: ['Pipe damage risk'],
-              mitigations: ['Roller inspection', 'Replacement schedule'],
-              mtbf: 3000,
-            },
-          ],
-        },
-        {
-          id: `${vesselId}-stinger-hydraulics`,
-          name: 'Stinger Hydraulics',
-          type: 'Hydraulic Cylinders',
-          failureModes: [
-            {
-              mode: 'Cylinder seal failure',
-              symptoms: ['Oil leak', 'Position drift', 'Pressure loss'],
-              causes: ['Seal degradation', 'Rod damage'],
-              effects: ['Stinger angle control loss'],
-              mitigations: ['Seal replacement', 'Rod inspection'],
-              mtbf: 6000,
-            },
-          ],
-        },
-      ],
-    },
-    {
-      id: `${vesselId}-crane`,
-      name: 'Main Crane System',
-      category: 'crane',
-      maintenanceIntervalHours: 500,
-      criticalityLevel: 'high',
-      components: [
-        {
-          id: `${vesselId}-crane-main`,
-          name: 'Main Crane',
-          type: 'Derrick Crane',
-          failureModes: [
-            {
-              mode: 'Slew bearing wear',
-              symptoms: ['Grinding noise', 'Rotation resistance'],
-              causes: ['Bearing wear', 'Lubrication failure'],
-              effects: ['Crane operation restricted'],
-              mitigations: ['Greasing schedule', 'Bearing monitoring'],
-              mtbf: 15000,
-            },
-          ],
-        },
-      ],
-    },
-    {
-      id: `${vesselId}-mooring`,
-      name: 'Mooring System',
-      category: 'safety',
-      maintenanceIntervalHours: 1000,
-      criticalityLevel: 'high',
-      components: [
-        {
-          id: `${vesselId}-mooring-winches`,
-          name: 'Mooring Winches',
-          type: 'Anchor Handling Winch',
-          failureModes: [
-            {
-              mode: 'Brake failure',
-              symptoms: ['Brake slip', 'Overheating'],
-              causes: ['Pad wear', 'Hydraulic issue'],
-              effects: ['Mooring safety compromised'],
-              mitigations: ['Daily brake tests', 'Pad inspection'],
-              mtbf: 4000,
-            },
-          ],
-        },
-      ],
-    },
-    {
-      id: `${vesselId}-ballast`,
-      name: 'Ballast System',
-      category: 'hydraulic',
-      maintenanceIntervalHours: 2000,
-      criticalityLevel: 'high',
-      components: [
-        {
-          id: `${vesselId}-ballast-pumps`,
-          name: 'Ballast Pumps',
-          type: 'Centrifugal Pump',
-          failureModes: [
-            {
-              mode: 'Pump seal failure',
-              symptoms: ['Leakage', 'Pressure drop'],
-              causes: ['Seal wear', 'Cavitation'],
-              effects: ['Ballast operation affected'],
-              mitigations: ['Seal inspection', 'Vibration monitoring'],
-              mtbf: 8000,
-            },
-          ],
-        },
-      ],
-    },
-  ];
-}
-
-function generateTugSystems(vesselId: string): VesselSystem[] {
-  return [
-    {
-      id: `${vesselId}-prop`,
-      name: 'Propulsion System',
-      category: 'propulsion',
-      maintenanceIntervalHours: 4000,
-      criticalityLevel: 'critical',
-      components: [
-        {
-          id: `${vesselId}-engines`,
-          name: 'Main Engines',
-          type: 'Diesel Engine',
-          manufacturer: 'Caterpillar',
-          failureModes: [
-            {
-              mode: 'Turbocharger failure',
-              symptoms: ['Black smoke', 'Power loss', 'High exhaust temps'],
-              causes: ['Bearing failure', 'Foreign object damage', 'Oil starvation'],
-              effects: ['Reduced power', 'Mission abort'],
-              mitigations: ['Oil analysis', 'Regular inspection'],
-              mtbf: 12000,
-            },
-          ],
-        },
-        {
-          id: `${vesselId}-azimuth`,
-          name: 'Azimuth Thrusters',
-          type: 'Z-Drive',
-          manufacturer: 'Rolls-Royce',
-          failureModes: [
-            {
-              mode: 'Steering failure',
-              symptoms: ['Slow response', 'Unusual noise', 'Hydraulic leak'],
-              causes: ['Hydraulic failure', 'Mechanical wear'],
-              effects: ['Loss of maneuverability'],
-              mitigations: ['Regular testing', 'Hydraulic oil analysis'],
-              mtbf: 8000,
-            },
-          ],
-        },
-      ],
-    },
-    {
-      id: `${vesselId}-towing`,
-      name: 'Towing Equipment',
-      category: 'safety',
-      maintenanceIntervalHours: 500,
-      criticalityLevel: 'critical',
-      components: [
-        {
-          id: `${vesselId}-tow-winch`,
-          name: 'Towing Winch',
-          type: 'Hydraulic Winch',
-          failureModes: [
-            {
-              mode: 'Brake failure',
-              symptoms: ['Line slip', 'Overheating'],
-              causes: ['Pad wear', 'Hydraulic leak'],
-              effects: ['Tow line failure risk'],
-              mitigations: ['Daily brake tests', 'Regular inspection'],
-              mtbf: 3000,
-            },
-          ],
-        },
-        {
-          id: `${vesselId}-tow-hook`,
-          name: 'Towing Hook',
-          type: 'Quick Release Hook',
-          failureModes: [
-            {
-              mode: 'Release mechanism failure',
-              symptoms: ['Sticking', 'Slow release'],
-              causes: ['Corrosion', 'Mechanical wear'],
-              effects: ['Safety hazard', 'Cannot release tow'],
-              mitigations: ['Regular testing', 'Lubrication'],
-              mtbf: 5000,
-            },
-          ],
-        },
-      ],
-    },
-  ];
-}
-
-function generateSupplyVesselSystems(vesselId: string): VesselSystem[] {
-  return [
-    {
-      id: `${vesselId}-prop`,
-      name: 'Propulsion System',
-      category: 'propulsion',
-      maintenanceIntervalHours: 4000,
-      criticalityLevel: 'critical',
-      components: [
-        {
-          id: `${vesselId}-engines`,
-          name: 'Main Engines',
-          type: 'Diesel Engine',
-          manufacturer: 'Wärtsilä',
-          failureModes: [
-            {
-              mode: 'Cooling system failure',
-              symptoms: ['High temperatures', 'Alarms', 'Power reduction'],
-              causes: ['Pump failure', 'Blocked coolers', 'Thermostat failure'],
-              effects: ['Engine shutdown', 'Mission abort'],
-              mitigations: ['Temperature monitoring', 'Regular maintenance'],
-              mtbf: 10000,
-            },
-          ],
-        },
-      ],
-    },
-    {
-      id: `${vesselId}-dp`,
-      name: 'DP System',
-      category: 'navigation',
-      maintenanceIntervalHours: 4000,
-      criticalityLevel: 'critical',
-      components: [
-        {
-          id: `${vesselId}-dp-computer`,
-          name: 'DP Computer',
-          type: 'Control System',
-          manufacturer: 'Kongsberg',
-          failureModes: [
-            {
-              mode: 'Position reference failure',
-              symptoms: ['Position drift', 'Alarms'],
-              causes: ['Sensor failure', 'Signal loss'],
-              effects: ['DP degradation', 'Manual control required'],
-              mitigations: ['Redundant references', 'Regular testing'],
-              mtbf: 15000,
-            },
-          ],
-        },
-      ],
-    },
-    {
-      id: `${vesselId}-cargo`,
-      name: 'Cargo Handling',
-      category: 'hydraulic',
+      id: `${vesselId}-hvac`,
+      name: 'Passenger HVAC System',
+      category: 'hvac',
       maintenanceIntervalHours: 2000,
       criticalityLevel: 'medium',
       components: [
         {
-          id: `${vesselId}-cargo-crane`,
-          name: 'Deck Crane',
-          type: 'Knuckle Boom Crane',
+          id: `${vesselId}-hvac-main`,
+          name: 'Main Air Handling Units',
+          type: 'Marine HVAC System',
           failureModes: [
             {
-              mode: 'Hydraulic leak',
-              symptoms: ['Oil visible', 'Slow operation', 'Jerky movements'],
-              causes: ['Hose failure', 'Seal wear', 'Connection failure'],
-              effects: ['Reduced lifting capacity'],
-              mitigations: ['Regular inspection', 'Hose replacement program'],
-              mtbf: 5000,
-            },
-          ],
-        },
-      ],
-    },
-  ];
-}
-
-function generateSurveyVesselSystems(vesselId: string): VesselSystem[] {
-  return [
-    {
-      id: `${vesselId}-prop`,
-      name: 'Propulsion System',
-      category: 'propulsion',
-      maintenanceIntervalHours: 4000,
-      criticalityLevel: 'high',
-      components: [
-        {
-          id: `${vesselId}-engines`,
-          name: 'Main Engines',
-          type: 'Diesel Engine',
-          failureModes: [
-            {
-              mode: 'Vibration increase',
-              symptoms: ['Noticeable vibration', 'Noise', 'Survey data quality impact'],
-              causes: ['Alignment issue', 'Bearing wear', 'Propeller damage'],
-              effects: ['Survey quality degradation'],
-              mitigations: ['Vibration monitoring', 'Regular alignment checks'],
+              mode: 'Compressor efficiency decline',
+              symptoms: ['Reduced cooling', 'Longer cycle times', 'Higher current'],
+              causes: ['Refrigerant leak', 'Compressor wear', 'Dirty coils'],
+              effects: ['Passenger discomfort', 'Increased energy use'],
+              mitigations: ['Regular coil cleaning', 'Refrigerant level checks'],
               mtbf: 8000,
             },
           ],
         },
       ],
     },
-    {
-      id: `${vesselId}-survey`,
-      name: 'Survey Equipment',
-      category: 'navigation',
-      maintenanceIntervalHours: 2000,
-      criticalityLevel: 'critical',
-      components: [
-        {
-          id: `${vesselId}-mbes`,
-          name: 'Multibeam Echosounder',
-          type: 'Survey Sonar',
-          manufacturer: 'Kongsberg',
-          failureModes: [
-            {
-              mode: 'Transducer failure',
-              symptoms: ['Data gaps', 'Noise in data', 'Sector dropout'],
-              causes: ['Transducer damage', 'Cable fault', 'Processing unit failure'],
-              effects: ['Survey cannot continue'],
-              mitigations: ['Regular testing', 'Spare transducers'],
-              mtbf: 10000,
-            },
-          ],
-        },
-        {
-          id: `${vesselId}-sss`,
-          name: 'Side Scan Sonar',
-          type: 'Towed Sonar',
-          failureModes: [
-            {
-              mode: 'Cable damage',
-              symptoms: ['Data loss', 'Noise', 'No signal'],
-              causes: ['Abrasion', 'Snag', 'Fatigue'],
-              effects: ['Survey interrupted'],
-              mitigations: ['Cable inspection', 'Careful handling'],
-              mtbf: 3000,
-            },
-          ],
-        },
-        {
-          id: `${vesselId}-positioning`,
-          name: 'USBL System',
-          type: 'Underwater Positioning',
-          manufacturer: 'Sonardyne',
-          failureModes: [
-            {
-              mode: 'Acoustic interference',
-              symptoms: ['Position jumps', 'Dropouts'],
-              causes: ['Noise sources', 'Multipath', 'Calibration drift'],
-              effects: ['Position accuracy degraded'],
-              mitigations: ['Noise survey', 'Regular calibration'],
-              mtbf: 8000,
-            },
-          ],
-        },
-      ],
-    },
-  ];
+  ]
+
+  return systems
 }
 
-// Get vessel profile by database vessel name
+export const VESSEL_PROFILES: Record<string, VesselProfile> = {
+  'm-v-puyallup': {
+    id: 'm-v-puyallup',
+    name: 'M/V Puyallup',
+    type: 'ferry',
+    subtype: 'Jumbo Mark II Class Auto/Passenger Ferry',
+    company: 'wsdot',
+    specs: {
+      lengthOverall: 140,
+      breadth: 27,
+      depth: 8,
+      maxSpeed: 18,
+      powerInstalled: 13000,
+      yearBuilt: 1999,
+      flag: 'USA',
+      classNotation: 'ABS',
+      passengerCapacity: 2500,
+      vehicleCapacity: 202,
+      propulsion: 'Diesel-Electric',
+    },
+    systems: generateFerrySystems('puyallup', 'Jumbo Mark II'),
+    docs: {
+      fleetPageUrl: 'https://wsdot.wa.gov/ferries/vesselwatch',
+    },
+    officialUrl: 'https://wsdot.wa.gov/travel/washington-state-ferries',
+    description: 'Jumbo Mark II class ferry, the largest in the WSDOT fleet. Serves the busy Seattle-Bainbridge Island route.',
+    capabilities: [
+      '2,500 passenger capacity',
+      '202 vehicle capacity',
+      '35-minute crossing time',
+      'Full galley and passenger amenities',
+      'ADA accessible on all decks',
+    ],
+  },
+
+  'm-v-tacoma': {
+    id: 'm-v-tacoma',
+    name: 'M/V Tacoma',
+    type: 'ferry',
+    subtype: 'Jumbo Mark II Class Auto/Passenger Ferry',
+    company: 'wsdot',
+    specs: {
+      lengthOverall: 140,
+      breadth: 27,
+      depth: 8,
+      maxSpeed: 18,
+      powerInstalled: 13000,
+      yearBuilt: 1997,
+      flag: 'USA',
+      classNotation: 'ABS',
+      passengerCapacity: 2500,
+      vehicleCapacity: 202,
+      propulsion: 'Diesel-Electric',
+    },
+    systems: generateFerrySystems('tacoma', 'Jumbo Mark II'),
+    docs: {
+      fleetPageUrl: 'https://wsdot.wa.gov/ferries/vesselwatch',
+    },
+    officialUrl: 'https://wsdot.wa.gov/travel/washington-state-ferries',
+    description: 'Jumbo Mark II class ferry serving Seattle-Bainbridge Island, one of the busiest routes in the system.',
+    capabilities: [
+      '2,500 passenger capacity',
+      '202 vehicle capacity',
+      'Diesel-electric propulsion',
+      'Full passenger amenities',
+    ],
+  },
+
+  'm-v-wenatchee': {
+    id: 'm-v-wenatchee',
+    name: 'M/V Wenatchee',
+    type: 'ferry',
+    subtype: 'Jumbo Mark II Class Auto/Passenger Ferry',
+    company: 'wsdot',
+    specs: {
+      lengthOverall: 140,
+      breadth: 27,
+      depth: 8,
+      maxSpeed: 18,
+      powerInstalled: 13000,
+      yearBuilt: 1998,
+      flag: 'USA',
+      classNotation: 'ABS',
+      passengerCapacity: 2500,
+      vehicleCapacity: 202,
+      propulsion: 'Diesel-Electric',
+    },
+    systems: generateFerrySystems('wenatchee', 'Jumbo Mark II'),
+    docs: {
+      fleetPageUrl: 'https://wsdot.wa.gov/ferries/vesselwatch',
+    },
+    officialUrl: 'https://wsdot.wa.gov/travel/washington-state-ferries',
+    description: 'Jumbo Mark II class ferry serving the Seattle-Bremerton route.',
+    capabilities: [
+      '2,500 passenger capacity',
+      '202 vehicle capacity',
+      '60-minute crossing time on Bremerton route',
+      'Full galley service',
+    ],
+  },
+
+  'm-v-spokane': {
+    id: 'm-v-spokane',
+    name: 'M/V Spokane',
+    type: 'ferry',
+    subtype: 'Jumbo Class Auto/Passenger Ferry',
+    company: 'wsdot',
+    specs: {
+      lengthOverall: 134,
+      breadth: 24,
+      depth: 7,
+      maxSpeed: 17,
+      powerInstalled: 10000,
+      yearBuilt: 1972,
+      yearRebuilt: 2004,
+      flag: 'USA',
+      passengerCapacity: 2000,
+      vehicleCapacity: 188,
+      propulsion: 'Diesel',
+    },
+    systems: generateFerrySystems('spokane', 'Jumbo'),
+    docs: {
+      fleetPageUrl: 'https://wsdot.wa.gov/ferries/vesselwatch',
+    },
+    officialUrl: 'https://wsdot.wa.gov/travel/washington-state-ferries',
+    description: 'Jumbo class ferry rebuilt in 2004, serving the Edmonds-Kingston route.',
+    capabilities: [
+      '2,000 passenger capacity',
+      '188 vehicle capacity',
+      '30-minute crossing time',
+      'Rebuilt propulsion system',
+    ],
+  },
+
+  'm-v-chetzemoka': {
+    id: 'm-v-chetzemoka',
+    name: 'M/V Chetzemoka',
+    type: 'ferry',
+    subtype: 'Olympic (Kwa-di Tabil) Class Auto/Passenger Ferry',
+    company: 'wsdot',
+    specs: {
+      lengthOverall: 84,
+      breadth: 19,
+      depth: 5,
+      maxSpeed: 15,
+      powerInstalled: 4000,
+      yearBuilt: 2010,
+      flag: 'USA',
+      passengerCapacity: 750,
+      vehicleCapacity: 64,
+      propulsion: 'Diesel-Electric',
+    },
+    systems: generateFerrySystems('chetzemoka', 'Olympic'),
+    docs: {
+      fleetPageUrl: 'https://wsdot.wa.gov/ferries/vesselwatch',
+    },
+    officialUrl: 'https://wsdot.wa.gov/travel/washington-state-ferries',
+    description: 'Newest class of WSDOT ferry, featuring diesel-electric propulsion for improved efficiency.',
+    capabilities: [
+      '750 passenger capacity',
+      '64 vehicle capacity',
+      'Diesel-electric hybrid propulsion',
+      'Modern emissions controls',
+      'Improved fuel efficiency',
+    ],
+  },
+}
+
 export function getVesselProfileByName(name: string): VesselProfile | undefined {
-  const normalizedName = name.toLowerCase().replace(/\s+/g, '-');
-  return VESSEL_PROFILES[normalizedName];
+  const normalizedName = name.toLowerCase().replace(/\s+/g, '-').replace(/\//g, '-')
+  return VESSEL_PROFILES[normalizedName]
 }
 
-// Get all profiles for a vessel type
 export function getProfilesByType(type: VesselProfile['type']): VesselProfile[] {
-  return Object.values(VESSEL_PROFILES).filter(p => p.type === type);
+  return Object.values(VESSEL_PROFILES).filter(p => p.type === type)
 }
-

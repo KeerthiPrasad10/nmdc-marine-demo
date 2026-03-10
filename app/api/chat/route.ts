@@ -13,16 +13,14 @@ const anthropic = createAnthropic({
 
 // Fetch current fleet data for context with per-vessel weather
 async function getFleetContext() {
-  const [vesselsRes, alertsRes, offshoreRes, datasheetsRes] = await Promise.all([
+  const [vesselsRes, alertsRes, datasheetsRes] = await Promise.all([
     supabase.from('vessels').select('*').order('name'),
     supabase.from('alerts').select('*, vessels(name, type)').eq('resolved', false).order('created_at', { ascending: false }).limit(20),
-    supabase.from('offshore_assets').select('*'),
     supabase.from('vessel_datasheets').select('vessel_subtype, title, url, text_content, highlights, source_domain').order('score', { ascending: false }).limit(50),
   ]);
 
   const vessels = vesselsRes.data || [];
   const alerts = alertsRes.data || [];
-  const offshoreAssets = offshoreRes.data || [];
   const datasheets = datasheetsRes.data || [];
 
   // Calculate fleet metrics
@@ -101,12 +99,11 @@ async function getFleetContext() {
       acknowledged: a.acknowledged,
       createdAt: a.created_at,
     })),
-    offshoreAssets: offshoreAssets.map((a) => ({
-      name: a.name,
-      type: a.asset_subtype,
-      status: a.op_mode,
-      healthScore: a.health_score,
-      safetyState: a.safety_state,
+    ferryRoutes: vessels.map((v) => ({
+      name: v.name,
+      type: v.type || 'ferry',
+      status: v.status,
+      healthScore: v.health_score,
     })),
     insights: {
       lowFuelVessels: lowFuelVessels.map((v) => ({ name: v.name, fuelLevel: v.fuel_level })),

@@ -5,28 +5,28 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Known water locations in the Persian Gulf / UAE waters
+// Known water locations in Puget Sound / WSDOT ferry routes
 const WATER_POSITIONS = [
-  { lat: 24.45, lng: 54.37, name: 'Abu Dhabi Port' },
-  { lat: 25.27, lng: 55.28, name: 'Dubai Maritime' },
-  { lat: 25.02, lng: 55.03, name: 'Jebel Ali' },
-  { lat: 25.13, lng: 56.35, name: 'Fujairah' },
-  { lat: 25.15, lng: 52.87, name: 'Das Island' },
-  { lat: 24.88, lng: 53.07, name: 'Zirku Island' },
-  { lat: 24.23, lng: 53.35, name: 'Mubarraz Field' },
-  { lat: 24.8, lng: 53.5, name: 'Offshore Field A' },
-  { lat: 25.5, lng: 54.2, name: 'Offshore Field B' },
-  { lat: 24.6, lng: 54.8, name: 'Offshore Field C' },
-  { lat: 25.35, lng: 55.65, name: 'Sharjah Waters' },
-  { lat: 24.75, lng: 54.55, name: 'Central Gulf' },
-  { lat: 25.0, lng: 53.8, name: 'Western Field' },
-  { lat: 24.95, lng: 55.15, name: 'Eastern Field' },
-  { lat: 25.22, lng: 54.75, name: 'North Abu Dhabi' },
-  { lat: 24.55, lng: 53.95, name: 'South Field' },
-  { lat: 25.4, lng: 54.9, name: 'Ajman Waters' },
-  { lat: 24.65, lng: 54.25, name: 'Abu Dhabi Offshore' },
-  { lat: 25.08, lng: 55.35, name: 'Dubai Offshore' },
-  { lat: 24.38, lng: 54.0, name: 'Southwest Field' },
+  { lat: 47.6023, lng: -122.3393, name: 'Seattle - Colman Dock' },
+  { lat: 47.6235, lng: -122.5105, name: 'Bainbridge Island' },
+  { lat: 47.5130, lng: -122.4530, name: 'Vashon Island' },
+  { lat: 47.3168, lng: -122.5116, name: 'Point Defiance' },
+  { lat: 47.3600, lng: -122.5140, name: 'Tahlequah' },
+  { lat: 47.8040, lng: -122.3840, name: 'Edmonds' },
+  { lat: 47.8037, lng: -122.4460, name: 'Kingston' },
+  { lat: 47.7626, lng: -122.5095, name: 'Indianola' },
+  { lat: 48.5070, lng: -122.6120, name: 'Anacortes' },
+  { lat: 48.5350, lng: -123.0140, name: 'San Juan Island' },
+  { lat: 48.5960, lng: -123.1540, name: 'Sidney BC' },
+  { lat: 47.5632, lng: -122.3842, name: 'West Seattle' },
+  { lat: 48.1170, lng: -122.7600, name: 'Port Townsend' },
+  { lat: 48.0350, lng: -122.7610, name: 'Coupeville' },
+  { lat: 47.9535, lng: -122.3040, name: 'Mukilteo' },
+  { lat: 47.9790, lng: -122.2245, name: 'South Whidbey' },
+  { lat: 47.5260, lng: -122.6140, name: 'Southworth' },
+  { lat: 47.5860, lng: -122.6110, name: 'Bremerton' },
+  { lat: 48.4620, lng: -122.9420, name: 'Lopez Island' },
+  { lat: 48.5540, lng: -122.8930, name: 'Orcas Island' },
 ];
 
 function randomOffset() {

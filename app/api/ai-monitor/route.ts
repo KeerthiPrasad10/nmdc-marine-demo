@@ -26,18 +26,16 @@ interface AIInsight {
 
 // Fetch comprehensive fleet data for analysis
 async function getFleetDataForAnalysis() {
-  const [vesselsRes, alertsRes, weatherRes, offshoreRes] = await Promise.all([
+  const [vesselsRes, alertsRes, weatherRes] = await Promise.all([
     supabase.from('vessels').select('*').order('name'),
     supabase.from('alerts').select('*, vessels(name, type)').eq('resolved', false).order('created_at', { ascending: false }),
     supabase.from('weather').select('*').limit(1).single(),
-    supabase.from('offshore_assets').select('*'),
   ]);
 
   return {
     vessels: vesselsRes.data || [],
     alerts: alertsRes.data || [],
     weather: weatherRes.data,
-    offshoreAssets: offshoreRes.data || [],
   };
 }
 
@@ -50,7 +48,7 @@ function analyzeFleetData(data: Awaited<ReturnType<typeof getFleetDataForAnalysi
     details: Record<string, unknown>;
   }[] = [];
 
-  const { vessels, alerts, weather, offshoreAssets } = data;
+  const { vessels, alerts, weather } = data;
 
   // Fuel level analysis
   const criticalFuel = vessels.filter(v => (v.fuel_level ?? 100) < 20);
@@ -191,24 +189,6 @@ function analyzeFleetData(data: Awaited<ReturnType<typeof getFleetDataForAnalysi
     }
   }
 
-  // Offshore asset analysis
-  const criticalAssets = offshoreAssets.filter(a => (a.health_score ?? 100) < 70 || a.safety_state === 'RED');
-  if (criticalAssets.length > 0) {
-    issues.push({
-      type: 'OFFSHORE_ASSET_CRITICAL',
-      severity: 'critical',
-      assets: criticalAssets.map(a => a.name),
-      details: { 
-        assets: criticalAssets.map(a => ({ 
-          name: a.name, 
-          type: a.asset_subtype,
-          health: a.health_score,
-          safetyState: a.safety_state
-        }))
-      }
-    });
-  }
-
   // Unacknowledged critical alerts
   const criticalAlerts = alerts.filter(a => a.severity === 'critical' && !a.acknowledged);
   if (criticalAlerts.length > 0) {
@@ -265,7 +245,7 @@ export async function GET() {
     const issuesContext = JSON.stringify(analysis.issues, null, 2);
     const statsContext = JSON.stringify(analysis.stats, null, 2);
 
-    const prompt = `You are an AI fleet monitoring system for NMDC Marine Operations. Analyze the following detected issues and generate actionable insights.
+    const prompt = `You are an AI fleet monitoring system for WSDOT Ferry Operations. Analyze the following detected issues and generate actionable insights.
 
 ## Detected Issues:
 ${issuesContext}
@@ -360,7 +340,7 @@ function formatIssueTitle(issueType: string): string {
     LOW_ROPE_HEALTH: 'Rope Wear Detected',
     WEATHER_RISK: 'Adverse Weather Conditions',
     LOW_VISIBILITY: 'Low Visibility Warning',
-    OFFSHORE_ASSET_CRITICAL: 'Offshore Asset Critical',
+    FERRY_SYSTEM_CRITICAL: 'Ferry System Critical',
     UNACKNOWLEDGED_CRITICAL_ALERTS: 'Unacknowledged Alerts',
   };
   return titles[issueType] || issueType.replace(/_/g, ' ');

@@ -42,8 +42,8 @@ function Scene({
   const heatmapData = generateHeatmapData(equipment, heatmapMode);
 
   const vesselDimensions = {
-    length: vessel.type === 'crane_barge' ? 4 : vessel.type === 'dredger' ? 3.5 : 2.5,
-    width: vessel.type === 'crane_barge' ? 1.5 : vessel.type === 'dredger' ? 1.2 : 0.8,
+    length: 3.5,
+    width: 1.2,
   };
 
   return (
@@ -95,7 +95,7 @@ function Scene({
       {/* Grid helper for depth perception */}
       <gridHelper args={[20, 40, '#1a1a3a', '#0a0a1a']} position={[0, -0.49, 0]} />
 
-      {/* Vessel Model - Class-specific 3D model based on NMDC subType */}
+      {/* Vessel Model - Class-specific 3D model based on WSDOT vessel class */}
       <VesselModelSelector
         vesselType={vessel.type}
         vesselSubType={vesselSubType}

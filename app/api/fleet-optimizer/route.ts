@@ -99,15 +99,17 @@ export async function POST(request: NextRequest) {
 }
 
 function getFuelRate(vesselType: string): number {
+  // Ferry fuel consumption rates by class (liters per nautical mile)
   const rates: Record<string, number> = {
-    dredger: 85,
-    crane_barge: 45,
-    supply_vessel: 35,
-    tugboat: 25,
-    survey_vessel: 20,
-    barge: 0,
+    ferry: 65,
+    jumbo_mark_ii: 80,
+    jumbo: 70,
+    super: 55,
+    issaquah_130: 50,
+    olympic: 45,
+    evergreen_state: 40,
   };
-  return rates[vesselType] || 40;
+  return rates[vesselType] || 65;
 }
 
 

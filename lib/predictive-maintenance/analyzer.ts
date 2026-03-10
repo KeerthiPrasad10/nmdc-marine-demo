@@ -55,7 +55,7 @@ const DATA_SOURCES: PMDataSource[] = [
     id: 'src-fleet',
     type: 'fleet_data',
     name: 'Fleet Intelligence',
-    description: 'Similar equipment patterns across NMDC fleet',
+    description: 'Similar equipment patterns across WSDOT ferry fleet',
     lastUpdated: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
     dataQuality: 82,
     isAvailable: true,
@@ -352,7 +352,7 @@ function buildSourceContributions(
 
   contributions.push({
     source: DATA_SOURCES.find(s => s.type === 'fleet_data')!,
-    contribution: 'Cross-referenced with 12 similar equipment units across NMDC fleet',
+    contribution: 'Cross-referenced with 12 similar equipment units across WSDOT ferry fleet',
     relevanceScore: 82,
     dataPoints: [
       { label: 'Fleet Units', value: 12 },
@@ -363,7 +363,7 @@ function buildSourceContributions(
 
   contributions.push({
     source: DATA_SOURCES.find(s => s.type === 'environment')!,
-    contribution: 'Operating environment factors: offshore conditions, salt exposure, load severity',
+    contribution: 'Operating environment factors: Puget Sound conditions, salt exposure, docking frequency',
     relevanceScore: 75,
     dataPoints: [
       { label: 'Exposure', value: 'High Salt' },

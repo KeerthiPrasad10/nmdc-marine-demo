@@ -4,9 +4,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { NMDC_ENERGY_FLEET, getNMDCVesselByMMSI } from '@/lib/nmdc/fleet';
+import { WSDOT_FLEET, getWSDOTVesselByMMSI } from '@/lib/wsdot/fleet';
 import { VESSEL_ISSUES, getVesselIssues, VesselIssues, EquipmentIssue } from '@/lib/vessel-issues';
-import { PROJECT_SITES, getProjectsByVessel } from '@/lib/nmdc/projects';
+import { PROJECT_SITES, getProjectsByVessel } from '@/lib/wsdot/projects';
 import {
   ArrowLeft,
   AlertTriangle,
@@ -149,7 +149,7 @@ export default function OrchestrationPage() {
   const baseSchedule = useMemo((): ScheduleBlock[] => {
     const blocks: ScheduleBlock[] = [];
     
-    NMDC_ENERGY_FLEET.forEach((vessel, idx) => {
+    WSDOT_FLEET.forEach((vessel, idx) => {
       const projects = getProjectsByVessel(vessel.mmsi).filter(p => p.status === 'active');
       const vesselIssues = VESSEL_ISSUES[vessel.mmsi];
       const worstHealth = vesselIssues?.issues.reduce((min, i) => Math.min(min, i.healthScore), 100) || 100;
@@ -242,11 +242,11 @@ export default function OrchestrationPage() {
   }, [baseSchedule, selectedOption, selectedIssue, permanentScheduleChanges]);
 
   const generateOptions = (issue: ActiveIssue): OrchestrationOption[] => {
-    const availableVessels = NMDC_ENERGY_FLEET.filter(v => {
+    const availableVessels = WSDOT_FLEET.filter(v => {
       const vesselIssues = VESSEL_ISSUES[v.mmsi];
       if (!vesselIssues) return true;
       const hasCritical = vesselIssues.issues.some(i => i.pmPrediction.priority === 'critical');
-      return !hasCritical && v.mmsi !== issue.mmsi && v.type === getNMDCVesselByMMSI(issue.mmsi)?.type;
+      return !hasCritical && v.mmsi !== issue.mmsi && v.type === getWSDOTVesselByMMSI(issue.mmsi)?.type;
     });
     
     const swapVessel = availableVessels[0];
@@ -586,7 +586,7 @@ export default function OrchestrationPage() {
               </div>
               
               {/* Vessel rows */}
-              {NMDC_ENERGY_FLEET.map((vessel, vesselIdx) => {
+              {WSDOT_FLEET.map((vessel, vesselIdx) => {
                 const schedule = displaySchedule;
                 const vesselBlocks = schedule.filter(b => b.vesselMMSI === vessel.mmsi);
                 const isAffected = selectedIssue?.mmsi === vessel.mmsi;
@@ -934,7 +934,7 @@ export default function OrchestrationPage() {
                       {selectedOption.scheduleChange.type === 'swap' && (
                         <>
                           <div className="text-cyan-400">
-                            🔄 {getNMDCVesselByMMSI(selectedOption.scheduleChange.swapWith!)?.name} takes over project
+                            🔄 {getWSDOTVesselByMMSI(selectedOption.scheduleChange.swapWith!)?.name} takes over project
                           </div>
                           <div className="text-amber-400">
                             🔧 {selectedIssue?.vesselName} moves to repair ({selectedOption.scheduleChange.daysShift} days)

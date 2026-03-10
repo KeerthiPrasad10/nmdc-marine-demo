@@ -14,7 +14,7 @@ export interface VesselEmissions {
   period: 'daily' | 'weekly' | 'monthly' | 'yearly';
   emissions: EmissionsData;
   fuelConsumed: number; // liters
-  fuelType: 'HFO' | 'MDO' | 'LNG' | 'Hybrid';
+  fuelType: 'HFO' | 'MDO' | 'LNG' | 'Hybrid' | 'MGO' | 'ULSD' | 'BIODIESEL';
   distance: number; // nautical miles
   operatingHours: number;
   efficiency: number; // grams CO2 per tonne-mile

@@ -485,12 +485,12 @@ export function generateProductionTarget(): ProductionTarget {
 
 export function generateCraneAsset(): CraneAsset {
   return {
-    id: 'crane-nmdc-001',
-    name: 'DELMA 2000 - Main Crane',
+    id: 'ramp-wsdot-001',
+    name: 'M/V Puyallup - Vehicle Ramp',
     model: 'Huisman 2000T Mast Crane',
     capacity: 2000,
-    location: 'Ruwais - ADNOC Offshore Pipeline',
-    project: 'ADNOC Offshore Pipeline Installation',
+    location: 'Seattle - Colman Dock',
+    project: 'Seattle-Bainbridge Ferry Service',
     vessel: {
       mmsi: '471026000',
       name: 'DELMA 2000',

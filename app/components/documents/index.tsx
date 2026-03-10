@@ -591,7 +591,7 @@ function generateSmartPDF(
   const printWindow = window.open('', '_blank');
   if (!printWindow) return;
 
-  const { title, documentNumber, documentType, asset, approvals = [], includeSignatures = true, companyName = 'NMDC Energy' } = options;
+  const { title, documentNumber, documentType, asset, approvals = [], includeSignatures = true, companyName = 'WSDOT Ferries' } = options;
 
   // Generate approval signature HTML
   const signatureHTML = includeSignatures ? `

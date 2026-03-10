@@ -14,25 +14,19 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-// UAE region bounds for vessel search
-const UAE_REGION = {
-  center: { lat: 24.5, lng: 54.5 }, // Abu Dhabi / UAE waters
+// Puget Sound region bounds for vessel search
+const PUGET_SOUND_REGION = {
+  center: { lat: 47.6, lng: -122.4 }, // Puget Sound / Seattle waters
   radius: 50, // nautical miles - Datalastic API limit
 };
 
 // Map Datalastic vessel types to our vessel_type enum
-// Valid enum values: tugboat, supply_vessel, crane_barge, dredger, survey_vessel
-type VesselType = 'tugboat' | 'supply_vessel' | 'crane_barge' | 'dredger' | 'survey_vessel';
+// All WSDOT vessels are ferries
+type VesselType = 'ferry';
 
-function mapVesselType(datalasticType: string): VesselType {
-  const lowerType = (datalasticType || '').toLowerCase();
-  
-  if (lowerType.includes('tug') || lowerType.includes('towing')) return 'tugboat';
-  if (lowerType.includes('dredg') || lowerType.includes('hopper')) return 'dredger';
-  if (lowerType.includes('survey') || lowerType.includes('research') || lowerType.includes('cable')) return 'survey_vessel';
-  if (lowerType.includes('crane') || lowerType.includes('heavy lift') || lowerType.includes('derrick') || lowerType.includes('barge')) return 'crane_barge';
-  
-  return 'supply_vessel'; // Default for cargo, tanker, offshore, other
+function mapVesselType(_datalasticType: string): VesselType {
+  // All WSDOT vessels are passenger/vehicle ferries
+  return 'ferry';
 }
 
 // Map navigation status to our vessel_status enum
@@ -58,7 +52,7 @@ function mapNavStatus(navStatusCode?: number): string {
  * - mode: 'full' | 'update' (default: 'update')
  *   - full: Clears existing vessels and imports fresh
  *   - update: Updates existing vessels and adds new ones
- * - filter: vessel type filter (e.g., 'dredger', 'tug', 'offshore')
+ * - filter: vessel type filter (e.g., 'ferry', 'passenger')
  */
 export async function GET(request: NextRequest) {
   if (!isDatalasticConfigured()) {
@@ -77,12 +71,12 @@ export async function GET(request: NextRequest) {
     const client = getDatalasticClient();
     
     // Fetch vessels in UAE region
-    console.log(`Fetching live vessels from Datalastic (radius: ${UAE_REGION.radius}nm)...`);
+    console.log(`Fetching live vessels from Datalastic (radius: ${PUGET_SOUND_REGION.radius}nm)...`);
     
     const result = await client.getVesselsInRadius(
-      UAE_REGION.center.lat,
-      UAE_REGION.center.lng,
-      UAE_REGION.radius,
+      PUGET_SOUND_REGION.center.lat,
+      PUGET_SOUND_REGION.center.lng,
+      PUGET_SOUND_REGION.radius,
       typeFilter ? { type: typeFilter } : {}
     );
 
@@ -116,9 +110,7 @@ export async function GET(request: NextRequest) {
       }
       
       // Include if it's a known working vessel type
-      const workingTypes = ['tug', 'dredger', 'dredging', 'hopper', 'offshore', 'supply', 'crane', 'survey', 'research', 
-                           'cargo', 'tanker', 'container', 'bulk', 'barge', 'anchor', 'ahts', 'platform', 'pipe', 'cable',
-                           'heavy lift', 'jack up', 'rig'];
+      const workingTypes = ['ferry', 'passenger', 'ro-ro', 'roro', 'vehicle', 'car ferry'];
       
       if (workingTypes.some(wt => type.includes(wt) || subType.includes(wt) || name.includes(wt))) {
         return true;
@@ -132,7 +124,7 @@ export async function GET(request: NextRequest) {
       return false;
     });
 
-    console.log(`Filtered to ${filteredVessels.length} relevant vessels (dredgers, tugs, offshore, etc.)`);
+    console.log(`Filtered to ${filteredVessels.length} relevant vessels (ferries, passenger vessels)`);
 
     // Get detailed info for each vessel
     const vesselUpdates = [];
@@ -258,7 +250,7 @@ export async function GET(request: NextRequest) {
         synced,
         errors,
         mode,
-        region: UAE_REGION,
+        region: PUGET_SOUND_REGION,
       },
     });
 

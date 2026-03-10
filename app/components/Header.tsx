@@ -3,18 +3,17 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import Image from 'next/image';
 import {
   Ship,
   Bell,
   RefreshCw,
   Menu,
   Radio,
-  Cpu,
   X,
-  LayoutGrid,
-  Leaf,
-  Navigation,
+  Anchor,
+  Route,
+  Clock,
+  MapPin,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -23,10 +22,10 @@ interface HeaderProps {
   onRefresh: () => void;
 }
 
-export function Header({ 
-  alertCount, 
-  isConnected, 
-  onRefresh, 
+export function Header({
+  alertCount,
+  isConnected,
+  onRefresh,
 }: HeaderProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -40,42 +39,36 @@ export function Header({
   const isActive = (path: string) => pathname === path;
   const isHome = pathname === '/';
 
-  // Navigation items - different pages to navigate to
   const navItems = [
-    { href: '/live', label: 'Live', icon: Radio },
-    { href: '/routes', label: 'Routes', icon: Navigation },
-    { href: '/crane-iot', label: 'Crane IoT', icon: Cpu, highlight: true },
-    { href: '/orchestration', label: 'Orchestration', icon: LayoutGrid },
-    { href: '/esg', label: 'ESG', icon: Leaf },
+    { href: '/live', label: 'Live Map', icon: Radio },
+    { href: '/routes', label: 'Routes', icon: Route },
+    { href: '/schedules', label: 'Schedules', icon: Clock },
+    { href: '/terminals', label: 'Terminals', icon: MapPin },
   ];
 
   return (
     <header className="h-12 border-b border-white/10 bg-black sticky top-0 z-50">
       <div className="h-full px-4 flex items-center justify-between">
-        {/* Logo - always links to home */}
         <Link href="/" className="flex items-center gap-2 group">
-          <Image 
-            src="/IFS NB.png" 
-            alt="IFS" 
-            width={80} 
-            height={24} 
-            className="h-5 w-auto"
-          />
+          <div className="flex items-center gap-1.5">
+            <Ship className="h-5 w-5 text-sky-400" />
+            <span className="text-sm font-bold text-white tracking-wide">WSDOT</span>
+          </div>
           <span className="text-sm text-white/40 hidden sm:block">//</span>
-          <span className="text-sm font-bold text-white hidden sm:block tracking-wide">Fleet Ops</span>
+          <div className="hidden sm:flex items-center gap-1.5">
+            <Anchor className="h-3.5 w-3.5 text-green-400" />
+            <span className="text-sm font-bold text-white tracking-wide">FerryWatch</span>
+          </div>
         </Link>
-        
-        {/* Navigation Links */}
+
         <nav className="hidden md:flex items-center gap-1">
-          {navItems.map(({ href, label, icon: Icon, highlight }) => (
+          {navItems.map(({ href, label, icon: Icon }) => (
             <Link
               key={href}
               href={href}
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition-all ${
                 isActive(href)
                   ? 'bg-white/15 text-white'
-                  : highlight
-                  ? 'text-amber-400 hover:bg-amber-500/10'
                   : 'text-white/50 hover:text-white hover:bg-white/5'
               }`}
             >
@@ -85,7 +78,6 @@ export function Header({
           ))}
         </nav>
 
-        {/* Right - Status & Actions */}
         <div className="flex items-center gap-2">
           <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-white/40 mr-1">
             <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-400' : 'bg-white/30'}`} />
@@ -109,7 +101,7 @@ export function Header({
             )}
           </button>
 
-          <button 
+          <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="md:hidden p-1.5 rounded text-white/40 hover:text-white hover:bg-white/5 transition-all"
           >
@@ -118,7 +110,6 @@ export function Header({
         </div>
       </div>
 
-      {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div className="md:hidden absolute top-12 left-0 right-0 bg-black border-b border-white/10 p-2">
           <nav className="flex flex-col gap-1">
@@ -129,17 +120,10 @@ export function Header({
                 isHome ? 'bg-white/15 text-white' : 'text-white/60'
               }`}
             >
-              <Image 
-                src="/IFS NB.png" 
-                alt="IFS" 
-                width={60} 
-                height={20} 
-                className="h-4 w-auto"
-              />
-              <span className="text-white/40">//</span>
-              <span>Fleet Ops</span>
+              <Ship className="h-4 w-4 text-sky-400" />
+              <span>WSDOT FerryWatch</span>
             </Link>
-            {navItems.map(({ href, label, icon: Icon, highlight }) => (
+            {navItems.map(({ href, label, icon: Icon }) => (
               <Link
                 key={href}
                 href={href}
@@ -147,8 +131,6 @@ export function Header({
                 className={`flex items-center gap-2 px-3 py-2 rounded text-sm transition-all ${
                   isActive(href)
                     ? 'bg-white/15 text-white'
-                    : highlight
-                    ? 'text-amber-400'
                     : 'text-white/60'
                 }`}
               >

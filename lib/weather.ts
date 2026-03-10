@@ -11,19 +11,22 @@ export interface LocalWeather {
   operationalRisk: 'low' | 'medium' | 'high';
 }
 
-// Define weather zones in the UAE/Persian Gulf region
+// Define weather zones in the Puget Sound / WA State Ferries region
 const weatherZones: { name: string; lat: number; lng: number; radius: number }[] = [
-  { name: 'Abu Dhabi Offshore', lat: 24.5, lng: 54.0, radius: 0.5 },
-  { name: 'Dubai Channel', lat: 25.2, lng: 55.1, radius: 0.3 },
-  { name: 'Fujairah Waters', lat: 25.1, lng: 56.3, radius: 0.4 },
-  { name: 'Das Island', lat: 25.15, lng: 52.87, radius: 0.3 },
-  { name: 'Ruwais Terminal', lat: 24.1, lng: 52.7, radius: 0.3 },
-  { name: 'Khalifa Port', lat: 24.8, lng: 54.6, radius: 0.2 },
-  { name: 'Open Gulf', lat: 24.8, lng: 53.5, radius: 1.0 },
+  { name: 'Elliott Bay', lat: 47.602, lng: -122.339, radius: 0.15 },
+  { name: 'Bainbridge Passage', lat: 47.618, lng: -122.465, radius: 0.2 },
+  { name: 'Rich Passage', lat: 47.56, lng: -122.55, radius: 0.15 },
+  { name: 'Admiralty Inlet', lat: 48.15, lng: -122.75, radius: 0.3 },
+  { name: 'San Juan Channel', lat: 48.53, lng: -122.9, radius: 0.3 },
+  { name: 'Rosario Strait', lat: 48.45, lng: -122.75, radius: 0.25 },
+  { name: 'Central Puget Sound', lat: 47.65, lng: -122.45, radius: 0.5 },
+  { name: 'South Puget Sound', lat: 47.3, lng: -122.5, radius: 0.3 },
+  { name: 'Mukilteo Channel', lat: 47.95, lng: -122.32, radius: 0.15 },
+  { name: 'Open Puget Sound', lat: 47.75, lng: -122.45, radius: 1.5 },
 ];
 
 const windDirections = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-const conditions = ['clear', 'partly_cloudy', 'cloudy', 'hazy', 'windy', 'rough'];
+const conditions = ['clear', 'partly_cloudy', 'cloudy', 'rain', 'windy', 'rough', 'hazy'];
 
 // Get weather for a specific location
 export function getWeatherAtLocation(lat: number, lng: number): LocalWeather {
@@ -48,10 +51,10 @@ export function getWeatherAtLocation(lat: number, lng: number): LocalWeather {
     return val - Math.floor(val);
   };
 
-  const windSpeed = 5 + random(1) * 20; // 5-25 knots
-  const waveHeight = 0.3 + random(2) * 2.5; // 0.3-2.8m
-  const temperature = 28 + random(3) * 12; // 28-40°C
-  const visibility = 5 + random(4) * 15; // 5-20 nm
+  const windSpeed = 3 + random(1) * 18; // 3-21 knots
+  const waveHeight = 0.2 + random(2) * 1.8; // 0.2-2.0m
+  const temperature = 5 + random(3) * 10; // 5-15°C (Pacific NW winter)
+  const visibility = 3 + random(4) * 17; // 3-20 nm
   const windDir = windDirections[Math.floor(random(5) * 8)];
   const condition = conditions[Math.floor(random(6) * conditions.length)];
 

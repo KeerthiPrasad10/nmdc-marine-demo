@@ -1,56 +1,43 @@
 /**
  * Maritime Industry Types - Regulations, Fuel, and Predictive Maintenance
- * Based on IMO MARPOL, IGF Code, and ISO 55000 standards
+ * Adapted for WSDOT Ferry Operations in Puget Sound
+ * Based on USCG regulations, SOLAS, and ISO 55000 standards
  */
 
 // ============================================================================
 // FUEL TYPES & REGULATIONS
 // ============================================================================
 
-export type FuelType = 
-  | 'VLSFO'     // Very Low Sulfur Fuel Oil (0.5% sulfur) - Global standard since 2020
-  | 'ULSFO'     // Ultra Low Sulfur Fuel Oil (0.1% sulfur) - For ECAs
-  | 'MGO'       // Marine Gas Oil (0.1% sulfur) - Distillate fuel
-  | 'MDO'       // Marine Diesel Oil
-  | 'HFO'       // Heavy Fuel Oil (3.5% sulfur) - Legacy, restricted use
-  | 'LNG'       // Liquefied Natural Gas - Low emission alternative
-  | 'METHANOL'  // Alternative fuel
-  | 'BIOFUEL';  // Sustainable marine biofuel
+export type FuelType =
+  | 'ULSD'       // Ultra Low Sulfur Diesel (15 ppm sulfur) - Primary ferry fuel
+  | 'MGO'        // Marine Gas Oil (0.1% sulfur) - Distillate fuel
+  | 'MDO'        // Marine Diesel Oil
+  | 'BIODIESEL'  // B20 biodiesel blend
+  | 'DIESEL_ELECTRIC'; // Diesel-electric hybrid
 
 export interface FuelSpecification {
   type: FuelType;
-  sulfurContent: number;  // Percentage (e.g., 0.5 for 0.5%)
+  sulfurContent: number;  // Percentage (e.g., 0.0015 for 15 ppm)
   density: number;        // kg/m³
   viscosity: number;      // cSt at 50°C
   flashPoint: number;     // °C
   co2Factor: number;      // kg CO2 per kg fuel
   noxFactor: number;      // g NOx per kWh
   soxFactor: number;      // g SOx per kg fuel (based on sulfur content)
-  costPerTon: number;     // USD per metric ton
+  costPerGallon: number;  // USD per gallon
 }
 
 export const FUEL_SPECIFICATIONS: Record<FuelType, FuelSpecification> = {
-  VLSFO: {
-    type: 'VLSFO',
-    sulfurContent: 0.5,
-    density: 960,
-    viscosity: 380,
-    flashPoint: 60,
-    co2Factor: 3.114,
-    noxFactor: 14.4,
-    soxFactor: 10.0,
-    costPerTon: 550,
-  },
-  ULSFO: {
-    type: 'ULSFO',
-    sulfurContent: 0.1,
-    density: 890,
-    viscosity: 180,
-    flashPoint: 60,
-    co2Factor: 3.114,
+  ULSD: {
+    type: 'ULSD',
+    sulfurContent: 0.0015,
+    density: 845,
+    viscosity: 3.5,
+    flashPoint: 52,
+    co2Factor: 3.206,
     noxFactor: 13.2,
-    soxFactor: 2.0,
-    costPerTon: 620,
+    soxFactor: 0.03,
+    costPerGallon: 3.85,
   },
   MGO: {
     type: 'MGO',
@@ -61,7 +48,7 @@ export const FUEL_SPECIFICATIONS: Record<FuelType, FuelSpecification> = {
     co2Factor: 3.206,
     noxFactor: 13.2,
     soxFactor: 2.0,
-    costPerTon: 680,
+    costPerGallon: 4.20,
   },
   MDO: {
     type: 'MDO',
@@ -72,51 +59,29 @@ export const FUEL_SPECIFICATIONS: Record<FuelType, FuelSpecification> = {
     co2Factor: 3.206,
     noxFactor: 14.4,
     soxFactor: 10.0,
-    costPerTon: 600,
+    costPerGallon: 3.50,
   },
-  HFO: {
-    type: 'HFO',
-    sulfurContent: 3.5,
-    density: 991,
-    viscosity: 700,
-    flashPoint: 60,
-    co2Factor: 3.114,
-    noxFactor: 18.1,
-    soxFactor: 70.0,
-    costPerTon: 380,
-  },
-  LNG: {
-    type: 'LNG',
-    sulfurContent: 0.0,
-    density: 450,
-    viscosity: 0.2,
-    flashPoint: -162,
-    co2Factor: 2.750,
-    noxFactor: 1.3,
-    soxFactor: 0.0,
-    costPerTon: 720,
-  },
-  METHANOL: {
-    type: 'METHANOL',
-    sulfurContent: 0.0,
-    density: 796,
-    viscosity: 0.6,
-    flashPoint: 11,
-    co2Factor: 1.375,
-    noxFactor: 3.0,
-    soxFactor: 0.0,
-    costPerTon: 450,
-  },
-  BIOFUEL: {
-    type: 'BIOFUEL',
+  BIODIESEL: {
+    type: 'BIODIESEL',
     sulfurContent: 0.0,
     density: 880,
     viscosity: 4.5,
     flashPoint: 100,
-    co2Factor: 0.5, // Lifecycle emissions much lower
+    co2Factor: 0.5,
     noxFactor: 12.0,
     soxFactor: 0.0,
-    costPerTon: 950,
+    costPerGallon: 4.50,
+  },
+  DIESEL_ELECTRIC: {
+    type: 'DIESEL_ELECTRIC',
+    sulfurContent: 0.0015,
+    density: 845,
+    viscosity: 3.5,
+    flashPoint: 52,
+    co2Factor: 2.4,    // Lower due to electric efficiency
+    noxFactor: 9.0,
+    soxFactor: 0.02,
+    costPerGallon: 3.85,
   },
 };
 
@@ -125,19 +90,17 @@ export const FUEL_SPECIFICATIONS: Record<FuelType, FuelSpecification> = {
 // ============================================================================
 
 export type RegulationType =
-  | 'MARPOL_ANNEX_VI'     // Air pollution prevention
-  | 'MARPOL_ANNEX_I'      // Oil pollution prevention
-  | 'MARPOL_ANNEX_IV'     // Sewage pollution prevention
-  | 'MARPOL_ANNEX_V'      // Garbage pollution prevention
-  | 'ISM_CODE'            // International Safety Management
-  | 'ISPS_CODE'           // Ship Security
-  | 'MLC_2006'            // Maritime Labour Convention
-  | 'IGF_CODE'            // Gas fuel safety
+  | 'USCG_COI'            // USCG Certificate of Inspection
+  | 'USCG_SUBCHAPTER_H'   // USCG Subchapter H (Passenger Vessels)
+  | 'USCG_SUBCHAPTER_K'   // USCG Subchapter K (Small Passenger Vessels)
   | 'SOLAS'               // Safety of Life at Sea
-  | 'CII_RATING'          // Carbon Intensity Indicator
-  | 'EEXI'                // Energy Efficiency Existing Ship Index
-  | 'UAE_FTA'             // UAE Federal Transport Authority
-  | 'ADPC';               // Abu Dhabi Ports Company
+  | 'ADA_COMPLIANCE'      // Americans with Disabilities Act
+  | 'EPA_TIER_4'          // EPA Tier 4 engine emissions
+  | 'WA_DOE'              // Washington Dept of Ecology
+  | 'WSDOT_SAFETY'        // WSDOT ferry safety standards
+  | 'ABS_CLASS'           // American Bureau of Shipping classification
+  | 'ISM_CODE'            // International Safety Management
+  | 'MARPOL_ANNEX_VI';    // Air pollution prevention
 
 export type ComplianceStatus = 'compliant' | 'warning' | 'non_compliant' | 'pending_inspection';
 
@@ -148,39 +111,38 @@ export interface ComplianceRecord {
   nextInspection: Date;
   certificateExpiry: Date;
   notes?: string;
-  ciiRating?: 'A' | 'B' | 'C' | 'D' | 'E'; // For CII specifically
 }
 
 export interface EmissionLimits {
-  zone: 'GLOBAL' | 'ECA' | 'UAE_COASTAL';
+  zone: 'PUGET_SOUND' | 'WA_COASTAL' | 'US_ECA';
   maxSulfurPercent: number;
-  maxNoxTier: 1 | 2 | 3;
+  maxNoxTier: 1 | 2 | 3 | 4;
   description: string;
 }
 
 export const EMISSION_ZONES: Record<string, EmissionLimits> = {
-  GLOBAL: {
-    zone: 'GLOBAL',
-    maxSulfurPercent: 0.5,
-    maxNoxTier: 2,
-    description: 'Global IMO 2020 sulfur cap',
+  PUGET_SOUND: {
+    zone: 'PUGET_SOUND',
+    maxSulfurPercent: 0.0015,
+    maxNoxTier: 4,
+    description: 'Puget Sound - EPA Tier 4 / ULSD required',
   },
-  UAE_COASTAL: {
-    zone: 'UAE_COASTAL',
-    maxSulfurPercent: 0.5,
-    maxNoxTier: 2,
-    description: 'UAE territorial waters - MARPOL Annex VI',
+  WA_COASTAL: {
+    zone: 'WA_COASTAL',
+    maxSulfurPercent: 0.1,
+    maxNoxTier: 3,
+    description: 'Washington coastal waters - US ECA standards',
   },
-  PERSIAN_GULF: {
-    zone: 'GLOBAL',
-    maxSulfurPercent: 0.5,
-    maxNoxTier: 2,
-    description: 'Persian Gulf - Proposed SECA status under review',
+  US_ECA: {
+    zone: 'US_ECA',
+    maxSulfurPercent: 0.1,
+    maxNoxTier: 3,
+    description: 'US Emission Control Area - 200nm from coast',
   },
 };
 
 // ============================================================================
-// PREDICTIVE MAINTENANCE (PdM) MODELS
+// PREDICTIVE MAINTENANCE (PdM) MODELS - Ferry Specific
 // ============================================================================
 
 export type FailureMode =
@@ -196,25 +158,26 @@ export type FailureMode =
   | 'shaft_misalignment'
   | 'seal_leakage'
   | 'gearbox_wear'
-  | 'thruster_bearing_wear'
+  | 'propeller_fouling'
   // Hull & structure
   | 'hull_fouling'
-  | 'propeller_fouling'
   | 'corrosion'
   | 'fatigue_cracking'
-  // Dredger specific
-  | 'cutter_motor_bearing'
-  | 'spud_embedment'
-  | 'dredge_pump_wear'
-  | 'suction_pipe_wear'
-  // Crane & lifting
-  | 'wire_rope_fatigue'
-  | 'crane_boom_fatigue'
-  | 'hydraulic_leak'
-  | 'winch_brake_wear'
+  // Ferry-specific: Hydraulic ramp systems
+  | 'ramp_cylinder_seal'
+  | 'ramp_hinge_wear'
+  | 'ramp_chain_elongation'
+  // Ferry-specific: Passenger systems
+  | 'hvac_compressor_decline'
+  | 'fire_detection_fault'
   // Electrical
   | 'generator_winding'
+  | 'avr_failure'
+  | 'auto_start_failure'
   | 'switchboard_failure'
+  // Navigation
+  | 'radar_magnetron'
+  | 'gps_antenna_degradation'
   | 'sensor_drift';
 
 export interface FailureModeProfile {
@@ -233,7 +196,7 @@ export interface FailureModeProfile {
 export const FAILURE_MODE_PROFILES: Record<FailureMode, FailureModeProfile> = {
   bearing_wear: {
     mode: 'bearing_wear',
-    applicableEquipment: ['engine', 'propulsion', 'crane', 'hydraulics'],
+    applicableEquipment: ['engine', 'propulsion', 'hydraulics'],
     mtbf: 15000,
     degradationRate: 0.5,
     warningThreshold: 60,
@@ -305,7 +268,7 @@ export const FAILURE_MODE_PROFILES: Record<FailureMode, FailureModeProfile> = {
   },
   cavitation_damage: {
     mode: 'cavitation_damage',
-    applicableEquipment: ['propulsion', 'pump'],
+    applicableEquipment: ['propulsion'],
     mtbf: 18000,
     degradationRate: 0.4,
     warningThreshold: 60,
@@ -329,7 +292,7 @@ export const FAILURE_MODE_PROFILES: Record<FailureMode, FailureModeProfile> = {
   },
   seal_leakage: {
     mode: 'seal_leakage',
-    applicableEquipment: ['propulsion', 'hydraulics', 'pump'],
+    applicableEquipment: ['propulsion', 'hydraulics'],
     mtbf: 10000,
     degradationRate: 0.7,
     warningThreshold: 70,
@@ -341,7 +304,7 @@ export const FAILURE_MODE_PROFILES: Record<FailureMode, FailureModeProfile> = {
   },
   gearbox_wear: {
     mode: 'gearbox_wear',
-    applicableEquipment: ['propulsion', 'winch'],
+    applicableEquipment: ['propulsion'],
     mtbf: 20000,
     degradationRate: 0.35,
     warningThreshold: 60,
@@ -350,30 +313,6 @@ export const FAILURE_MODE_PROFILES: Record<FailureMode, FailureModeProfile> = {
     costOfFailure: 250000,
     plannedMaintenanceCost: 50000,
     sensorIndicators: ['vibration', 'oil_analysis', 'temperature'],
-  },
-  thruster_bearing_wear: {
-    mode: 'thruster_bearing_wear',
-    applicableEquipment: ['propulsion'],
-    mtbf: 12000,
-    degradationRate: 0.6,
-    warningThreshold: 60,
-    criticalThreshold: 30,
-    leadTime: 14,
-    costOfFailure: 95000,
-    plannedMaintenanceCost: 22000,
-    sensorIndicators: ['vibration', 'acoustic', 'temperature'],
-  },
-  hull_fouling: {
-    mode: 'hull_fouling',
-    applicableEquipment: ['hull'],
-    mtbf: 4000,
-    degradationRate: 1.5,
-    warningThreshold: 80,
-    criticalThreshold: 50,
-    leadTime: 30,
-    costOfFailure: 50000, // Increased fuel consumption
-    plannedMaintenanceCost: 15000,
-    sensorIndicators: ['fuel_consumption', 'speed_loss', 'visual_inspection'],
   },
   propeller_fouling: {
     mode: 'propeller_fouling',
@@ -386,6 +325,18 @@ export const FAILURE_MODE_PROFILES: Record<FailureMode, FailureModeProfile> = {
     costOfFailure: 30000,
     plannedMaintenanceCost: 8000,
     sensorIndicators: ['fuel_consumption', 'vibration', 'rpm_torque_ratio'],
+  },
+  hull_fouling: {
+    mode: 'hull_fouling',
+    applicableEquipment: ['hull'],
+    mtbf: 4000,
+    degradationRate: 1.5,
+    warningThreshold: 80,
+    criticalThreshold: 50,
+    leadTime: 30,
+    costOfFailure: 50000,
+    plannedMaintenanceCost: 15000,
+    sensorIndicators: ['fuel_consumption', 'speed_loss', 'visual_inspection'],
   },
   corrosion: {
     mode: 'corrosion',
@@ -401,7 +352,7 @@ export const FAILURE_MODE_PROFILES: Record<FailureMode, FailureModeProfile> = {
   },
   fatigue_cracking: {
     mode: 'fatigue_cracking',
-    applicableEquipment: ['structure', 'crane', 'hull'],
+    applicableEquipment: ['structure', 'hull', 'ramp'],
     mtbf: 40000,
     degradationRate: 0.18,
     warningThreshold: 55,
@@ -411,102 +362,69 @@ export const FAILURE_MODE_PROFILES: Record<FailureMode, FailureModeProfile> = {
     plannedMaintenanceCost: 150000,
     sensorIndicators: ['strain_gauge', 'ultrasonic', 'visual_inspection'],
   },
-  cutter_motor_bearing: {
-    mode: 'cutter_motor_bearing',
-    applicableEquipment: ['dredging'],
-    mtbf: 8000,
-    degradationRate: 0.9,
-    warningThreshold: 65,
-    criticalThreshold: 35,
-    leadTime: 10,
-    costOfFailure: 85000,
-    plannedMaintenanceCost: 18000,
-    sensorIndicators: ['vibration', 'temperature', 'current_draw'],
-  },
-  spud_embedment: {
-    mode: 'spud_embedment',
-    applicableEquipment: ['dredging'],
+  // Ferry-specific: Vehicle loading ramp systems
+  ramp_cylinder_seal: {
+    mode: 'ramp_cylinder_seal',
+    applicableEquipment: ['hydraulics', 'ramp'],
     mtbf: 5000,
     degradationRate: 1.2,
-    warningThreshold: 70,
-    criticalThreshold: 40,
+    warningThreshold: 65,
+    criticalThreshold: 35,
     leadTime: 7,
-    costOfFailure: 120000,
-    plannedMaintenanceCost: 25000,
-    sensorIndicators: ['force_sensor', 'position', 'soil_analysis'],
-  },
-  dredge_pump_wear: {
-    mode: 'dredge_pump_wear',
-    applicableEquipment: ['dredging', 'pump'],
-    mtbf: 6000,
-    degradationRate: 1.0,
-    warningThreshold: 65,
-    criticalThreshold: 35,
-    leadTime: 14,
-    costOfFailure: 95000,
-    plannedMaintenanceCost: 20000,
-    sensorIndicators: ['flow_rate', 'pressure', 'vibration', 'power_draw'],
-  },
-  suction_pipe_wear: {
-    mode: 'suction_pipe_wear',
-    applicableEquipment: ['dredging'],
-    mtbf: 4000,
-    degradationRate: 1.5,
-    warningThreshold: 70,
-    criticalThreshold: 40,
-    leadTime: 10,
     costOfFailure: 45000,
-    plannedMaintenanceCost: 12000,
-    sensorIndicators: ['thickness_gauge', 'flow_rate', 'visual_inspection'],
-  },
-  wire_rope_fatigue: {
-    mode: 'wire_rope_fatigue',
-    applicableEquipment: ['crane', 'winch'],
-    mtbf: 10000,
-    degradationRate: 0.7,
-    warningThreshold: 65,
-    criticalThreshold: 35,
-    leadTime: 14,
-    costOfFailure: 65000,
     plannedMaintenanceCost: 8000,
-    sensorIndicators: ['visual_ai', 'load_cycles', 'diameter_measurement'],
+    sensorIndicators: ['oil_seepage', 'ramp_drift', 'cycle_time'],
   },
-  crane_boom_fatigue: {
-    mode: 'crane_boom_fatigue',
-    applicableEquipment: ['crane'],
-    mtbf: 35000,
-    degradationRate: 0.2,
-    warningThreshold: 55,
-    criticalThreshold: 25,
-    leadTime: 30,
-    costOfFailure: 500000,
-    plannedMaintenanceCost: 80000,
-    sensorIndicators: ['strain_gauge', 'load_cycles', 'crack_detection'],
-  },
-  hydraulic_leak: {
-    mode: 'hydraulic_leak',
-    applicableEquipment: ['hydraulics', 'crane', 'winch'],
-    mtbf: 6000,
-    degradationRate: 1.0,
-    warningThreshold: 75,
-    criticalThreshold: 45,
-    leadTime: 5,
-    costOfFailure: 25000,
-    plannedMaintenanceCost: 4000,
-    sensorIndicators: ['oil_level', 'pressure', 'visual_inspection'],
-  },
-  winch_brake_wear: {
-    mode: 'winch_brake_wear',
-    applicableEquipment: ['winch', 'crane'],
+  ramp_hinge_wear: {
+    mode: 'ramp_hinge_wear',
+    applicableEquipment: ['ramp', 'structure'],
     mtbf: 8000,
     degradationRate: 0.8,
     warningThreshold: 60,
     criticalThreshold: 30,
-    leadTime: 10,
-    costOfFailure: 55000,
-    plannedMaintenanceCost: 10000,
-    sensorIndicators: ['brake_temp', 'stopping_distance', 'pad_thickness'],
+    leadTime: 14,
+    costOfFailure: 65000,
+    plannedMaintenanceCost: 15000,
+    sensorIndicators: ['vibration', 'alignment', 'noise'],
   },
+  ramp_chain_elongation: {
+    mode: 'ramp_chain_elongation',
+    applicableEquipment: ['ramp'],
+    mtbf: 6000,
+    degradationRate: 1.0,
+    warningThreshold: 70,
+    criticalThreshold: 40,
+    leadTime: 10,
+    costOfFailure: 35000,
+    plannedMaintenanceCost: 6000,
+    sensorIndicators: ['chain_tension', 'chain_measurement', 'sprocket_wear'],
+  },
+  // Ferry-specific: Passenger comfort systems
+  hvac_compressor_decline: {
+    mode: 'hvac_compressor_decline',
+    applicableEquipment: ['hvac', 'electrical'],
+    mtbf: 8000,
+    degradationRate: 0.8,
+    warningThreshold: 70,
+    criticalThreshold: 40,
+    leadTime: 14,
+    costOfFailure: 20000,
+    plannedMaintenanceCost: 4000,
+    sensorIndicators: ['current_draw', 'cycle_time', 'refrigerant_level'],
+  },
+  fire_detection_fault: {
+    mode: 'fire_detection_fault',
+    applicableEquipment: ['safety_systems'],
+    mtbf: 25000,
+    degradationRate: 0.3,
+    warningThreshold: 80,
+    criticalThreshold: 50,
+    leadTime: 30,
+    costOfFailure: 10000,
+    plannedMaintenanceCost: 1500,
+    sensorIndicators: ['false_alarm_rate', 'detector_sensitivity', 'circuit_test'],
+  },
+  // Electrical systems
   generator_winding: {
     mode: 'generator_winding',
     applicableEquipment: ['electrical'],
@@ -519,6 +437,30 @@ export const FAILURE_MODE_PROFILES: Record<FailureMode, FailureModeProfile> = {
     plannedMaintenanceCost: 35000,
     sensorIndicators: ['insulation_resistance', 'temperature', 'partial_discharge'],
   },
+  avr_failure: {
+    mode: 'avr_failure',
+    applicableEquipment: ['electrical'],
+    mtbf: 10000,
+    degradationRate: 0.7,
+    warningThreshold: 65,
+    criticalThreshold: 35,
+    leadTime: 10,
+    costOfFailure: 30000,
+    plannedMaintenanceCost: 5000,
+    sensorIndicators: ['voltage_stability', 'power_quality', 'load_balance'],
+  },
+  auto_start_failure: {
+    mode: 'auto_start_failure',
+    applicableEquipment: ['electrical', 'safety_systems'],
+    mtbf: 15000,
+    degradationRate: 0.5,
+    warningThreshold: 70,
+    criticalThreshold: 40,
+    leadTime: 7,
+    costOfFailure: 25000,
+    plannedMaintenanceCost: 3000,
+    sensorIndicators: ['battery_voltage', 'crank_speed', 'fuel_pressure'],
+  },
   switchboard_failure: {
     mode: 'switchboard_failure',
     applicableEquipment: ['electrical'],
@@ -530,6 +472,31 @@ export const FAILURE_MODE_PROFILES: Record<FailureMode, FailureModeProfile> = {
     costOfFailure: 120000,
     plannedMaintenanceCost: 25000,
     sensorIndicators: ['thermal_imaging', 'partial_discharge', 'current_imbalance'],
+  },
+  // Navigation
+  radar_magnetron: {
+    mode: 'radar_magnetron',
+    applicableEquipment: ['navigation'],
+    mtbf: 12000,
+    degradationRate: 0.6,
+    warningThreshold: 65,
+    criticalThreshold: 35,
+    leadTime: 14,
+    costOfFailure: 15000,
+    plannedMaintenanceCost: 5000,
+    sensorIndicators: ['radar_range', 'signal_strength', 'magnetron_current'],
+  },
+  gps_antenna_degradation: {
+    mode: 'gps_antenna_degradation',
+    applicableEquipment: ['navigation'],
+    mtbf: 20000,
+    degradationRate: 0.35,
+    warningThreshold: 70,
+    criticalThreshold: 40,
+    leadTime: 21,
+    costOfFailure: 8000,
+    plannedMaintenanceCost: 2000,
+    sensorIndicators: ['signal_to_noise', 'position_accuracy', 'fix_quality'],
   },
   sensor_drift: {
     mode: 'sensor_drift',
@@ -546,277 +513,122 @@ export const FAILURE_MODE_PROFILES: Record<FailureMode, FailureModeProfile> = {
 };
 
 // ============================================================================
-// NMDC VESSEL FLEET
+// WSDOT FERRY FLEET PROFILE (for detailed PdM)
 // ============================================================================
 
-export type NMDCVesselClass =
-  | 'heavy_duty_csd'      // Al Sadr, Al Yassat, Al Khatem, Al Hamra, Al Mirfa, Kattouf
-  | 'derrick_barge'       // Heavy lift derrick barges
-  | 'hopper_dredger'      // Trailing suction hopper dredgers
-  | 'auxiliary_tug'       // Harbor and ocean tugs
-  | 'supply_vessel'       // Platform supply vessels
-  | 'survey_vessel'       // Hydrographic survey vessels
-  | 'crane_barge'         // Floating cranes
-  | 'accommodation_barge'; // Floatels
+export type WSDOTFerryClass =
+  | 'jumbo_mark_ii'
+  | 'jumbo'
+  | 'super'
+  | 'issaquah_130'
+  | 'olympic'
+  | 'evergreen_state';
 
-export interface NMDCVesselProfile {
+export interface WSDOTFerryProfile {
   name: string;
-  class: NMDCVesselClass;
-  imoNumber: string;
+  class: WSDOTFerryClass;
   yearBuilt: number;
-  grossTonnage: number;
+  yearRebuilt?: number;
   lengthOverall: number;  // meters
   beam: number;           // meters
-  draft: number;          // meters
+  displacement: number;   // metric tons
+  passengerCapacity: number;
+  vehicleCapacity: number;
   mainEngines: { type: string; power: number; count: number }; // kW
-  fuelCapacity: number;   // cubic meters
+  fuelCapacity: number;   // gallons
   primaryFuel: FuelType;
   crewCapacity: number;
-  dpClass?: 1 | 2 | 3;    // Dynamic Positioning class
-  project?: string;
-  specificEquipment: string[];  // Equipment types for PdM focus
-  pdmFocus: FailureMode[];      // Key failure modes to monitor
+  route?: string;
+  specificEquipment: string[];
+  pdmFocus: FailureMode[];
 }
 
-export const NMDC_FLEET: NMDCVesselProfile[] = [
-  // Heavy Duty Cutter Suction Dredgers
+export const WSDOT_FERRY_PROFILES: WSDOTFerryProfile[] = [
   {
-    name: 'Al Sadr',
-    class: 'heavy_duty_csd',
-    imoNumber: '9234567',
-    yearBuilt: 2008,
-    grossTonnage: 8500,
-    lengthOverall: 142,
-    beam: 28,
-    draft: 5.2,
-    mainEngines: { type: 'Caterpillar 3516C', power: 2350, count: 4 },
-    fuelCapacity: 850,
-    primaryFuel: 'VLSFO',
-    crewCapacity: 35,
-    dpClass: 2,
-    project: 'Khalifa Port Expansion',
-    specificEquipment: ['cutter_head', 'dredge_pump', 'spud_system', 'suction_pipe'],
-    pdmFocus: ['cutter_motor_bearing', 'spud_embedment', 'dredge_pump_wear', 'hull_fouling'],
-  },
-  {
-    name: 'Al Yassat',
-    class: 'heavy_duty_csd',
-    imoNumber: '9234568',
-    yearBuilt: 2010,
-    grossTonnage: 9200,
-    lengthOverall: 148,
-    beam: 30,
-    draft: 5.5,
-    mainEngines: { type: 'MAN 9L32/44CR', power: 4500, count: 3 },
-    fuelCapacity: 920,
-    primaryFuel: 'VLSFO',
-    crewCapacity: 38,
-    dpClass: 2,
-    project: 'Ruwais Channel Deepening',
-    specificEquipment: ['cutter_head', 'dredge_pump', 'spud_system', 'ladder_gantry'],
-    pdmFocus: ['cutter_motor_bearing', 'dredge_pump_wear', 'suction_pipe_wear', 'hydraulic_leak'],
-  },
-  {
-    name: 'Al Khatem',
-    class: 'heavy_duty_csd',
-    imoNumber: '9234569',
-    yearBuilt: 2012,
-    grossTonnage: 10500,
-    lengthOverall: 155,
-    beam: 32,
-    draft: 5.8,
-    mainEngines: { type: 'Wärtsilä 8L32', power: 4000, count: 4 },
-    fuelCapacity: 1100,
-    primaryFuel: 'MGO',
-    crewCapacity: 42,
-    dpClass: 2,
-    project: 'Das Island Dredging',
-    specificEquipment: ['cutter_head', 'dredge_pump', 'spud_system', 'discharge_line'],
-    pdmFocus: ['cutter_motor_bearing', 'spud_embedment', 'bearing_wear', 'lube_oil_degradation'],
-  },
-  {
-    name: 'Al Hamra',
-    class: 'heavy_duty_csd',
-    imoNumber: '9234570',
-    yearBuilt: 2015,
-    grossTonnage: 11200,
-    lengthOverall: 160,
-    beam: 33,
-    draft: 6.0,
-    mainEngines: { type: 'Caterpillar 3516E', power: 2650, count: 4 },
-    fuelCapacity: 1200,
-    primaryFuel: 'VLSFO',
-    crewCapacity: 40,
-    dpClass: 2,
-    project: 'Abu Dhabi Port Expansion',
-    specificEquipment: ['cutter_head', 'dredge_pump', 'ladder_system', 'spud_carrier'],
-    pdmFocus: ['dredge_pump_wear', 'hull_fouling', 'cooling_system_failure', 'shaft_misalignment'],
-  },
-  {
-    name: 'Al Mirfa',
-    class: 'heavy_duty_csd',
-    imoNumber: '9234571',
-    yearBuilt: 2018,
-    grossTonnage: 12000,
-    lengthOverall: 165,
-    beam: 34,
-    draft: 6.2,
-    mainEngines: { type: 'MAN 12V32/44CR', power: 6000, count: 2 },
-    fuelCapacity: 1350,
-    primaryFuel: 'MGO',
-    crewCapacity: 45,
-    dpClass: 2,
-    project: 'Fujairah Offshore Project',
-    specificEquipment: ['cutter_head', 'submerged_pump', 'spud_system', 'monitoring_system'],
-    pdmFocus: ['cutter_motor_bearing', 'cavitation_damage', 'spud_embedment', 'sensor_drift'],
-  },
-  {
-    name: 'Kattouf',
-    class: 'heavy_duty_csd',
-    imoNumber: '9234572',
-    yearBuilt: 2020,
-    grossTonnage: 13500,
-    lengthOverall: 170,
-    beam: 36,
-    draft: 6.5,
-    mainEngines: { type: 'Wärtsilä 9L46F', power: 9450, count: 2 },
-    fuelCapacity: 1500,
-    primaryFuel: 'LNG',
-    crewCapacity: 48,
-    dpClass: 3,
-    project: 'Ras Al Khaimah Development',
-    specificEquipment: ['cutter_head', 'submerged_pump', 'dp_system', 'emission_scrubber'],
-    pdmFocus: ['thruster_bearing_wear', 'dredge_pump_wear', 'turbocharger_failure', 'propeller_fouling'],
-  },
-  
-  // Derrick Barges
-  {
-    name: 'NMDC Lifter I',
-    class: 'derrick_barge',
-    imoNumber: '9345678',
-    yearBuilt: 2005,
-    grossTonnage: 15000,
-    lengthOverall: 120,
-    beam: 45,
-    draft: 4.5,
-    mainEngines: { type: 'Caterpillar 3512C', power: 1500, count: 4 },
-    fuelCapacity: 600,
-    primaryFuel: 'VLSFO',
-    crewCapacity: 80,
-    project: 'Offshore Platform Installation',
-    specificEquipment: ['main_crane', 'auxiliary_crane', 'anchor_winches', 'ballast_system'],
-    pdmFocus: ['wire_rope_fatigue', 'crane_boom_fatigue', 'winch_brake_wear', 'hydraulic_leak'],
-  },
-  {
-    name: 'NMDC Lifter II',
-    class: 'derrick_barge',
-    imoNumber: '9345679',
-    yearBuilt: 2012,
-    grossTonnage: 22000,
+    name: 'M/V Puyallup',
+    class: 'jumbo_mark_ii',
+    yearBuilt: 1999,
     lengthOverall: 140,
-    beam: 52,
-    draft: 5.0,
-    mainEngines: { type: 'MAN 8L32/44CR', power: 3600, count: 3 },
-    fuelCapacity: 800,
-    primaryFuel: 'MGO',
-    crewCapacity: 100,
-    project: 'ADNOC Offshore Module',
-    specificEquipment: ['revolving_crane', 'heavy_lift_system', 'dp_thrusters', 'accommodation'],
-    pdmFocus: ['crane_boom_fatigue', 'fatigue_cracking', 'wire_rope_fatigue', 'generator_winding'],
-  },
-  
-  // Hopper Dredgers
-  {
-    name: 'Gulf Hopper',
-    class: 'hopper_dredger',
-    imoNumber: '9456789',
-    yearBuilt: 2016,
-    grossTonnage: 8000,
-    lengthOverall: 110,
-    beam: 22,
-    draft: 7.5,
-    mainEngines: { type: 'Wärtsilä 6L32', power: 3000, count: 2 },
-    fuelCapacity: 500,
-    primaryFuel: 'VLSFO',
-    crewCapacity: 28,
-    project: 'Dubai Channel Maintenance',
-    specificEquipment: ['draghead', 'suction_tube', 'hopper', 'discharge_pump'],
-    pdmFocus: ['hull_fouling', 'propeller_fouling', 'dredge_pump_wear', 'bearing_wear'],
-  },
-  
-  // Auxiliary Tugs
-  {
-    name: 'Al Dhafra Tug',
-    class: 'auxiliary_tug',
-    imoNumber: '9567890',
-    yearBuilt: 2019,
-    grossTonnage: 850,
-    lengthOverall: 38,
-    beam: 12,
-    draft: 5.5,
-    mainEngines: { type: 'Caterpillar 3516C', power: 2350, count: 2 },
-    fuelCapacity: 180,
-    primaryFuel: 'MGO',
-    crewCapacity: 12,
-    project: 'Port Operations',
-    specificEquipment: ['azimuth_thruster', 'towing_winch', 'fifi_system'],
-    pdmFocus: ['thruster_bearing_wear', 'propeller_fouling', 'hydraulic_leak', 'bearing_wear'],
+    beam: 27,
+    displacement: 5950,
+    passengerCapacity: 2500,
+    vehicleCapacity: 202,
+    mainEngines: { type: 'EMD 16-710G7C', power: 4850, count: 4 },
+    fuelCapacity: 50000,
+    primaryFuel: 'DIESEL_ELECTRIC',
+    crewCapacity: 18,
+    route: 'Seattle - Bainbridge Island',
+    specificEquipment: ['bow_ramp', 'stern_ramp', 'passenger_elevator', 'vehicle_deck_ventilation'],
+    pdmFocus: ['ramp_cylinder_seal', 'generator_winding', 'hvac_compressor_decline', 'hull_fouling'],
   },
   {
-    name: 'Gulf Pioneer',
-    class: 'auxiliary_tug',
-    imoNumber: '9567891',
-    yearBuilt: 2020,
-    grossTonnage: 920,
-    lengthOverall: 40,
-    beam: 13,
-    draft: 5.8,
-    mainEngines: { type: 'MAN 6L27/38', power: 2000, count: 2 },
-    fuelCapacity: 200,
-    primaryFuel: 'MGO',
-    crewCapacity: 14,
-    dpClass: 1,
-    project: 'Offshore Support',
-    specificEquipment: ['azimuth_thruster', 'anchor_handling_winch', 'towing_pins'],
-    pdmFocus: ['hull_fouling', 'shaft_misalignment', 'gearbox_wear', 'cooling_system_failure'],
-  },
-  
-  // Survey Vessels
-  {
-    name: 'Ocean Explorer',
-    class: 'survey_vessel',
-    imoNumber: '9678901',
-    yearBuilt: 2021,
-    grossTonnage: 1200,
-    lengthOverall: 55,
-    beam: 14,
-    draft: 4.2,
-    mainEngines: { type: 'Caterpillar C32', power: 1081, count: 2 },
-    fuelCapacity: 120,
-    primaryFuel: 'MGO',
-    crewCapacity: 22,
-    dpClass: 2,
-    project: 'Hydrographic Survey',
-    specificEquipment: ['multibeam_sonar', 'side_scan_sonar', 'svp_system', 'gnss_rtk'],
-    pdmFocus: ['sensor_drift', 'thruster_bearing_wear', 'generator_winding', 'hull_fouling'],
+    name: 'M/V Tacoma',
+    class: 'jumbo_mark_ii',
+    yearBuilt: 1997,
+    lengthOverall: 140,
+    beam: 27,
+    displacement: 5950,
+    passengerCapacity: 2500,
+    vehicleCapacity: 202,
+    mainEngines: { type: 'EMD 16-710G7C', power: 4850, count: 4 },
+    fuelCapacity: 50000,
+    primaryFuel: 'DIESEL_ELECTRIC',
+    crewCapacity: 18,
+    route: 'Seattle - Bainbridge Island',
+    specificEquipment: ['bow_ramp', 'stern_ramp', 'passenger_elevator', 'galley_systems'],
+    pdmFocus: ['ramp_hinge_wear', 'avr_failure', 'bearing_wear', 'propeller_fouling'],
   },
   {
-    name: 'Deep Scanner',
-    class: 'survey_vessel',
-    imoNumber: '9678902',
-    yearBuilt: 2022,
-    grossTonnage: 1500,
-    lengthOverall: 62,
-    beam: 15,
-    draft: 4.5,
-    mainEngines: { type: 'Wärtsilä 6L20', power: 1200, count: 2 },
-    fuelCapacity: 150,
-    primaryFuel: 'BIOFUEL',
-    crewCapacity: 25,
-    dpClass: 2,
-    project: 'Subsea Pipeline Survey',
-    specificEquipment: ['rov_system', 'multibeam_sonar', 'das_dts_fiber', 'usbl_positioning'],
-    pdmFocus: ['sensor_drift', 'switchboard_failure', 'hydraulic_leak', 'propeller_fouling'],
+    name: 'M/V Wenatchee',
+    class: 'jumbo_mark_ii',
+    yearBuilt: 1998,
+    lengthOverall: 140,
+    beam: 27,
+    displacement: 5950,
+    passengerCapacity: 2500,
+    vehicleCapacity: 202,
+    mainEngines: { type: 'EMD 16-710G7C', power: 4850, count: 4 },
+    fuelCapacity: 50000,
+    primaryFuel: 'DIESEL_ELECTRIC',
+    crewCapacity: 18,
+    route: 'Seattle - Bremerton',
+    specificEquipment: ['bow_ramp', 'stern_ramp', 'elevator', 'fire_suppression'],
+    pdmFocus: ['cooling_system_failure', 'ramp_chain_elongation', 'shaft_misalignment', 'fire_detection_fault'],
+  },
+  {
+    name: 'M/V Spokane',
+    class: 'jumbo',
+    yearBuilt: 1972,
+    yearRebuilt: 2004,
+    lengthOverall: 134,
+    beam: 24,
+    displacement: 5000,
+    passengerCapacity: 2000,
+    vehicleCapacity: 188,
+    mainEngines: { type: 'EMD 16-645E7B', power: 3730, count: 4 },
+    fuelCapacity: 42000,
+    primaryFuel: 'ULSD',
+    crewCapacity: 16,
+    route: 'Edmonds - Kingston',
+    specificEquipment: ['bow_ramp', 'stern_ramp', 'vehicle_deck_fire_system'],
+    pdmFocus: ['fatigue_cracking', 'lube_oil_degradation', 'ramp_cylinder_seal', 'corrosion'],
+  },
+  {
+    name: 'M/V Chetzemoka',
+    class: 'olympic',
+    yearBuilt: 2010,
+    lengthOverall: 84,
+    beam: 19,
+    displacement: 1820,
+    passengerCapacity: 750,
+    vehicleCapacity: 64,
+    mainEngines: { type: 'Cummins QSK60', power: 1864, count: 2 },
+    fuelCapacity: 18000,
+    primaryFuel: 'DIESEL_ELECTRIC',
+    crewCapacity: 10,
+    route: 'Coupeville - Port Townsend',
+    specificEquipment: ['bow_ramp', 'stern_ramp', 'emission_controls'],
+    pdmFocus: ['fuel_injector_fouling', 'auto_start_failure', 'gps_antenna_degradation', 'seal_leakage'],
   },
 ];
 
@@ -889,4 +701,3 @@ export interface DigitalTwinState {
   };
   complianceStatus: ComplianceRecord[];
 }
-

@@ -8,7 +8,7 @@ import { getVesselProfileByName, VesselProfile, VesselSystem } from '@/lib/vesse
 import { getVesselIssues, getEquipmentOverrides } from '@/lib/vessel-issues';
 import { TroubleshootPanel } from '@/app/components/TroubleshootPanel';
 import type { FleetVessel } from '@/app/api/fleet/route';
-import { generateAlertsFromFleet, type NMDCAlert } from '@/lib/nmdc/alerts';
+import { generateAlertsFromFleet, type WSDOTAlert } from '@/lib/wsdot/alerts';
 import {
   ArrowLeft,
   Ship,
@@ -121,7 +121,7 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
   const [vessel, setVessel] = useState<Vessel | null>(null);
   const [fleetVessel, setFleetVessel] = useState<FleetVessel | null>(null);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
-  const [alerts, setAlerts] = useState<NMDCAlert[]>([]);
+  const [alerts, setAlerts] = useState<WSDOTAlert[]>([]);
   const [profile, setProfile] = useState<VesselProfile | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [selectedSystem, setSelectedSystem] = useState<VesselSystem | null>(null);
@@ -192,64 +192,49 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
 
     setIsLoading(true);
     try {
-      // First try to fetch from NMDC fleet API (vesselId could be MMSI)
+      // First try to fetch from WSDOT fleet API (vesselId could be MMSI)
       const fleetResponse = await fetch('/api/fleet?action=fleet');
       const fleetData = await fleetResponse.json();
       
       if (fleetData.success) {
         // Find vessel by MMSI or name
-        const nmdcVessel = fleetData.vessels.find((v: FleetVessel) => 
+        const wsdotVessel = fleetData.vessels.find((v: FleetVessel) => 
           v.mmsi === vesselId || v.id === vesselId || v.name.toLowerCase().replace(/\s+/g, '-') === vesselId.toLowerCase()
         );
         
-        if (nmdcVessel) {
-          setFleetVessel(nmdcVessel);
+        if (wsdotVessel) {
+          setFleetVessel(wsdotVessel);
           
           // Convert to Vessel format for component compatibility
-          // Map NMDC vessel types - preserve actual type for 3D model selection
-          type VesselTypeString = 'tugboat' | 'supply_vessel' | 'dredger' | 'crane_barge' | 'survey_vessel';
-          const mapVesselType = (nmdcType?: string): VesselTypeString => {
-            if (!nmdcType) return 'crane_barge';
-            const typeMap: Record<string, VesselTypeString> = {
-              hopper_dredger: 'dredger',
-              csd: 'dredger',
-              dredger: 'dredger',
-              pipelay_barge: 'crane_barge',
-              derrick_barge: 'crane_barge',
-              jack_up: 'crane_barge',
-              supply: 'supply_vessel',
-              tug: 'tugboat',
-              survey: 'survey_vessel',
-              barge: 'crane_barge',
-              accommodation_barge: 'crane_barge',
-              work_barge: 'crane_barge',
-            };
-            return typeMap[nmdcType] || 'crane_barge';
+          // All WSDOT vessels are ferries
+          type VesselTypeString = 'ferry';
+          const mapVesselType = (_vesselClass?: string): VesselTypeString => {
+            return 'ferry';
           };
           
           const vesselData: Vessel = {
-            id: nmdcVessel.mmsi,
-            name: nmdcVessel.name,
-            type: mapVesselType(nmdcVessel.nmdc?.type),
-            mmsi: nmdcVessel.mmsi,
-            imo_number: nmdcVessel.imo ?? null,
-            position_lat: nmdcVessel.position.lat,
-            position_lng: nmdcVessel.position.lng,
-            heading: nmdcVessel.heading || 0,
-            speed: nmdcVessel.speed || 0,
-            status: nmdcVessel.isOnline ? (nmdcVessel.healthScore > 60 ? 'operational' : 'maintenance') : 'idle',
-            health_score: nmdcVessel.healthScore,
-            fuel_level: nmdcVessel.fuelLevel,
-            crew_count: nmdcVessel.crew?.count || nmdcVessel.nmdc?.crewCount || 15,
-            project: nmdcVessel.nmdc?.project || null,
-            destination_port: nmdcVessel.destination ?? null,
+            id: wsdotVessel.mmsi,
+            name: wsdotVessel.name,
+            type: mapVesselType(wsdotVessel.wsdot?.vesselClass),
+            mmsi: wsdotVessel.mmsi,
+            imo_number: wsdotVessel.imo ?? null,
+            position_lat: wsdotVessel.position.lat,
+            position_lng: wsdotVessel.position.lng,
+            heading: wsdotVessel.heading || 0,
+            speed: wsdotVessel.speed || 0,
+            status: wsdotVessel.isOnline ? (wsdotVessel.healthScore > 60 ? 'operational' : 'maintenance') : 'idle',
+            health_score: wsdotVessel.healthScore,
+            fuel_level: wsdotVessel.fuelLevel,
+            crew_count: wsdotVessel.crew?.count || wsdotVessel.wsdot?.crewCount || 15,
+            project: wsdotVessel.route || null,
+            destination_port: wsdotVessel.destination ?? null,
             destination_lat: null,
             destination_lng: null,
-            eta: nmdcVessel.eta ?? null,
-            emissions_co2: nmdcVessel.emissions?.co2 || 0,
-            emissions_nox: nmdcVessel.emissions?.nox || 0,
-            emissions_sox: nmdcVessel.emissions?.sox || 0,
-            fuel_consumption: nmdcVessel.fuelConsumption || 0,
+            eta: wsdotVessel.eta ?? null,
+            emissions_co2: wsdotVessel.emissions?.co2 || 0,
+            emissions_nox: wsdotVessel.emissions?.nox || 0,
+            emissions_sox: wsdotVessel.emissions?.sox || 0,
+            fuel_consumption: wsdotVessel.fuelConsumption || 0,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             // Additional required fields
@@ -258,7 +243,7 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
             crew_hours_on_duty: null,
             crew_safety_score: null,
             deadweight: null,
-            flag: nmdcVessel.flag ?? null,
+            flag: wsdotVessel.flag ?? null,
             fuel_type: null,
             gross_tonnage: null,
             length_overall: null,
@@ -269,16 +254,16 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
           setVessel(vesselData);
           
           // Get profile from vessel name
-          const vesselProfile = getVesselProfileByName(nmdcVessel.name);
+          const vesselProfile = getVesselProfileByName(wsdotVessel.name);
           setProfile(vesselProfile || null);
           
           // Generate alerts from fleet data (just for this vessel)
-          const vesselAlerts = generateAlertsFromFleet([nmdcVessel]);
+          const vesselAlerts = generateAlertsFromFleet([wsdotVessel]);
           setAlerts(vesselAlerts);
           
           // Fetch enriched vessel specs (includes sensor data)
           try {
-            const specsResponse = await fetch(`/api/vessel-specs?mmsi=${nmdcVessel.mmsi}`);
+            const specsResponse = await fetch(`/api/vessel-specs?mmsi=${wsdotVessel.mmsi}`);
             const specsData = await specsResponse.json();
             if (specsData.success && specsData.vessel) {
               setVesselSpecs(specsData.vessel);
@@ -289,8 +274,8 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
           
           // Generate equipment from profile with vessel-specific issues
           if (vesselProfile?.systems) {
-            const equipmentOverrides = getEquipmentOverrides(nmdcVessel.mmsi);
-            const vesselIssues = getVesselIssues(nmdcVessel.mmsi);
+            const equipmentOverrides = getEquipmentOverrides(wsdotVessel.mmsi);
+            const vesselIssues = getVesselIssues(wsdotVessel.mmsi);
             
             const generatedEquipment = vesselProfile.systems.map((sys, idx) => {
               const sysNameLower = sys.name.toLowerCase();
@@ -305,8 +290,8 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
               const hasIssue = override || matchingIssue;
               
               return {
-                id: `${nmdcVessel.mmsi}-${idx}`,
-                vessel_id: nmdcVessel.mmsi,
+                id: `${wsdotVessel.mmsi}-${idx}`,
+                vessel_id: wsdotVessel.mmsi,
                 name: sys.name,
                 type: sys.category,
                 health_score: hasIssue 
@@ -353,7 +338,7 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
         }
       }
       
-      // Fallback to Supabase if not found in NMDC fleet
+      // Fallback to Supabase if not found in WSDOT fleet
       const { data: vesselData, error: vesselError } = await supabase
         .from('vessels')
         .select('*')
@@ -450,7 +435,7 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
                 <div>
                   <h1 className="text-xl font-bold text-white">{vessel.name}</h1>
                   <div className="flex items-center gap-2 text-sm">
-                    <span className="text-white/50">{fleetVessel?.nmdc?.subType || vessel.type.replace(/_/g, ' ')}</span>
+                    <span className="text-white/50">{fleetVessel?.wsdot?.classDisplayName || vessel.type.replace(/_/g, ' ')}</span>
                     <span className="text-white/20">•</span>
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(vessel.status || 'idle')}`}>
                       {vessel.status}
@@ -493,7 +478,7 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
                 <span className="hidden xl:inline">Plan</span> Route
               </button>
               <Link
-                href={`/troubleshoot?vessel=${vesselId}&name=${encodeURIComponent(vessel.name)}&equipment=${encodeURIComponent(vessel.type || '')}&project=${encodeURIComponent(fleetVessel?.nmdc?.project || '')}&mmsi=${fleetVessel?.mmsi || ''}`}
+                href={`/troubleshoot?vessel=${vesselId}&name=${encodeURIComponent(vessel.name)}&equipment=${encodeURIComponent(vessel.type || '')}&project=${encodeURIComponent(fleetVessel?.route || '')}&mmsi=${fleetVessel?.mmsi || ''}`}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 hover:text-amber-300 transition-colors text-sm border border-amber-500/20"
               >
                 <AlertTriangle className="w-3.5 h-3.5" />
@@ -543,14 +528,14 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
               </button>
             ))}
             
-            {/* Crane IoT Link - Only for vessels with cranes */}
+            {/* Ramp IoT Link - For vessels with vehicle loading ramps */}
             {['471026000', '470212000'].includes(vesselId) && (
               <Link
                 href="/crane-iot"
                 className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ml-2 bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20"
               >
                 <Activity className="w-4 h-4" />
-                Crane IoT
+                Ramp IoT
               </Link>
             )}
           </div>
@@ -624,10 +609,10 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
                           <span className="text-white/40">Depth</span>
                           <span className="text-white">{profile.specs.depth} m</span>
                         </div>
-                        {profile.specs.dredgingDepth && (
+                        {profile.specs.passengerCapacity && (
                           <div className="flex justify-between text-sm">
-                            <span className="text-white/40">Dredging Depth</span>
-                            <span className="text-white">{profile.specs.dredgingDepth} m</span>
+                            <span className="text-white/40">Passenger Capacity</span>
+                            <span className="text-white">{profile.specs.passengerCapacity}</span>
                           </div>
                         )}
                       </div>
@@ -647,10 +632,10 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
                             <span className="text-white">{profile.specs.maxSpeed} knots</span>
                           </div>
                         )}
-                        {profile.specs.craneCapacity && (
+                        {profile.specs.vehicleCapacity && (
                           <div className="flex justify-between text-sm">
-                            <span className="text-white/40">Crane Capacity</span>
-                            <span className="text-white">{profile.specs.craneCapacity.toLocaleString()} T</span>
+                            <span className="text-white/40">Vehicle Capacity</span>
+                            <span className="text-white">{profile.specs.vehicleCapacity} vehicles</span>
                           </div>
                         )}
                         {profile.specs.accommodation && (
@@ -1053,8 +1038,8 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
                     temperature: vesselSpecs?.sensors?.mainEngine?.temperature || 72,
                   },
                   { 
-                    id: 'pump-dredge-001', 
-                    name: 'Dredge Pump', 
+                    id: 'propulsion-main-001', 
+                    name: 'Propulsion Motor', 
                     type: 'pump_system',
                     currentHealth: equipment.find(e => e.name.toLowerCase().includes('pump'))?.health_score || 68,
                     operatingHours: equipment.find(e => e.name.toLowerCase().includes('pump'))?.hours_operated || 12000,
@@ -1121,16 +1106,16 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
                       </a>
                     )}
                     <a
-                      href="https://www.nmdc-group.com/assets/files/annual-reports/2023/Integrated_Report_EN.pdf"
+                      href="https://wsdot.wa.gov/travel/washington-state-ferries"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 border border-white/8 transition-colors group"
                     >
-                      <span className="text-sm text-white/70 group-hover:text-white">NMDC Integrated Report 2023</span>
+                      <span className="text-sm text-white/70 group-hover:text-white">WSDOT Ferries Annual Report 2023</span>
                       <ExternalLink className="w-4 h-4 text-white/40 group-hover:text-primary-400" />
                     </a>
                     <a
-                      href="https://www.nmdc-group.com/en/media/download-centre"
+                      href="https://wsdot.wa.gov/ferries/vesselwatch"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 border border-white/8 transition-colors group"
@@ -1258,7 +1243,7 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
               <DigitalTwin 
                 vessel={vessel} 
                 equipment={equipment} 
-                vesselSubType={fleetVessel?.nmdc?.subType}
+                vesselSubType={fleetVessel?.wsdot?.classDisplayName}
               />
             </div>
             
@@ -1499,7 +1484,7 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
                   {[
                     { id: 'WO-2024-127', type: 'CM', system: 'Main Propulsion', issue: 'Bearing replacement', date: '2024-12-28', status: 'completed' },
                     { id: 'WO-2024-119', type: 'PM', system: 'Hydraulic System', issue: 'Oil change & filter', date: '2024-12-15', status: 'completed' },
-                    { id: 'WO-2024-108', type: 'CM', system: 'Dredge Pump', issue: 'Seal leak repair', date: '2024-12-02', status: 'completed' },
+                    { id: 'WO-2024-108', type: 'CM', system: 'Propulsion Motor', issue: 'Bearing replacement', date: '2024-12-02', status: 'completed' },
                   ].map((wo) => (
                     <div key={wo.id} className="p-2 rounded bg-white/[0.03] border border-white/5">
                       <div className="flex items-center justify-between mb-1">
@@ -1556,7 +1541,7 @@ function VesselDetailContent({ vesselId }: { vesselId: string }) {
                     <div className="flex items-start gap-2">
                       <Calendar className="w-3 h-3 text-blue-400 mt-0.5 flex-shrink-0" />
                       <div>
-                        <div className="text-xs text-white/80">Schedule Dredge Pump overhaul</div>
+                        <div className="text-xs text-white/80">Schedule Propulsion Motor overhaul</div>
                         <div className="text-[10px] text-white/40 mt-0.5">Based on OEM recommendation at 5000h - currently at 4658h</div>
                       </div>
                     </div>

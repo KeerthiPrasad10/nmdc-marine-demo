@@ -27,11 +27,11 @@ const FUEL_COST_USD_PER_LITER = 0.85;
 const EARTH_RADIUS_NM = 3440.065;
 
 // ============================================================================
-// UAE & Arabian Gulf Land Avoidance System
-// Ships must avoid crossing land - this includes:
-// 1. UAE mainland (Abu Dhabi, Dubai emirates)
-// 2. Qatar peninsula
-// 3. Routes between Arabian Gulf and Gulf of Oman (around Musandam)
+// Puget Sound Land Avoidance System
+// Ferries must avoid crossing land - this includes:
+// 1. Kitsap Peninsula
+// 2. Whidbey Island and other islands
+// 3. Routes through narrow channels and passages
 // ============================================================================
 
 interface CoastalWaypoint {
@@ -39,133 +39,75 @@ interface CoastalWaypoint {
   name: string;
   lat: number;
   lng: number;
-  region: 'western_gulf' | 'uae_coast' | 'northern_emirates' | 'strait_of_hormuz' | 'gulf_of_oman';
+  region: string;
 }
 
-// Key waypoints for maritime routing in the Arabian Gulf
-// These define safe offshore corridors that avoid land
-const GULF_MARITIME_WAYPOINTS: CoastalWaypoint[] = [
-  // Western Gulf offshore (for routes from Das Island, Arzanah, Ruwais area)
-  { id: 'western-offshore-south', name: 'Western Gulf S', lat: 24.40, lng: 52.80, region: 'western_gulf' },
-  { id: 'western-offshore-mid', name: 'Western Gulf M', lat: 25.00, lng: 53.00, region: 'western_gulf' },
-  { id: 'western-offshore-north', name: 'Western Gulf N', lat: 25.50, lng: 53.50, region: 'western_gulf' },
+// Key waypoints for ferry routing in Puget Sound
+// These define safe ferry corridors that avoid land
+const PUGET_SOUND_WAYPOINTS: CoastalWaypoint[] = [
+  // Central Sound (Seattle-Bainbridge-Bremerton area)
+  { id: 'seattle-terminal', name: 'Seattle Terminal', lat: 47.602, lng: -122.339, region: 'central_sound' },
+  { id: 'mid-sound-seattle', name: 'Mid Sound Seattle', lat: 47.61, lng: -122.42, region: 'central_sound' },
+  { id: 'bainbridge-approach', name: 'Bainbridge Approach', lat: 47.623, lng: -122.50, region: 'central_sound' },
   
-  // UAE coast - offshore corridor (stays well offshore of Abu Dhabi/Dubai coast)
-  { id: 'abu-dhabi-offshore', name: 'Abu Dhabi Offshore', lat: 24.60, lng: 54.00, region: 'uae_coast' },
-  { id: 'central-offshore', name: 'Central Offshore', lat: 25.00, lng: 54.50, region: 'uae_coast' },
-  { id: 'dubai-offshore', name: 'Dubai Offshore', lat: 25.30, lng: 55.00, region: 'uae_coast' },
+  // North Sound (Edmonds-Kingston-Mukilteo-Clinton)
+  { id: 'edmonds-terminal', name: 'Edmonds Terminal', lat: 47.814, lng: -122.384, region: 'north_sound' },
+  { id: 'mid-sound-north', name: 'Mid Sound North', lat: 47.81, lng: -122.44, region: 'north_sound' },
+  { id: 'kingston-approach', name: 'Kingston Approach', lat: 47.797, lng: -122.495, region: 'north_sound' },
   
-  // Northern Emirates coast
-  { id: 'sharjah-offshore', name: 'Sharjah Offshore', lat: 25.50, lng: 55.50, region: 'northern_emirates' },
-  { id: 'rak-offshore', name: 'RAK Offshore', lat: 25.80, lng: 55.95, region: 'northern_emirates' },
+  // South Sound (Fauntleroy-Vashon-Southworth)
+  { id: 'fauntleroy-terminal', name: 'Fauntleroy Terminal', lat: 47.523, lng: -122.393, region: 'south_sound' },
+  { id: 'vashon-approach', name: 'Vashon Approach', lat: 47.509, lng: -122.464, region: 'south_sound' },
   
-  // Strait of Hormuz / Musandam
-  { id: 'musandam-west', name: 'Musandam West', lat: 26.15, lng: 56.20, region: 'strait_of_hormuz' },
-  { id: 'strait-hormuz', name: 'Strait of Hormuz', lat: 26.30, lng: 56.50, region: 'strait_of_hormuz' },
-  { id: 'musandam-east', name: 'Musandam East', lat: 26.10, lng: 56.65, region: 'strait_of_hormuz' },
+  // Admiralty Inlet (Port Townsend-Coupeville)
+  { id: 'port-townsend-terminal', name: 'Port Townsend', lat: 48.113, lng: -122.760, region: 'admiralty_inlet' },
+  { id: 'mid-admiralty', name: 'Mid Admiralty', lat: 48.14, lng: -122.72, region: 'admiralty_inlet' },
+  { id: 'coupeville-approach', name: 'Coupeville Approach', lat: 48.159, lng: -122.674, region: 'admiralty_inlet' },
   
-  // Gulf of Oman side (east coast)
-  { id: 'khor-fakkan', name: 'Khor Fakkan Approach', lat: 25.40, lng: 56.40, region: 'gulf_of_oman' },
-  { id: 'fujairah-approach', name: 'Fujairah Approach', lat: 25.15, lng: 56.40, region: 'gulf_of_oman' },
+  // San Juan Islands (Anacortes-Friday Harbor-Orcas-Lopez)
+  { id: 'anacortes-terminal', name: 'Anacortes Terminal', lat: 48.507, lng: -122.678, region: 'san_juan' },
+  { id: 'friday-harbor-approach', name: 'Friday Harbor', lat: 48.535, lng: -123.014, region: 'san_juan' },
 ];
 
 /**
- * Check if a point is over land using accurate coastline data
+ * Check if a point is over land using simplified Puget Sound coastline data
  * 
  * GEOGRAPHY REMINDER:
- * - The Persian Gulf is to the NORTH of UAE
- * - UAE mainland is to the SOUTH
- * - Points with lat GREATER than coast = WATER
- * - Points with lat LESS than coast but within UAE borders = LAND
+ * - Puget Sound is a complex waterway with many peninsulas and islands
+ * - Ferry routes generally follow established channels
+ * - Simple bounding box approach for demo purposes
  */
 function isPointOverLand(point: Coordinates): boolean {
   const { lat, lng } = point;
   
-  // === QATAR PENINSULA ===
-  // Qatar extends north into the Gulf from lat ~24.5 to ~26.2, lng ~50.7 to ~51.7
-  if (lng >= 50.5 && lng <= 51.8) {
-    // Qatar mainland starts around lat 24.5 and extends north to ~26.2
-    // The peninsula is roughly 51.0-51.6 lng
-    if (lng >= 50.75 && lng <= 51.65) {
-      if (lat >= 24.4 && lat <= 26.25) {
-        return true; // On Qatar peninsula
-      }
+  // === KITSAP PENINSULA ===
+  // Roughly between -122.7 and -122.5 lng, 47.3 to 47.8 lat
+  if (lng >= -122.65 && lng <= -122.45) {
+    if (lat >= 47.35 && lat <= 47.75) {
+      // Interior of Kitsap Peninsula
+      return true;
     }
   }
   
-  // === UAE MAINLAND ===
-  // The UAE coastline is complex. Let's define it more accurately.
-  // Key coastal points (approximate):
-  // - Ghuweifat border (west): 24.15°N, 51.5°E
-  // - Ruwais: 24.1°N, 52.7°E
-  // - Jebel Dhanna: 24.2°N, 52.6°E  
-  // - Abu Dhabi coast: 24.35°N, 54.4°E
-  // - Khalifa Port: 24.8°N, 54.65°E
-  // - Dubai: 25.25°N, 55.3°E
-  // - Sharjah: 25.35°N, 55.4°E
-  
-  // Define coastal latitude at different longitudes
-  // Points SOUTH of this line (lower lat) and within UAE lng range = LAND
-  function getCoastLatitude(longitude: number): number {
-    // Piecewise linear approximation of UAE coastline
-    if (longitude < 51.5) return 24.0; // West of UAE
-    if (longitude < 52.5) return 24.0 + (longitude - 51.5) * 0.1; // Western border to Ruwais
-    if (longitude < 53.5) return 24.1 + (longitude - 52.5) * 0.2; // Ruwais area
-    if (longitude < 54.5) return 24.3 + (longitude - 53.5) * 0.3; // To Abu Dhabi
-    if (longitude < 55.0) return 24.6 + (longitude - 54.5) * 0.8; // Abu Dhabi to Dubai approach
-    if (longitude < 55.5) return 25.0 + (longitude - 55.0) * 0.6; // Dubai area
-    if (longitude < 56.0) return 25.3 + (longitude - 55.5) * 0.3; // Sharjah/Northern Emirates
-    return 25.5; // East coast
+  // === SEATTLE / EAST SHORE ===
+  // East of approximately -122.35 is generally land
+  if (lng > -122.30 && lat >= 47.4 && lat <= 47.8) {
+    return true; // Seattle metro area
   }
   
-  // Check if within UAE longitude range and south of coast
-  if (lng >= 51.5 && lng <= 56.5) {
-    const coastLat = getCoastLatitude(lng);
-    const southernBorder = 22.5; // UAE southern desert border
-    
-    // Point is over land if it's between the coast and southern border
-    if (lat < coastLat && lat > southernBorder) {
-      // Additional check: make sure we're not in the Gulf waters that extend south
-      // (e.g., areas around islands or bays)
-      
-      // Exception: Western offshore islands (Das, Arzanah, Zirku)
-      // These are in the water even though they might be south of mainland coast
-      if (lng < 54.0 && lat > 24.5) {
-        // Western Gulf - this is open water with islands
-        return false;
-      }
-      
-      // Exception: Khalifa Port area (extends north into Gulf)
-      if (lng >= 54.5 && lng <= 54.9 && lat >= 24.6 && lat <= 25.0) {
-        return false; // Port/coastal waters
-      }
-      
-      return true; // Over UAE mainland
-    }
+  // === WHIDBEY ISLAND (simplified) ===
+  if (lng >= -122.75 && lng <= -122.55 && lat >= 48.0 && lat <= 48.4) {
+    return true;
   }
   
-  // === MUSANDAM PENINSULA (Oman) ===
-  // Musandam extends north between UAE and Iran, blocking direct routes
-  if (lng >= 56.0 && lng <= 56.6) {
-    if (lat >= 25.5 && lat <= 26.4) {
-      // Musandam peninsula area
-      if (lat < 26.0 && lng < 56.3) {
-        return true; // Over Musandam
-      }
-    }
+  // === OLYMPIC PENINSULA (west side) ===
+  if (lng < -122.85 && lat >= 47.5 && lat <= 48.2) {
+    return true;
   }
   
-  // === SAUDI ARABIA / BAHRAIN coastline ===
-  // Western Gulf - Saudi coast is around lat 25.5-27 at lng 49-50
-  if (lng >= 49.0 && lng <= 50.5) {
-    if (lat >= 25.0 && lat <= 27.5) {
-      // Approximate Saudi/Bahrain coast
-      const saudiCoastLat = 26.0 + (lng - 49.0) * 0.3;
-      if (lat < saudiCoastLat && lat > 24.0) {
-        return true;
-      }
-    }
-  }
+  // === SAN JUAN ISLANDS (simplified - treat as navigable) ===
+  // Ferry routes through San Juan Islands are established channels
+  // Return false for this area to allow routing
   
   return false;
 }
@@ -194,12 +136,12 @@ function doesRouteCrossLand(from: Coordinates, to: Coordinates, checkPoints: num
  * Check if a route needs coastal waypoints (crosses land or goes around peninsula)
  */
 function needsCoastalRouting(origin: Coordinates, destination: Coordinates): boolean {
-  // If both points are on the same side of the Strait of Hormuz, check for land crossing
-  const originIsGulf = origin.lng < 56.0;
-  const destIsGulf = destination.lng < 56.0;
+  // If both points are on different sides of land masses, need routing
+  const originIsWest = origin.lng < -122.5;  // West of Puget Sound (Kitsap/Olympic side)
+  const destIsWest = destination.lng < -122.5;
   
-  // If one is in Arabian Gulf and other in Gulf of Oman, need coastal routing
-  if (originIsGulf !== destIsGulf) {
+  // If one is on the west side and other on east, need coastal routing
+  if (originIsWest !== destIsWest) {
     return true;
   }
   
@@ -212,8 +154,8 @@ function needsCoastalRouting(origin: Coordinates, destination: Coordinates): boo
 }
 
 /**
- * Get the best offshore waypoints for routing between two points
- * This ensures ships stay in navigable waters and don't cross land
+ * Get the best channel waypoints for routing between two points
+ * This ensures ferries stay in navigable waters and don't cross land
  */
 function getCoastalWaypoints(origin: Coordinates, destination: Coordinates): Waypoint[] {
   if (!needsCoastalRouting(origin, destination)) {
@@ -221,43 +163,43 @@ function getCoastalWaypoints(origin: Coordinates, destination: Coordinates): Way
   }
   
   const waypoints: Waypoint[] = [];
-  const originIsGulf = origin.lng < 56.0;
-  const destIsGulf = destination.lng < 56.0;
+  const originIsWest = origin.lng < -122.5;
+  const destIsWest = destination.lng < -122.5;
   
-  // Case 1: Cross-gulf routing (Arabian Gulf to/from Gulf of Oman)
-  if (originIsGulf !== destIsGulf) {
-    if (originIsGulf) {
-      // Going from Arabian Gulf to Gulf of Oman (east)
-      for (const wp of GULF_MARITIME_WAYPOINTS) {
-        if (wp.region === 'strait_of_hormuz' || wp.region === 'gulf_of_oman') {
+  // Case 1: Cross-Sound routing (Seattle side to/from Kitsap/Olympic side)
+  if (originIsWest !== destIsWest) {
+    if (!originIsWest) {
+      // Going from Seattle/east side to Kitsap/west side
+      for (const wp of PUGET_SOUND_WAYPOINTS) {
+        if (wp.region === 'puget_sound_central' || wp.region === 'straits_of_juan_de_fuca') {
           // Include if it helps the route
-          if (wp.lat >= Math.min(origin.lat, destination.lat) - 1 &&
-              wp.lat <= Math.max(origin.lat, destination.lat) + 1) {
+          if (wp.lat >= Math.min(origin.lat, destination.lat) - 0.2 &&
+              wp.lat <= Math.max(origin.lat, destination.lat) + 0.2) {
             waypoints.push({
               id: `coastal-${wp.id}`,
               lat: wp.lat,
               lng: wp.lng,
               name: wp.name,
               type: 'coastal_waypoint' as any,
-              notes: 'Coastal routing around UAE peninsula',
+              notes: 'Ferry channel routing across Puget Sound',
             });
           }
         }
       }
     } else {
-      // Going from Gulf of Oman to Arabian Gulf (west)
-      const reversedWaypoints = [...GULF_MARITIME_WAYPOINTS].reverse();
+      // Going from Kitsap/west side to Seattle/east side
+      const reversedWaypoints = [...PUGET_SOUND_WAYPOINTS].reverse();
       for (const wp of reversedWaypoints) {
-        if (wp.region === 'strait_of_hormuz' || wp.region === 'western_gulf' || wp.region === 'uae_coast') {
-          if (wp.lat >= Math.min(origin.lat, destination.lat) - 1 &&
-              wp.lat <= Math.max(origin.lat, destination.lat) + 1) {
+        if (wp.region === 'puget_sound_central' || wp.region === 'puget_sound_south' || wp.region === 'puget_sound_north') {
+          if (wp.lat >= Math.min(origin.lat, destination.lat) - 0.2 &&
+              wp.lat <= Math.max(origin.lat, destination.lat) + 0.2) {
             waypoints.push({
               id: `coastal-${wp.id}`,
               lat: wp.lat,
               lng: wp.lng,
               name: wp.name,
               type: 'coastal_waypoint' as any,
-              notes: 'Coastal routing around UAE peninsula',
+              notes: 'Ferry channel routing across Puget Sound',
             });
           }
         }
@@ -266,94 +208,89 @@ function getCoastalWaypoints(origin: Coordinates, destination: Coordinates): Way
     return waypoints;
   }
   
-  // Case 2: Within Arabian Gulf - need to go around land (e.g., Arzanah to Dubai)
-  // Find an offshore corridor that avoids land
+  // Case 2: Within the same side of Puget Sound - need to go around land (e.g., islands)
+  // Find a navigable corridor that avoids land
   
-  // Determine if we need to go north or stay offshore
-  const goingEastToWest = origin.lng > destination.lng;
-  const originInWesternGulf = origin.lng < 53.5;
-  const destInEasternCoast = destination.lng > 54.5;
+  // Determine routing direction
+  const goingNorthToSouth = origin.lat > destination.lat;
+  const originInNorthSound = origin.lat > 47.8;
+  const destInSouthSound = destination.lat < 47.5;
   
-  // For routes from western offshore (Das, Arzanah) to eastern UAE (Dubai, Sharjah)
-  // We need to go NORTH offshore to avoid the UAE mainland
-  if (originInWesternGulf && destInEasternCoast) {
-    // Need to go around the northern part of UAE
-    // Find the appropriate offshore waypoints
-    
-    // First, go to a northern offshore point
-    const northernLatitude = Math.max(origin.lat, destination.lat) + 0.5;
+  // For routes from north Sound (San Juan Islands) to south Sound (Tacoma)
+  // We need to route through the main channel
+  if (originInNorthSound && destInSouthSound) {
+    const midLat = (origin.lat + destination.lat) / 2;
     const midLng = (origin.lng + destination.lng) / 2;
     
-    // Add waypoints that create an offshore arc
+    // Add waypoints that create a navigable arc through the Sound
     waypoints.push({
-      id: 'coastal-north-arc-1',
-      lat: origin.lat + 0.3,
-      lng: origin.lng + 0.3,
-      name: 'Offshore Waypoint 1',
+      id: 'coastal-channel-1',
+      lat: origin.lat - 0.15,
+      lng: Math.max(origin.lng, -122.45),
+      name: 'Channel Waypoint North',
       type: 'coastal_waypoint' as any,
-      notes: 'Offshore routing to avoid UAE mainland',
+      notes: 'Channel routing through Puget Sound',
     });
     
     waypoints.push({
-      id: 'coastal-north-arc-2',
-      lat: Math.min(northernLatitude, 25.5), // Stay in navigable waters
+      id: 'coastal-channel-2',
+      lat: midLat,
       lng: midLng,
-      name: 'Northern Offshore',
+      name: 'Mid-Sound Channel',
       type: 'coastal_waypoint' as any,
-      notes: 'Northern offshore corridor',
+      notes: 'Main Puget Sound shipping channel',
     });
     
     waypoints.push({
-      id: 'coastal-north-arc-3',
-      lat: destination.lat + 0.3,
-      lng: destination.lng - 0.3,
-      name: 'Offshore Waypoint 3',
+      id: 'coastal-channel-3',
+      lat: destination.lat + 0.15,
+      lng: Math.max(destination.lng, -122.45),
+      name: 'Channel Waypoint South',
       type: 'coastal_waypoint' as any,
-      notes: 'Offshore approach to destination',
+      notes: 'Channel approach to destination',
     });
     
     return waypoints;
   }
   
-  // For routes from eastern UAE to western offshore
-  if (!originInWesternGulf && destination.lng < 53.5) {
-    // Reverse of above
-    const northernLatitude = Math.max(origin.lat, destination.lat) + 0.5;
+  // For routes from south Sound to north Sound
+  if (!originInNorthSound && destination.lat > 47.8) {
+    const midLat = (origin.lat + destination.lat) / 2;
     const midLng = (origin.lng + destination.lng) / 2;
     
     waypoints.push({
-      id: 'coastal-north-arc-1',
-      lat: origin.lat + 0.3,
-      lng: origin.lng - 0.3,
-      name: 'Offshore Waypoint 1',
+      id: 'coastal-channel-1',
+      lat: origin.lat + 0.15,
+      lng: Math.max(origin.lng, -122.45),
+      name: 'Channel Waypoint South',
       type: 'coastal_waypoint' as any,
-      notes: 'Offshore routing to avoid UAE mainland',
+      notes: 'Channel routing through Puget Sound',
     });
     
     waypoints.push({
-      id: 'coastal-north-arc-2',
-      lat: Math.min(northernLatitude, 25.5),
+      id: 'coastal-channel-2',
+      lat: midLat,
       lng: midLng,
-      name: 'Northern Offshore',
+      name: 'Mid-Sound Channel',
       type: 'coastal_waypoint' as any,
-      notes: 'Northern offshore corridor',
+      notes: 'Main Puget Sound shipping channel',
     });
     
     waypoints.push({
-      id: 'coastal-north-arc-3',
-      lat: destination.lat + 0.3,
-      lng: destination.lng + 0.3,
-      name: 'Offshore Waypoint 3',
+      id: 'coastal-channel-3',
+      lat: destination.lat - 0.15,
+      lng: Math.max(destination.lng, -122.45),
+      name: 'Channel Waypoint North',
       type: 'coastal_waypoint' as any,
-      notes: 'Offshore approach to destination',
+      notes: 'Channel approach to destination',
     });
     
     return waypoints;
   }
   
-  // General case: Just add intermediate offshore waypoints to avoid any land crossing
-  // Find the best offshore path
-  const relevantWaypoints = GULF_MARITIME_WAYPOINTS.filter(wp => {
+  // General case: Just add intermediate channel waypoints to avoid any land crossing
+  // Find the best navigable path
+  const relevantWaypoints = PUGET_SOUND_WAYPOINTS.filter(wp => {
     // Include waypoints that are between origin and destination
     const latInRange = wp.lat >= Math.min(origin.lat, destination.lat) - 0.5 &&
                        wp.lat <= Math.max(origin.lat, destination.lat) + 0.5;
@@ -379,7 +316,7 @@ function getCoastalWaypoints(origin: Coordinates, destination: Coordinates): Way
         lng: wp.lng,
         name: wp.name,
         type: 'coastal_waypoint' as any,
-        notes: 'Offshore routing waypoint',
+        notes: 'Channel routing waypoint',
       });
       
       // If we now have a clear path to destination, stop adding waypoints
@@ -394,20 +331,14 @@ function getCoastalWaypoints(origin: Coordinates, destination: Coordinates): Way
 
 // Fuel consumption rates by vessel type (liters per nautical mile)
 const FUEL_RATES: Record<string, number> = {
-  dredger: 85,
-  'hopper dredger': 90,
-  csd: 80,
-  crane_barge: 45,
-  supply_vessel: 35,
-  supply: 35,
-  tugboat: 25,
-  tug: 25,
-  survey_vessel: 20,
-  survey: 20,
-  'jack up': 0, // Towed or stationary
-  'pipelay barge': 50,
-  'derrick barge': 55,
-  default: 40,
+  ferry: 55,
+  ferry_jumbo_mark_ii: 65,
+  ferry_jumbo: 60,
+  ferry_super: 50,
+  ferry_issaquah_130: 45,
+  ferry_olympic: 40,
+  ferry_evergreen_state: 35,
+  default: 50,
 };
 
 // ============================================================================
@@ -839,7 +770,7 @@ export function optimizeRoute(params: OptimizeRouteParams): RouteOptimizationRes
     // No weather hazards - use direct route (which already includes coastal waypoints if needed)
     recommendation = 'use_original';
     if (requiresCoastalRouting) {
-      reasoningText = `Route follows standard shipping lanes around the UAE peninsula. No weather hazards detected. Distance: ${originalRoute.totalDistanceNm.toFixed(0)}nm.`;
+      reasoningText = `Route follows standard shipping lanes around the Kitsap Peninsula. No weather hazards detected. Distance: ${originalRoute.totalDistanceNm.toFixed(0)}nm.`;
     } else {
       reasoningText = 'No weather hazards detected on route. Direct route is optimal.';
     }

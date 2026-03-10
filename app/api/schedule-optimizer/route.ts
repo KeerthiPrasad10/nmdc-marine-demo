@@ -7,33 +7,33 @@ interface IntelligenceSource {
   domains: string[];
 }
 
-// NMDC-specific intelligence sources - focused on dredging, marine construction, UAE ports
-// Queries are hyper-local to Abu Dhabi/UAE marine operations
+// WSDOT-specific intelligence sources - focused on ferry operations, Puget Sound
+// Queries are hyper-local to Washington State ferry operations
 const INTELLIGENCE_SOURCES: IntelligenceSource[] = [
   {
     category: 'regulatory',
-    query: '"Abu Dhabi" EAD environmental permit dredging coastal development approval 2024 2025',
-    domains: ['thenationalnews.com', 'gulfnews.com', 'zawya.com', 'meed.com'],
+    query: 'WSDOT "Washington State Ferries" regulation USCG safety inspection compliance 2025 2026',
+    domains: ['seattletimes.com', 'king5.com', 'wsdot.wa.gov', 'kuow.org'],
   },
   {
     category: 'geopolitical',
-    query: '"Khalifa Port" OR "AD Ports" operations expansion vessel berth congestion Abu Dhabi',
-    domains: ['thenationalnews.com', 'gulfnews.com', 'zawya.com', 'arabianbusiness.com'],
+    query: '"Puget Sound" ferry terminal construction expansion dock repair',
+    domains: ['seattletimes.com', 'king5.com', 'kitsapsun.com', 'islandssounder.com'],
   },
   {
     category: 'environmental',
-    query: '"Abu Dhabi" coral protection marine environment dredging reclamation island',
-    domains: ['thenationalnews.com', 'gulfnews.com', 'zawya.com'],
+    query: '"Puget Sound" orca whale protection marine environment ferry emissions',
+    domains: ['seattletimes.com', 'kuow.org', 'crosscut.com'],
   },
   {
     category: 'market',
-    query: 'NMDC OR "National Marine Dredging" contract award Abu Dhabi Musanada tender',
-    domains: ['zawya.com', 'meed.com', 'constructionweekonline.com', 'thenationalnews.com'],
+    query: 'WSDOT ferry "new vessel" contract shipyard construction electrification',
+    domains: ['seattletimes.com', 'marinelog.com', 'workboat.com', 'king5.com'],
   },
   {
     category: 'infrastructure',
-    query: '"Abu Dhabi" OR Ruwais port expansion offshore platform ADNOC marine project 2024 2025',
-    domains: ['meed.com', 'zawya.com', 'gulfnews.com', 'thenationalnews.com'],
+    query: '"Washington State Ferries" terminal dock improvement infrastructure 2025 2026',
+    domains: ['seattletimes.com', 'kitsapsun.com', 'king5.com', 'wsdot.wa.gov'],
   },
 ];
 
@@ -54,7 +54,7 @@ interface ExternalFactor {
   relatedFactors?: string[]; // IDs of factors that contributed to this insight
   // NEW: Actionable fields
   timeframe: 'immediate' | 'near-term' | 'medium-term' | 'long-term'; // When action needed
-  impact: string; // Specific impact on NMDC operations
+  impact: string; // Specific impact on WSDOT ferry operations
   actions: string[]; // Concrete action items
 }
 
@@ -74,7 +74,7 @@ interface OptimizationSuggestion {
 }
 
 // Content quality filter - removes promotional/irrelevant content
-// Specifically tuned for NMDC dredging/marine construction operations in UAE
+// Specifically tuned for WSDOT ferry operations in Puget Sound
 function isRelevantContent(text: string, title: string): boolean {
   const lowerText = (text + ' ' + title).toLowerCase();
   
@@ -141,7 +141,7 @@ function isRelevantContent(text: string, title: string): boolean {
     return false;
   }
   
-  // Reject generic global shipping news (not relevant to NMDC's dredging ops)
+  // Reject generic global shipping news (not relevant to WSDOT ferry ops)
   const globalShippingPatterns = [
     'decarbonize international shipping',
     'net-zero ghg emissions',
@@ -151,7 +151,6 @@ function isRelevantContent(text: string, title: string): boolean {
     'freight rates',
     'bunker fuel prices',
     'maersk',
-    'evergreen',
     'cosco',
     'mediterranean shipping',
     'baltic dry index',
@@ -166,9 +165,9 @@ function isRelevantContent(text: string, title: string): boolean {
     'somali',
   ];
   
-  // If content has global shipping patterns but no UAE/NMDC context, reject
+  // If content has global shipping patterns but no WSDOT/Puget Sound context, reject
   if (globalShippingPatterns.some(pattern => lowerText.includes(pattern))) {
-    const hasLocalContext = ['uae', 'abu dhabi', 'dubai', 'nmdc', 'khalifa', 'adnoc', 'musanada', 'ruwais', 'fujairah']
+    const hasLocalContext = ['wsdot', 'washington', 'puget sound', 'seattle', 'bainbridge', 'bremerton', 'anacortes', 'san juan', 'whidbey']
       .some(local => lowerText.includes(local));
     if (!hasLocalContext) {
       return false;
@@ -197,21 +196,21 @@ function isRelevantContent(text: string, title: string): boolean {
     return false;
   }
   
-  // Must contain UAE/Gulf regional OR NMDC-specific keywords
+  // Must contain Puget Sound/WA regional OR WSDOT-specific keywords
   const requiredPatterns = [
-    // UAE/Regional
-    'uae', 'abu dhabi', 'dubai', 'fujairah', 'khalifa port', 'ruwais',
-    'arabian gulf', 'persian gulf', 'emirates',
-    // NMDC operations
-    'nmdc', 'dredging', 'reclamation', 'marine construction', 'offshore',
-    // Key clients/partners
-    'adnoc', 'musanada', 'ad ports', 'nakheel', 'mubadala', 'aldar',
+    // Washington/Regional
+    'washington', 'seattle', 'puget sound', 'bainbridge', 'bremerton',
+    'anacortes', 'san juan', 'whidbey', 'edmonds', 'kingston',
+    // WSDOT operations
+    'wsdot', 'ferry', 'ferries', 'passenger vessel', 'vehicle ferry',
+    // Key partners/agencies
+    'uscg', 'coast guard', 'noaa', 'wsdot ferries',
     // Project types
     'island', 'coastal', 'port expansion', 'channel deepening', 'beach nourishment',
     // Weather (regional)
-    'shamal', 'sandstorm', 'dust storm',
+    'storm', 'wind advisory', 'fog', 'heavy rain',
     // Environmental (local)
-    'ead', 'coral', 'mangrove', 'environmental permit',
+    'orca', 'salmon', 'marine mammal', 'environmental permit',
   ];
   
   return requiredPatterns.some(pattern => lowerText.includes(pattern));
@@ -289,7 +288,7 @@ async function searchIntelligenceSource(source: IntelligenceSource): Promise<Arr
   }
 }
 
-// Cross-analyze sources to generate NMDC-specific insights
+// Cross-analyze sources to generate WSDOT-specific insights
 function generateCrossAnalysisInsights(
   allResults: Array<{ category: string; title: string; content: string; url: string }>
 ): ExternalFactor[] {
@@ -303,7 +302,7 @@ function generateCrossAnalysisInsights(
     byCategory.set(result.category, existing);
   }
   
-  // Check for regulatory + market correlation (environmental permits affecting dredging)
+  // Check for regulatory + market correlation (USCG inspections affecting ferry service)
   const regulatory = byCategory.get('regulatory') || [];
   const market = byCategory.get('market') || [];
   
@@ -311,32 +310,32 @@ function generateCrossAnalysisInsights(
     const regContent = regulatory.map(r => r.content.toLowerCase()).join(' ');
     const marketContent = market.map(m => m.content.toLowerCase()).join(' ');
     
-    // EAD environmental permits + large projects
-    if ((regContent.includes('environmental') || regContent.includes('ead') || regContent.includes('permit') || regContent.includes('dredging')) &&
-        (marketContent.includes('nmdc') || marketContent.includes('contract') || marketContent.includes('billion') || marketContent.includes('musanada'))) {
+    // USCG inspections + new vessel construction
+    if ((regContent.includes('inspection') || regContent.includes('uscg') || regContent.includes('compliance') || regContent.includes('safety')) &&
+        (marketContent.includes('wsdot') || marketContent.includes('contract') || marketContent.includes('vessel') || marketContent.includes('shipyard'))) {
       insights.push({
-        id: 'insight-permits',
+        id: 'insight-inspections',
         type: 'insight',
         severity: 'warning',
-        title: 'EAD Permit Timelines May Impact Project Schedules',
-        description: 'Recent tightening of EAD environmental review processes could extend permit approval timelines by 4-6 weeks for dredging and reclamation works in sensitive areas.',
+        title: 'USCG Inspection Schedule May Impact Route Coverage',
+        description: 'Upcoming USCG annual inspections could require pulling vessels from service for 3-5 day periods. Combined with new vessel construction delays, fleet capacity may be strained.',
         sources: [...regulatory.slice(0, 2).map(r => r.url), ...market.slice(0, 1).map(m => m.url)],
-        affectedRegions: ['Abu Dhabi', 'Jubail Island', 'Saadiyat'],
-        affectedVesselTypes: ['dredger', 'survey'],
-        recommendation: 'Submit environmental impact assessments early. Coordinate with EAD on coral relocation requirements. Factor 6-week buffer into new project bids.',
-        reasoning: 'Cross-analysis: Stricter EAD environmental oversight + NMDC pipeline of coastal projects = need for proactive permit management to avoid mobilization delays.',
+        affectedRegions: ['Seattle - Bainbridge', 'Anacortes - San Juan Islands'],
+        affectedVesselTypes: ['ferry'],
+        recommendation: 'Stagger inspection schedules across routes. Coordinate backup vessel assignments. Pre-stage spare parts for common inspection findings.',
+        reasoning: 'Cross-analysis: USCG inspection requirements + aging fleet + new build delays = need for proactive maintenance scheduling to maintain route coverage.',
         timeframe: 'near-term',
-        impact: 'Delayed mobilization for 3 pending coastal projects. Potential AED 2-4M standby costs if vessels ready but permits pending.',
+        impact: 'Potential 2-3 route service reductions during inspection periods. Estimated $150K-300K in lost revenue per vessel per inspection week.',
         actions: [
-          'Submit Jubail Phase 2 EIA by end of month',
-          'Schedule pre-application meeting with EAD for Saadiyat works',
-          'Add 6-week permit buffer to Al Dhafra bid timeline',
+          'Submit proposed inspection schedule to USCG Sector Puget Sound',
+          'Arrange relief vessel assignments for peak inspection period',
+          'Pre-stage common inspection repair items at Eagle Harbor maintenance facility',
         ],
       });
     }
   }
   
-  // Check for port operations + infrastructure correlation
+  // Check for terminal operations + infrastructure correlation
   const geopolitical = byCategory.get('geopolitical') || [];
   const infrastructure = byCategory.get('infrastructure') || [];
   
@@ -344,57 +343,57 @@ function generateCrossAnalysisInsights(
     const geoContent = geopolitical.map(g => g.content.toLowerCase()).join(' ');
     const infraContent = infrastructure.map(i => i.content.toLowerCase()).join(' ');
     
-    // Khalifa Port congestion + project timing
-    if ((geoContent.includes('khalifa') || geoContent.includes('port') || geoContent.includes('congestion') || geoContent.includes('delay')) &&
-        (infraContent.includes('expansion') || infraContent.includes('offshore') || infraContent.includes('adnoc'))) {
+    // Terminal construction + service disruption
+    if ((geoContent.includes('terminal') || geoContent.includes('dock') || geoContent.includes('construction') || geoContent.includes('repair')) &&
+        (infraContent.includes('expansion') || infraContent.includes('improvement') || infraContent.includes('infrastructure'))) {
       insights.push({
-        id: 'insight-port-ops',
+        id: 'insight-terminal-ops',
         type: 'insight',
         severity: 'info',
-        title: 'Khalifa Port Expansion Creates Dredging Demand',
-        description: 'Phase 3 port expansion and new container berths will require additional channel deepening and approach dredging. NMDC well-positioned given existing Khalifa Port relationships.',
+        title: 'Terminal Improvements Create Temporary Service Adjustments',
+        description: 'Planned terminal dock improvements at multiple locations will require temporary slip closures. This creates opportunities for schedule optimization and route consolidation.',
         sources: [...geopolitical.slice(0, 1).map(g => g.url), ...infrastructure.slice(0, 2).map(i => i.url)],
-        affectedRegions: ['Khalifa Port', 'Abu Dhabi'],
-        recommendation: 'Engage with AD Ports on Phase 3 requirements. Pre-position dredging equipment for quick mobilization. Prepare competitive bid with lessons from Phase 2.',
-        reasoning: 'Cross-analysis: Port traffic growth + infrastructure investment = continued demand for NMDC marine services at Khalifa Port.',
+        affectedRegions: ['Colman Dock', 'Mukilteo', 'Edmonds'],
+        recommendation: 'Coordinate construction windows with low-ridership periods. Develop temporary shuttle routes. Communicate schedule changes to commuters early.',
+        reasoning: 'Cross-analysis: Terminal construction timelines + ridership patterns = opportunity to minimize disruption by scheduling work during off-peak periods.',
         timeframe: 'medium-term',
-        impact: 'Potential AED 80-120M contract opportunity. Would require 2 TSHDs and 1 CSD for 18-month project.',
+        impact: 'Temporary capacity reduction on 2-3 routes. Potential 15% ridership diversion to alternate routes.',
         actions: [
-          'Request meeting with AD Ports procurement by Q1',
-          'Reserve AL MIRFA and AL SADR availability for H2 2025',
-          'Prepare technical proposal based on Phase 2 learnings',
+          'Publish construction impact schedule 60 days in advance',
+          'Deploy additional vessels on alternate routes during closures',
+          'Coordinate with King County Metro for bus bridge service',
         ],
       });
     }
   }
   
-  // Check for environmental regulations + infrastructure projects
+  // Check for environmental regulations + ferry operations
   const environmental = byCategory.get('environmental') || [];
   
   if (environmental.length > 0 && (infrastructure.length > 0 || market.length > 0)) {
     const envContent = environmental.map(e => e.content.toLowerCase()).join(' ');
     const infraContent = [...infrastructure, ...market].map(i => i.content.toLowerCase()).join(' ');
     
-    // Coral protection + coastal projects
-    if ((envContent.includes('coral') || envContent.includes('marine') || envContent.includes('protected') || envContent.includes('dredging')) &&
-        (infraContent.includes('island') || infraContent.includes('reclamation') || infraContent.includes('coastal'))) {
+    // Orca protection + speed restrictions
+    if ((envContent.includes('orca') || envContent.includes('whale') || envContent.includes('marine mammal') || envContent.includes('emissions')) &&
+        (infraContent.includes('ferry') || infraContent.includes('vessel') || infraContent.includes('electrification'))) {
       insights.push({
-        id: 'insight-coral',
+        id: 'insight-orca',
         type: 'insight',
         severity: 'warning',
-        title: 'Coral Translocation Requirements Increasing',
-        description: 'Abu Dhabi coastal projects now require comprehensive coral surveys and translocation programs. Projects near natural island formations face additional scrutiny.',
+        title: 'Orca Protection Zones May Require Speed Reductions',
+        description: 'Expanded Southern Resident Killer Whale critical habitat designations may require ferry speed reductions in key transit corridors, particularly in Haro Strait and San Juan Channel.',
         sources: [...environmental.slice(0, 2).map(e => e.url)],
-        affectedRegions: ['Abu Dhabi Islands', 'Jubail', 'Saadiyat'],
-        affectedVesselTypes: ['dredger', 'survey'],
-        recommendation: 'Partner with marine biologists for coral surveys. Budget 8-12% additional cost for translocation works on island projects. Train crew on environmental protocols.',
-        reasoning: 'Cross-analysis: Environmental protection regulations + island development pipeline = coral management becoming core competency for marine contractors.',
+        affectedRegions: ['San Juan Islands', 'Haro Strait', 'Rosario Strait'],
+        affectedVesselTypes: ['ferry'],
+        recommendation: 'Implement voluntary speed reduction zones. Adjust schedules to accommodate longer transit times. Accelerate hybrid-electric conversion to reduce underwater noise.',
+        reasoning: 'Cross-analysis: Orca protection mandates + ferry electrification program = opportunity to lead in green maritime operations while maintaining service reliability.',
         timeframe: 'long-term',
-        impact: 'All island projects now require coral baseline surveys. Adds 8-12% to project costs but creates barrier to entry for competitors.',
+        impact: 'San Juan routes may require 10-15% longer transit times. Potential $2-3M annual fuel savings from slower speeds partially offset schedule impact.',
         actions: [
-          'Establish MOU with Emirates Marine Environmental Group',
-          'Train 4 crew members on coral handling certification',
-          'Add coral survey line item to all coastal project templates',
+          'Coordinate with NOAA on voluntary speed reduction protocols',
+          'Adjust San Juan Island route schedules with 10-minute buffer',
+          'Prioritize hybrid-electric conversion for San Juan route vessels',
         ],
       });
     }
@@ -461,13 +460,13 @@ async function searchExternalFactors(): Promise<ExternalFactor[]> {
 
       // Determine affected regions
       const regions: string[] = [];
-      if (content.includes('abu dhabi')) regions.push('Abu Dhabi');
-      if (content.includes('dubai')) regions.push('Dubai');
-      if (content.includes('fujairah')) regions.push('Fujairah');
-      if (content.includes('khalifa')) regions.push('Khalifa Port');
-      if (content.includes('red sea')) regions.push('Red Sea');
-      if (content.includes('gulf') || content.includes('hormuz')) regions.push('Arabian Gulf');
-      if (regions.length === 0) regions.push('UAE');
+      if (content.includes('seattle')) regions.push('Seattle');
+      if (content.includes('bainbridge')) regions.push('Bainbridge Island');
+      if (content.includes('bremerton')) regions.push('Bremerton');
+      if (content.includes('anacortes') || content.includes('san juan')) regions.push('San Juan Islands');
+      if (content.includes('edmonds') || content.includes('kingston')) regions.push('Edmonds - Kingston');
+      if (content.includes('whidbey') || content.includes('mukilteo')) regions.push('Whidbey Island');
+      if (regions.length === 0) regions.push('Puget Sound');
 
       const actionableFields = generateActionableFields(type, severity, result.category);
       factors.push({
@@ -489,60 +488,60 @@ async function searchExternalFactors(): Promise<ExternalFactor[]> {
     console.error('Error fetching external factors:', error);
   }
 
-  // Add fallback/simulated factors if no Exa results (NMDC-specific)
+  // Add fallback/simulated factors if no Exa results (WSDOT-specific)
   if (factors.length === 0) {
     factors.push(
       {
         id: 'weather-1',
         type: 'weather',
         severity: 'warning',
-        title: 'Shamal Wind Advisory - Northern Arabian Gulf',
-        description: 'Shamal winds forecast 25-35 knots for the next 72 hours affecting Das Island and offshore project sites. Wave heights expected 1.8-2.5m. Reduced visibility in dust conditions.',
-        affectedRegions: ['Das Island', 'Ruwais', 'Northern Arabian Gulf'],
-        affectedVesselTypes: ['crane_barge', 'survey'],
+        title: 'Wind Advisory - Central Puget Sound',
+        description: 'South winds forecast 25-35 knots for the next 48 hours affecting cross-Sound routes. Wave heights expected 1.2-2.0m in exposed waters. Reduced visibility in rain.',
+        affectedRegions: ['Seattle - Bainbridge', 'Edmonds - Kingston', 'Mukilteo - Whidbey'],
+        affectedVesselTypes: ['ferry'],
         dateRange: { 
           start: new Date().toISOString(), 
-          end: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString() 
+          end: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString() 
         },
-        recommendation: 'Suspend crane lifts and survey operations at Das Island. Dredgers may continue with reduced production.',
+        recommendation: 'Monitor conditions for possible service adjustments on cross-Sound routes. Smaller class vessels may need to hold at dock in peak gusts.',
         timeframe: 'immediate',
-        impact: 'Das Island offshore works delayed 3 days. AL MIRFA and survey vessels on standby. Est. AED 450K standby costs.',
+        impact: 'Potential 2-day service disruptions on 3 routes. Estimated $180K revenue impact if sailings cancelled.',
         actions: [
-          'Move AL MIRFA to sheltered anchorage by 1800 today',
-          'Notify ADNOC project manager of 72hr delay',
-          'Redeploy survey crew to documentation tasks',
+          'Issue passenger advisory for cross-Sound routes',
+          'Pre-position Jumbo Mark II vessels on exposed routes',
+          'Coordinate with USCG on vessel operating limits',
         ],
       },
       {
         id: 'port-1',
         type: 'port',
         severity: 'info',
-        title: 'Khalifa Port Phase 3 - Channel Dredging Active',
-        description: 'NMDC dredging operations ongoing in approach channel. Commercial vessel traffic may experience minor delays during peak dredging hours.',
-        affectedRegions: ['Khalifa Port', 'Abu Dhabi'],
+        title: 'Colman Dock Terminal - Slip 2 Maintenance',
+        description: 'Scheduled maintenance on Slip 2 transfer span at Colman Dock. Ferry operations temporarily consolidated to Slip 1 during low-traffic windows.',
+        affectedRegions: ['Seattle', 'Bainbridge Island'],
         dateRange: { 
           start: new Date().toISOString(), 
-          end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() 
+          end: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString() 
         },
-        recommendation: 'Coordinate vessel movements with port control. Maintain AIS active at all times.',
+        recommendation: 'Coordinate vessel movements with terminal operations. Adjust sailing schedule to accommodate single-slip operations during maintenance windows.',
         timeframe: 'near-term',
-        impact: 'On track - 68% complete. AL SADR averaging 12,500 m³/day. Ahead of schedule by 4 days.',
+        impact: 'Slip 2 unavailable during overnight hours for 2 weeks. No peak-hour impact. Minor schedule adjustments for early morning and late evening sailings.',
         actions: [
-          'Continue current dredging operations',
-          'Submit weekly progress report to AD Ports by Thursday',
-          'Prepare for bathymetric survey next week',
+          'Publish adjusted schedule for Bainbridge route',
+          'Coordinate maintenance windows with terminal crew',
+          'Ensure backup transfer span components are on-site',
         ],
       },
       {
         id: 'project-1',
         type: 'port',
         severity: 'info',
-        title: 'Jubail Island Reclamation - Phase Transition',
-        description: 'Land reclamation works progressing at 62% completion. Beach nourishment phase starting in 2 weeks requires equipment changeover.',
-        affectedRegions: ['Jubail Island', 'Abu Dhabi'],
-        recommendation: 'Maintain current vessel deployment. Prepare equipment for beach nourishment transition.',
+        title: 'San Juan Islands - Summer Schedule Preparation',
+        description: 'Transition to summer schedule in 3 weeks. Additional sailings require vessel repositioning and crew scheduling adjustments.',
+        affectedRegions: ['Anacortes', 'San Juan Islands'],
+        recommendation: 'Finalize crew assignments and vessel positioning plan for expanded summer service.',
         timeframe: 'near-term',
-        impact: 'Equipment changeover needed. 3-day transition window between phases. No revenue impact if executed on schedule.',
+        impact: 'Schedule transition requires 2-day vessel repositioning. Crew overtime for training on expanded routes.',
         actions: [
           'Order beach nourishment spreader bar from yard',
           'Schedule crew training on nourishment procedures',
@@ -593,19 +592,19 @@ function generateActionableFields(
       info: 'Situational awareness item. Track for potential escalation.',
     },
     environmental: {
-      critical: 'EAD stop-work order possible. All dredging in affected area must cease.',
-      warning: 'Additional environmental mitigation may be required. Budget 8-12% cost increase.',
-      info: 'Long-term planning consideration for future coastal projects.',
+      critical: 'Environmental protection order possible. Ferry routes through sensitive areas may be suspended.',
+      warning: 'Additional environmental mitigation may be required. Adjust vessel speeds in protected zones.',
+      info: 'Long-term planning consideration for environmental compliance.',
     },
     market: {
-      critical: 'Contract opportunity requires immediate response. Competitor activity detected.',
-      warning: 'Tender opportunity identified. Prepare bid documentation.',
-      info: 'Market intelligence for strategic planning.',
+      critical: 'Ridership surge expected. Additional sailings may be needed immediately.',
+      warning: 'Seasonal ridership trends indicate capacity adjustments needed.',
+      info: 'Market intelligence for service planning.',
     },
     infrastructure: {
-      critical: 'Major project announcement. Mobilization planning should begin.',
-      warning: 'Project pipeline update. Reserve vessel capacity for upcoming work.',
-      info: 'Long-term infrastructure investment signals future demand.',
+      critical: 'Terminal closure announced. Rerouting and schedule changes required.',
+      warning: 'Terminal upgrade planned. Prepare contingency berthing arrangements.',
+      info: 'Long-term infrastructure investment signals future capacity growth.',
     },
   };
 
@@ -621,13 +620,13 @@ function generateActionableFields(
       info: ['Include in weekly operations briefing', 'No immediate action required'],
     },
     environmental: {
-      critical: ['Suspend dredging in sensitive areas immediately', 'Contact EAD for guidance', 'Deploy silt curtains and monitoring equipment'],
-      warning: ['Schedule environmental baseline survey', 'Engage marine biologist for coral assessment', 'Update EMP documentation'],
-      info: ['Note for future project planning', 'Consider environmental training for crew'],
+      critical: ['Reduce speed in protected zones immediately', 'Contact WDFW for guidance', 'Implement whale strike avoidance protocols'],
+      warning: ['Schedule environmental compliance review', 'Engage marine biologist for habitat assessment', 'Update environmental management plan'],
+      info: ['Note for future route planning', 'Consider environmental training for crew'],
     },
     market: {
-      critical: ['Assign BD team to opportunity immediately', 'Confirm vessel availability for project timeline', 'Request client meeting within 48 hours'],
-      warning: ['Add to active tender pipeline', 'Prepare preliminary cost estimate', 'Review competitor positioning'],
+      critical: ['Add extra sailings to high-demand routes immediately', 'Confirm vessel availability for peak schedule', 'Coordinate with terminal operations within 48 hours'],
+      warning: ['Review ridership forecasts', 'Prepare preliminary schedule adjustments', 'Review competitor (private ferry) positioning'],
       info: ['Track for future opportunity development', 'Maintain relationship with key stakeholders'],
     },
     infrastructure: {

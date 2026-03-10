@@ -30,22 +30,16 @@ interface RequestBody {
   };
 }
 
-// Fuel consumption rates by vessel type (liters per nautical mile)
+// Fuel consumption rates by ferry class (liters per nautical mile)
 const FUEL_RATES: Record<string, number> = {
-  dredger: 85,
-  hopper_dredger: 90,
-  csd: 80,
-  crane_barge: 45,
-  supply_vessel: 35,
-  supply: 35,
-  tugboat: 25,
-  tug: 25,
-  survey_vessel: 20,
-  survey: 20,
-  jack_up: 0,
-  pipelay_barge: 50,
-  derrick_barge: 55,
-  default: 40,
+  ferry: 65,
+  jumbo_mark_ii: 80,
+  jumbo: 70,
+  super: 55,
+  issaquah_130: 50,
+  olympic: 45,
+  evergreen_state: 40,
+  default: 65,
 };
 
 const FUEL_COST_USD_PER_LITER = 0.85;
@@ -191,12 +185,12 @@ export async function POST(request: NextRequest) {
           description: 'Route navigates through protected channel to avoid shallow coastal waters'
         });
       }
-      if (wp.name?.includes('Offshore')) {
-        safetyFeatures.push('Follows offshore shipping lanes');
+      if (wp.name?.includes('Open Water') || wp.name?.includes('Mid-Sound')) {
+        safetyFeatures.push('Follows established ferry lanes');
         hazardsAvoided.push({
           type: 'land_proximity',
           name: 'Coastal hazards',
-          description: 'Route maintains safe distance from coastline through offshore waypoints'
+          description: 'Route maintains safe distance from shoreline through open water waypoints'
         });
       }
       if (wp.name?.includes('Approach')) {
@@ -212,7 +206,7 @@ export async function POST(request: NextRequest) {
         name: 'Land crossing avoided',
         description: 'Direct route would cross land - optimized route navigates around obstacles'
       });
-      safetyFeatures.push('Avoids land masses (UAE coast, islands)');
+      safetyFeatures.push('Avoids land masses (islands, peninsulas)');
     }
     
     // Deduplicate safety features

@@ -296,7 +296,11 @@ export const PROJECT_STATUS_CONFIG: Record<ProjectSite['status'], { label: strin
 
 // Project risk assessment based on vessel health
 import { getVesselIssueSummary } from '@/lib/vessel-issues';
-import { getNMDCVesselByMMSI } from '@/lib/nmdc/fleet';
+import { WSDOT_FLEET } from '@/lib/wsdot/fleet';
+
+function getNMDCVesselByMMSI(mmsi: string) {
+  return WSDOT_FLEET.find(v => v.mmsi === mmsi) || null;
+}
 
 export interface ProjectRisk {
   project: ProjectSite;

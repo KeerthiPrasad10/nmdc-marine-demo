@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Fleet Ops",
-  description: "Real-time fleet monitoring and predictive maintenance dashboard for marine operations",
+  title: "WSDOT FerryWatch",
+  description: "Real-time ferry fleet monitoring and predictive maintenance dashboard for Washington State DOT Ferries",
 };
 
 export default function RootLayout({

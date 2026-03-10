@@ -796,39 +796,39 @@ export default function CraneIoTDashboard() {
 
             {/* AI Predictive Maintenance */}
             <AIPredictiveMaintenance
-              assetType="crane"
+              assetType="vessel"
               assetId={crane.id}
               assetName={crane.name}
               equipment={[
                 { 
-                  id: 'wire-rope-main', 
-                  name: 'Main Wire Rope', 
-                  type: 'wire_rope',
+                  id: 'propulsion-drive-001', 
+                  name: 'Propulsion Drive', 
+                  type: 'propulsion_drive',
                   currentHealth: 72,
                   cycleCount: lifts.length > 0 ? productionTarget.currentMonthly + Math.floor(Math.random() * 2000) + 8000 : 9500,
                   operatingHours: crane.metrics.operatingHours * 100 + 4200,
                 },
                 { 
-                  id: 'hoist-motor-001', 
-                  name: 'Main Hoist Motor', 
-                  type: 'hoist_motor',
+                  id: 'hydraulic-system-001', 
+                  name: 'Hydraulic System', 
+                  type: 'hydraulic_system',
                   currentHealth: 85,
                   operatingHours: crane.metrics.operatingHours * 100 + 18500,
                   temperature: crane.sensors.find(s => s.type === 'vibration')?.value ? 58 + Math.random() * 15 : 62,
                   vibration: crane.sensors.find(s => s.type === 'vibration')?.value || 2.1,
                 },
                 { 
-                  id: 'slew-bearing-001', 
-                  name: 'Slew Bearing', 
-                  type: 'slew_bearing',
+                  id: 'steering-system-001', 
+                  name: 'Steering System', 
+                  type: 'steering_system',
                   currentHealth: crane.metrics.efficiency > 80 ? 88 : 65,
                   operatingHours: crane.metrics.operatingHours * 100 + 22000,
                   vibration: crane.sensors.find(s => s.type === 'accelerometer')?.value ? crane.sensors.find(s => s.type === 'accelerometer')!.value * 5 : 1.8,
                 },
                 { 
-                  id: 'hydraulic-system-001', 
-                  name: 'Hydraulic System', 
-                  type: 'hydraulic_system',
+                  id: 'generator-001', 
+                  name: 'Generator', 
+                  type: 'generator',
                   currentHealth: 78,
                   operatingHours: crane.metrics.operatingHours * 100 + 15000,
                   temperature: 55 + Math.random() * 10,

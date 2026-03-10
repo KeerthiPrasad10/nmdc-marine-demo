@@ -1,123 +1,51 @@
 import { v4 as uuidv4 } from 'uuid';
 import { Vessel, VesselType, EquipmentStatus, EquipmentType, Position } from '../types';
-import { NMDC_FLEET, NMDCVessel } from '../nmdc/fleet';
+import { WSDOT_FLEET, WSDOTVessel } from '../wsdot/fleet';
 
-// UAE/Persian Gulf operating area
-const UAE_WATERS = {
-  center: { lat: 24.5, lng: 54.5 },
+// Puget Sound operating area
+const PUGET_SOUND = {
+  center: { lat: 47.6, lng: -122.4 },
   bounds: {
-    minLat: 23.5,
-    maxLat: 26.5,
-    minLng: 51.5,
-    maxLng: 56.5,
+    minLat: 47.0,
+    maxLat: 48.8,
+    minLng: -123.2,
+    maxLng: -122.0,
   },
 };
 
-// Map NMDC vessel types to simulation types
-const NMDC_TYPE_MAP: Record<NMDCVessel['type'], VesselType> = {
-  dredger: 'dredger',
-  hopper_dredger: 'dredger',
-  csd: 'dredger',
-  tug: 'tugboat',
-  supply: 'supply_vessel',
-  barge: 'crane_barge',
-  survey: 'survey_vessel',
-  pipelay_barge: 'pipelay_barge',
-  jack_up: 'jack_up_barge',
-  accommodation_barge: 'accommodation_barge',
-  work_barge: 'work_barge',
-  derrick_barge: 'crane_barge',
+// Ferry names
+const VESSEL_NAMES: Partial<Record<VesselType, string[]>> = {
+  ferry: [
+    'M/V Puyallup', 'M/V Tacoma', 'M/V Wenatchee', 'M/V Spokane',
+    'M/V Walla Walla', 'M/V Kaleetan', 'M/V Yakima', 'M/V Elwha',
+    'M/V Hyak', 'M/V Kitsap', 'M/V Cathlamet', 'M/V Chelan',
+    'M/V Chetzemoka', 'M/V Kennewick', 'M/V Salish',
+    'M/V Tokitae', 'M/V Samish', 'M/V Chimacum',
+    'M/V Suquamish', 'M/V Tillikum',
+  ],
 };
 
-// Vessel names by type
-const VESSEL_NAMES: Record<VesselType, string[]> = {
-  dredger: ['Al Hamra', 'Al Khatem', 'Al Mirfa', 'Al Sadr', 'Al Yassat', 'Kattouf'],
-  tugboat: ['Gulf Pioneer', 'Al Dhafra Tug', 'Harbor Force'],
-  supply_vessel: ['Al Ain Supply', 'Gulf Supplier', 'Al Reem'],
-  crane_barge: ['NMDC Lifter I', 'NMDC Lifter II', 'Heavy Lift Alpha'],
-  survey_vessel: ['Gulf Surveyor', 'Al Dhafra Survey'],
-  pipelay_barge: ['DLB 1600', 'Lay Barge Alpha', 'Pipelay Pioneer'],
-  jack_up_barge: ['Shengli 7', 'Shengli 10', 'Jack Up Pioneer'],
-  accommodation_barge: ['Floatel Alpha', 'Floatel Beta', 'Living Quarters 1'],
-  work_barge: ['Work Barge A', 'Work Barge B', 'Utility 1'],
-};
-
-// NMDC Active Projects
-const PROJECTS = [
-  'Ghasha Concession Development',
-  'Abu Dhabi Ports Expansion',
-  'Khalifa Port Extension',
-  'Ruwais LNG Terminal',
-  'Dubai Maritime City',
-  'Fujairah Port Deepening',
-  'Sir Bani Yas Island',
-  'Al Raha Beach Development',
-  'Saadiyat Island Marina',
-  'ADNOC Offshore Support',
-  'Hail & Ghasha Field Services',
-  'Dalma Field Operations',
-  'Seabed Mapping - Western Region',
+// WSDOT Ferry Routes
+const ROUTES = [
+  'Seattle - Bainbridge Island',
+  'Seattle - Bremerton',
+  'Edmonds - Kingston',
+  'Mukilteo - Clinton',
+  'Fauntleroy - Vashon - Southworth',
+  'Point Defiance - Tahlequah',
+  'Anacortes - San Juan Islands',
+  'Anacortes - Sidney BC',
+  'Coupeville - Port Townsend',
 ];
 
-const EQUIPMENT_TEMPLATES: Record<VesselType, { type: EquipmentType; name: string }[]> = {
-  tugboat: [
+const EQUIPMENT_TEMPLATES: Partial<Record<VesselType, { type: EquipmentType; name: string }[]>> = {
+  ferry: [
     { type: 'engine', name: 'Main Engine' },
-    { type: 'propulsion', name: 'Azimuth Thruster' },
-    { type: 'hydraulics', name: 'Towing Winch' },
-    { type: 'navigation', name: 'Navigation System' },
-  ],
-  supply_vessel: [
-    { type: 'engine', name: 'Main Engine' },
-    { type: 'propulsion', name: 'Propeller System' },
-    { type: 'hydraulics', name: 'Cargo Crane' },
-    { type: 'electrical', name: 'Power Generator' },
-    { type: 'navigation', name: 'GPS & Radar' },
-  ],
-  crane_barge: [
-    { type: 'engine', name: 'Auxiliary Engine' },
-    { type: 'crane', name: 'Main Crane System' },
-    { type: 'hydraulics', name: 'Crane Hydraulics' },
-    { type: 'electrical', name: 'Power Distribution' },
-    { type: 'navigation', name: 'Positioning System' },
-  ],
-  dredger: [
-    { type: 'engine', name: 'Main Engine' },
-    { type: 'hydraulics', name: 'Dredge Pump' },
-    { type: 'propulsion', name: 'Cutter Head Drive' },
-    { type: 'electrical', name: 'Control Systems' },
-    { type: 'navigation', name: 'Survey Equipment' },
-  ],
-  survey_vessel: [
-    { type: 'engine', name: 'Main Engine' },
-    { type: 'propulsion', name: 'Dynamic Positioning' },
-    { type: 'electrical', name: 'Survey Electronics' },
-    { type: 'navigation', name: 'Multibeam Sonar' },
-  ],
-  pipelay_barge: [
-    { type: 'engine', name: 'Power Plant' },
-    { type: 'crane', name: 'Pipe Tensioner' },
-    { type: 'hydraulics', name: 'S-Lay System' },
-    { type: 'electrical', name: 'Welding Station' },
-    { type: 'navigation', name: 'DP System' },
-  ],
-  jack_up_barge: [
-    { type: 'engine', name: 'Jacking System' },
-    { type: 'crane', name: 'Main Crane' },
-    { type: 'hydraulics', name: 'Leg Hydraulics' },
-    { type: 'electrical', name: 'Power Generation' },
-    { type: 'navigation', name: 'Positioning System' },
-  ],
-  accommodation_barge: [
-    { type: 'engine', name: 'Power Generator' },
-    { type: 'electrical', name: 'HVAC System' },
-    { type: 'hydraulics', name: 'Gangway System' },
-    { type: 'navigation', name: 'Safety Systems' },
-  ],
-  work_barge: [
-    { type: 'engine', name: 'Auxiliary Engine' },
-    { type: 'crane', name: 'Deck Crane' },
-    { type: 'hydraulics', name: 'Winch System' },
-    { type: 'electrical', name: 'Power Supply' },
+    { type: 'propulsion', name: 'Controllable Pitch Propellers' },
+    { type: 'hydraulics', name: 'Vehicle Ramp System' },
+    { type: 'electrical', name: 'Ship Service Generator' },
+    { type: 'navigation', name: 'Navigation & Radar System' },
+    { type: 'safety_systems', name: 'Fire Detection & Suppression' },
   ],
 };
 
@@ -130,7 +58,7 @@ function randomChoice<T>(arr: T[]): T {
 }
 
 function generateEquipment(vesselType: VesselType): EquipmentStatus[] {
-  const templates = EQUIPMENT_TEMPLATES[vesselType];
+  const templates = EQUIPMENT_TEMPLATES[vesselType] || EQUIPMENT_TEMPLATES.ferry || [];
   return templates.map((template) => {
     const hoursOperated = randomInRange(500, 15000);
     const healthScore = Math.max(20, 100 - (hoursOperated / 200) + randomInRange(-15, 15));
@@ -155,34 +83,21 @@ function generateEquipment(vesselType: VesselType): EquipmentStatus[] {
 
 function generatePosition(): Position {
   return {
-    lat: randomInRange(UAE_WATERS.bounds.minLat, UAE_WATERS.bounds.maxLat),
-    lng: randomInRange(UAE_WATERS.bounds.minLng, UAE_WATERS.bounds.maxLng),
+    lat: randomInRange(PUGET_SOUND.bounds.minLat, PUGET_SOUND.bounds.maxLat),
+    lng: randomInRange(PUGET_SOUND.bounds.minLng, PUGET_SOUND.bounds.maxLng),
   };
 }
 
 export function generateVessel(type?: VesselType): Vessel {
-  const vesselType = type || randomChoice(Object.keys(VESSEL_NAMES) as VesselType[]);
-  const names = VESSEL_NAMES[vesselType];
+  const vesselType: VesselType = type || 'ferry';
+  const names = VESSEL_NAMES[vesselType] || VESSEL_NAMES.ferry || ['Unknown Vessel'];
   const equipment = generateEquipment(vesselType);
   const avgEquipmentHealth = equipment.reduce((sum, e) => sum + e.healthScore, 0) / equipment.length;
   
   const fuelLevel = randomInRange(25, 100);
-  const speed = vesselType === 'crane_barge' ? randomInRange(0, 3) : randomInRange(0, 15);
+  const speed = randomInRange(0, 18);
   
-  // Base fuel consumption varies by vessel type
-  const baseFuelConsumption: Record<VesselType, number> = {
-    tugboat: 150,
-    supply_vessel: 250,
-    crane_barge: 80,
-    dredger: 400,
-    survey_vessel: 120,
-    pipelay_barge: 350,
-    jack_up_barge: 200,
-    accommodation_barge: 100,
-    work_barge: 80,
-  };
-  
-  const fuelConsumption = baseFuelConsumption[vesselType] * (0.5 + speed / 20);
+  const fuelConsumption = 200 * (0.5 + speed / 20);
   
   // Calculate emissions based on fuel consumption
   const co2 = fuelConsumption * 2.68; // kg CO2 per liter diesel
@@ -214,47 +129,33 @@ export function generateVessel(type?: VesselType): Vessel {
       sox: Math.round(sox * 1000) / 1000,
     },
     crew: {
-      count: Math.floor(randomInRange(5, 25)),
+      count: Math.floor(randomInRange(8, 25)),
       hoursOnDuty: Math.round(randomInRange(0, 12)),
       safetyScore: Math.round(randomInRange(85, 100)),
     },
     equipment,
-    project: randomChoice(PROJECTS),
+    route: randomChoice(ROUTES),
     destination: Math.random() > 0.3 ? generatePosition() : null,
     lastUpdate: new Date(),
   };
 }
 
 /**
- * Generate the NMDC fleet based on real vessel data
- * Uses NMDC vessel names, types, crew counts, and project assignments
+ * Generate the WSDOT ferry fleet based on real vessel data
  */
 export function generateFleet(count: number = 15): Vessel[] {
   const vessels: Vessel[] = [];
   
-  // Use NMDC fleet as the basis for simulation
-  NMDC_FLEET.slice(0, count).forEach((nmdcVessel, index) => {
-    const vesselType = NMDC_TYPE_MAP[nmdcVessel.type];
+  // Use WSDOT fleet as the basis for simulation
+  WSDOT_FLEET.slice(0, count).forEach((wsdotVessel, index) => {
+    const vesselType: VesselType = 'ferry';
     const equipment = generateEquipment(vesselType);
     const avgEquipmentHealth = equipment.reduce((sum, e) => sum + e.healthScore, 0) / equipment.length;
     
     const fuelLevel = randomInRange(35, 95);
-    const speed = nmdcVessel.type === 'barge' ? randomInRange(0, 2) : randomInRange(0, 12);
+    const speed = randomInRange(0, 18);
     
-    // Base fuel consumption varies by vessel type
-    const baseFuelConsumption: Record<VesselType, number> = {
-      tugboat: 150,
-      supply_vessel: 250,
-      crane_barge: 80,
-      dredger: 400,
-      survey_vessel: 120,
-      pipelay_barge: 350,
-      jack_up_barge: 200,
-      accommodation_barge: 100,
-      work_barge: 80,
-    };
-    
-    const fuelConsumption = baseFuelConsumption[vesselType] * (0.5 + speed / 20);
+    const fuelConsumption = 200 * (0.5 + speed / 20);
     
     // Calculate emissions based on fuel consumption
     const co2 = fuelConsumption * 2.68;
@@ -269,11 +170,11 @@ export function generateFleet(count: number = 15): Vessel[] {
     }
     
     vessels.push({
-      id: nmdcVessel.mmsi, // Use MMSI as ID for correlation with live data
-      name: nmdcVessel.name,
+      id: wsdotVessel.mmsi,
+      name: wsdotVessel.name,
       type: vesselType,
-      mmsi: nmdcVessel.mmsi,
-      imo: nmdcVessel.imo,
+      mmsi: wsdotVessel.mmsi,
+      imo: undefined,
       position: generatePosition(),
       heading: randomInRange(0, 360),
       speed: status === 'operational' ? speed : 0,
@@ -287,12 +188,12 @@ export function generateFleet(count: number = 15): Vessel[] {
         sox: Math.round(sox * 1000) / 1000,
       },
       crew: {
-        count: nmdcVessel.crewCount || Math.floor(randomInRange(10, 25)),
+        count: wsdotVessel.crewCount || Math.floor(randomInRange(10, 25)),
         hoursOnDuty: Math.round(randomInRange(0, 12)),
         safetyScore: Math.round(randomInRange(88, 100)),
       },
       equipment,
-      project: nmdcVessel.project || randomChoice(PROJECTS),
+      route: wsdotVessel.route || randomChoice(ROUTES),
       destination: Math.random() > 0.3 ? generatePosition() : null,
       lastUpdate: new Date(),
     });
@@ -304,17 +205,9 @@ export function generateFleet(count: number = 15): Vessel[] {
 // Keep legacy function for backwards compatibility
 export function generateRandomFleet(count: number = 20): Vessel[] {
   const vessels: Vessel[] = [];
-  const typeDistribution: VesselType[] = [
-    'tugboat', 'tugboat', 'tugboat', 'tugboat',
-    'supply_vessel', 'supply_vessel', 'supply_vessel',
-    'crane_barge', 'crane_barge',
-    'dredger', 'dredger', 'dredger',
-    'survey_vessel', 'survey_vessel',
-  ];
   
   for (let i = 0; i < count; i++) {
-    const type = typeDistribution[i % typeDistribution.length];
-    vessels.push(generateVessel(type));
+    vessels.push(generateVessel('ferry'));
   }
   
   const nameCount: Record<string, number> = {};
@@ -367,12 +260,12 @@ export function updateVesselPosition(vessel: Vessel, deltaTime: number): Vessel 
     newLng += Math.sin(radians) * distance;
   }
   
-  // Keep within bounds
-  newLat = Math.max(UAE_WATERS.bounds.minLat, Math.min(UAE_WATERS.bounds.maxLat, newLat));
-  newLng = Math.max(UAE_WATERS.bounds.minLng, Math.min(UAE_WATERS.bounds.maxLng, newLng));
+  // Keep within Puget Sound bounds
+  newLat = Math.max(PUGET_SOUND.bounds.minLat, Math.min(PUGET_SOUND.bounds.maxLat, newLat));
+  newLng = Math.max(PUGET_SOUND.bounds.minLng, Math.min(PUGET_SOUND.bounds.maxLng, newLng));
   
   // Update fuel level
-  const fuelUsed = (vessel.fuelConsumption / 3600) * deltaTime; // liters per second
+  const fuelUsed = (vessel.fuelConsumption / 3600) * deltaTime;
   const newFuelLevel = Math.max(0, vessel.fuelLevel - fuelUsed / 100);
   
   return {
@@ -382,4 +275,3 @@ export function updateVesselPosition(vessel: Vessel, deltaTime: number): Vessel 
     lastUpdate: new Date(),
   };
 }
-

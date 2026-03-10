@@ -6,18 +6,17 @@ import Link from 'next/link';
 import type { FleetVessel } from '@/app/api/fleet/route';
 import 'leaflet/dist/leaflet.css';
 
-// UAE/Abu Dhabi region
-const UAE_CENTER = { lat: 24.5, lng: 54.5 };
+// Puget Sound / Seattle region
+const PUGET_SOUND_CENTER = { lat: 47.6, lng: -122.4 };
 
 const TYPE_COLORS: Record<string, string> = {
-  dredger: '#f97316',
-  hopper_dredger: '#ef4444',
-  csd: '#a855f7',
-  tug: '#10b981',
-  supply: '#3b82f6',
-  barge: '#f59e0b',
-  survey: '#06b6d4',
-  crane_barge: '#eab308',
+  ferry: '#3b82f6',
+  jumbo_mark_ii: '#6366f1',
+  jumbo: '#8b5cf6',
+  super_class: '#10b981',
+  issaquah_130: '#f59e0b',
+  olympic: '#06b6d4',
+  evergreen_state: '#eab308',
   unknown: '#9ca3af',
 };
 
@@ -46,7 +45,7 @@ function formatTimeAgo(dateInput?: Date | string | null): string {
   return `${diffDays}d ago`;
 }
 
-export default function NMDCFleetMap() {
+export default function WSDOTFleetMap() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapRef = useRef<any>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -64,7 +63,7 @@ export default function NMDCFleetMap() {
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  // Fetch NMDC fleet
+  // Fetch WSDOT fleet
   const fetchFleet = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -111,7 +110,7 @@ export default function NMDCFleetMap() {
       }
 
       const map = leafletRef.current.map(containerRef.current, {
-        center: [UAE_CENTER.lat, UAE_CENTER.lng],
+        center: [PUGET_SOUND_CENTER.lat, PUGET_SOUND_CENTER.lng],
         zoom: 9,
         zoomControl: false,
         attributionControl: true,
@@ -154,7 +153,7 @@ export default function NMDCFleetMap() {
     vessels.forEach(vessel => {
       if (!vessel.isOnline || !vessel.position?.lat) return;
 
-      const color = getTypeColor(vessel.nmdc?.type || vessel.type);
+      const color = getTypeColor(vessel.wsdot?.vesselClass || vessel.type);
       const isSelected = selectedVessel?.mmsi === vessel.mmsi;
 
       // Use circleMarker for reliable rendering
@@ -171,7 +170,7 @@ export default function NMDCFleetMap() {
 
       marker.bindTooltip(`
         <div style="font-weight: 600;">${vessel.name}</div>
-        <div style="font-size: 11px; opacity: 0.7;">${vessel.nmdc?.type || vessel.type}</div>
+        <div style="font-size: 11px; opacity: 0.7;">${vessel.wsdot?.vesselClass || vessel.type}</div>
       `, {
         permanent: false,
         direction: 'top',
@@ -200,7 +199,7 @@ export default function NMDCFleetMap() {
 
   const onlineVessels = vessels.filter(v => v.isOnline);
   const typeCounts = vessels.reduce((acc, v) => {
-    const type = v.nmdc?.type || v.type || 'unknown';
+    const type = v.wsdot?.vesselClass || v.type || 'unknown';
     acc[type] = (acc[type] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
@@ -220,7 +219,7 @@ export default function NMDCFleetMap() {
               </Link>
               <div className="flex items-center gap-2">
                 <Radio className="h-5 w-5 text-green-400 animate-pulse" />
-                <span className="font-semibold">NMDC Fleet</span>
+                <span className="font-semibold">WSDOT Fleet</span>
               </div>
             </div>
           </div>
@@ -301,9 +300,9 @@ export default function NMDCFleetMap() {
                 <div className="flex items-start gap-3">
                   <div
                     className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: `${getTypeColor(vessel.nmdc?.type || vessel.type)}20` }}
+                    style={{ backgroundColor: `${getTypeColor(vessel.wsdot?.vesselClass || vessel.type)}20` }}
                   >
-                    <Ship className="h-4 w-4" style={{ color: getTypeColor(vessel.nmdc?.type || vessel.type) }} />
+                    <Ship className="h-4 w-4" style={{ color: getTypeColor(vessel.wsdot?.vesselClass || vessel.type) }} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
@@ -313,7 +312,7 @@ export default function NMDCFleetMap() {
                       )}
                     </div>
                     <div className="text-xs text-white/40 flex items-center gap-2">
-                      <span className="capitalize">{(vessel.nmdc?.type || vessel.type).replace(/_/g, ' ')}</span>
+                      <span className="capitalize">{(vessel.wsdot?.vesselClass || vessel.type).replace(/_/g, ' ')}</span>
                       {vessel.speed != null && <span>• {vessel.speed.toFixed(1)} kn</span>}
                     </div>
                   </div>
@@ -348,7 +347,7 @@ export default function NMDCFleetMap() {
           <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10">
             <div className="text-center">
               <RefreshCw className="h-8 w-8 text-white/60 animate-spin mx-auto mb-3" />
-              <p className="text-white/60">Loading NMDC Fleet...</p>
+              <p className="text-white/60">Loading WSDOT Fleet...</p>
             </div>
           </div>
         )}
@@ -360,9 +359,9 @@ export default function NMDCFleetMap() {
               <div className="flex items-start gap-4">
                 <div
                   className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: `${getTypeColor(selectedVessel.nmdc?.type || selectedVessel.type)}20` }}
+                  style={{ backgroundColor: `${getTypeColor(selectedVessel.wsdot?.vesselClass || selectedVessel.type)}20` }}
                 >
-                  <Ship className="h-6 w-6" style={{ color: getTypeColor(selectedVessel.nmdc?.type || selectedVessel.type) }} />
+                  <Ship className="h-6 w-6" style={{ color: getTypeColor(selectedVessel.wsdot?.vesselClass || selectedVessel.type) }} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
@@ -372,7 +371,7 @@ export default function NMDCFleetMap() {
                     )}
                   </div>
                   <p className="text-sm text-white/50 capitalize mb-2">
-                    {(selectedVessel.nmdc?.type || selectedVessel.type).replace(/_/g, ' ')}
+                    {(selectedVessel.wsdot?.vesselClass || selectedVessel.type).replace(/_/g, ' ')}
                   </p>
                   <div className="grid grid-cols-3 gap-4 text-sm">
                     <div>

@@ -1,38 +1,6 @@
 import { PMWorkOrder, PMFleetPattern, PMInspectionRecord, PMOilAnalysis, PMEquipmentType } from './types'
 
 const WORK_ORDER_ISSUES: Record<PMEquipmentType, { pm: string[]; cm: string[] }> = {
-  wire_rope: {
-    pm: [
-      'Scheduled wire rope lubrication',
-      'Visual inspection - no defects found',
-      'NDT inspection completed',
-      'End fitting inspection',
-      'Drum alignment check',
-    ],
-    cm: [
-      'Wire breakage detected - partial replacement',
-      'Kinking observed near sheave',
-      'Corrosion treatment applied',
-      'Emergency replacement due to wear',
-      'Bird-caging repair',
-    ],
-  },
-  hoist_motor: {
-    pm: [
-      'Motor bearing regreasing',
-      'Vibration analysis - within limits',
-      'Insulation resistance test passed',
-      'Cooling system cleaning',
-      'Alignment verification',
-    ],
-    cm: [
-      'Bearing replacement - excessive vibration',
-      'Winding repair - hot spot detected',
-      'Shaft seal replacement - oil leakage',
-      'Motor overheating investigation',
-      'Emergency bearing replacement',
-    ],
-  },
   main_engine: {
     pm: [
       'Oil and filter change completed',
@@ -97,136 +65,168 @@ const WORK_ORDER_ISSUES: Record<PMEquipmentType, { pm: string[]; cm: string[] }>
       'Stator winding repair',
     ],
   },
-  crane_boom: {
+  propulsion_drive: {
     pm: [
-      'Structural inspection completed',
-      'Pin and bushing greased',
-      'NDT inspection - no cracks',
-      'Paint touch-up',
-      'Hydraulic cylinder inspection',
+      'Vibration analysis completed',
+      'Propeller inspection - no damage',
+      'Pitch system hydraulic pressure check',
+      'Shaft seal inspection',
+      'Motor insulation resistance test',
     ],
     cm: [
-      'Pin replacement - excessive wear',
-      'Crack repair - weld remediation',
-      'Bushing replacement',
-      'Cylinder seal replacement',
-      'Corrosion treatment',
+      'Bearing replacement - excessive vibration',
+      'Propeller blade repair - cavitation damage',
+      'Pitch control valve replacement',
+      'Shaft seal replacement - oil leakage',
+      'Motor winding repair - insulation failure',
     ],
   },
-  slew_bearing: {
+  steering_system: {
     pm: [
-      'Slew bearing greased',
-      'Bolt torque verification',
-      'Backlash measurement - within spec',
-      'Seal condition check',
-      'Gear tooth inspection',
+      'Hydraulic fluid level and condition check',
+      'Steering gear functional test',
+      'Rudder bearing clearance measurement',
+      'Solenoid valve response test',
+      'Emergency steering drill completed',
     ],
     cm: [
-      'Seal replacement - grease leakage',
-      'Bolt re-torquing - found loose',
-      'Gear wear investigation',
-      'Bearing noise investigation',
-      'Emergency seal repair',
+      'Hydraulic pump replacement - low pressure',
+      'Rudder bearing bushing replacement',
+      'Solenoid valve replacement - steering lag',
+      'Hydraulic hose replacement - leak detected',
+      'Control unit board replacement',
+    ],
+  },
+  ramp_system: {
+    pm: [
+      'Visual inspection of ramp structure',
+      'Hinge pin lubrication completed',
+      'Hydraulic cylinder seal inspection',
+      'Chain tension adjustment',
+      'Ramp limit switch test',
+    ],
+    cm: [
+      'Hydraulic cylinder seal replacement - drift',
+      'Hinge pin replacement - excessive play',
+      'Chain link replacement - elongation',
+      'Ramp structural weld repair',
+      'Emergency hydraulic hose replacement',
+    ],
+  },
+  navigation_electronics: {
+    pm: [
+      'Radar performance monitor test',
+      'GPS signal strength verification',
+      'ECDIS chart database update',
+      'AIS transceiver functional test',
+      'VHF radio check completed',
+    ],
+    cm: [
+      'Radar magnetron replacement - weak signal',
+      'GPS antenna cable replacement',
+      'ECDIS display unit replacement',
+      'AIS transceiver replacement - no targets',
+      'Gyro compass recalibration - heading drift',
     ],
   },
 }
 
 const FLEET_PATTERNS_DATA: PMFleetPattern[] = [
   {
-    equipmentType: 'wire_rope',
-    pattern: 'Accelerated fatigue wear in high-cycle offshore operations',
-    occurrences: 8,
-    averageFailurePoint: { value: 11500, unit: 'cycles' },
-    affectedAssets: ['Al Mirfa', 'Arzanah', 'SEP-450'],
-    recommendedIntervention: 'Reduce inspection interval from 500h to 350h for offshore cranes',
-  },
-  {
-    equipmentType: 'wire_rope',
-    pattern: 'Corrosion-induced degradation in Arabian Gulf conditions',
-    occurrences: 5,
-    averageFailurePoint: { value: 9200, unit: 'cycles' },
-    affectedAssets: ['Al Mirfa', 'Kawkab'],
-    recommendedIntervention: 'Apply enhanced corrosion inhibitor every 100 operating hours',
-  },
-  {
-    equipmentType: 'hoist_motor',
-    pattern: 'Bearing degradation under continuous heavy-lift operations',
-    occurrences: 6,
-    averageFailurePoint: { value: 22000, unit: 'hours' },
-    affectedAssets: ['SEP-450', 'Arzanah', 'Zakher'],
-    recommendedIntervention: 'Increase bearing regreasing frequency to 1500h intervals',
-  },
-  {
-    equipmentType: 'hoist_motor',
-    pattern: 'Insulation degradation in high-humidity environments',
-    occurrences: 4,
-    averageFailurePoint: { value: 28000, unit: 'hours' },
-    affectedAssets: ['Al Mirfa', 'Kawkab'],
-    recommendedIntervention: 'Install dehumidifiers in motor housings',
-  },
-  {
     equipmentType: 'main_engine',
-    pattern: 'Turbocharger bearing wear at high ambient temperatures',
-    occurrences: 7,
-    averageFailurePoint: { value: 18500, unit: 'hours' },
-    affectedAssets: ['Al Mirfa', 'Arzanah', 'Kawkab', 'Zakher'],
-    recommendedIntervention: 'Reduce turbo service interval to 8000h in summer months',
-  },
-  {
-    equipmentType: 'main_engine',
-    pattern: 'Injector coking from frequent load variations',
+    pattern: 'Injector coking from frequent load variations in ferry stop-start operations',
     occurrences: 9,
     averageFailurePoint: { value: 12000, unit: 'hours' },
-    affectedAssets: ['Al Mirfa', 'Arzanah', 'Kawkab', 'Al Sadr', 'Zakher'],
+    affectedAssets: ['M/V Puyallup', 'M/V Tacoma', 'M/V Wenatchee', 'M/V Spokane'],
     recommendedIntervention: 'Use premium fuel additives and increase injector inspection frequency',
   },
   {
-    equipmentType: 'pump_system',
-    pattern: 'Mechanical seal failure due to abrasive slurry content',
+    equipmentType: 'main_engine',
+    pattern: 'Turbocharger bearing wear at high ambient temperatures during summer',
+    occurrences: 7,
+    averageFailurePoint: { value: 18500, unit: 'hours' },
+    affectedAssets: ['M/V Puyallup', 'M/V Tacoma', 'M/V Wenatchee'],
+    recommendedIntervention: 'Reduce turbo service interval to 8000h in summer months',
+  },
+  {
+    equipmentType: 'propulsion_drive',
+    pattern: 'Bearing wear from frequent forward-astern maneuvers and docking cycles',
+    occurrences: 8,
+    averageFailurePoint: { value: 28000, unit: 'hours' },
+    affectedAssets: ['M/V Spokane', 'M/V Wenatchee', 'M/V Tacoma'],
+    recommendedIntervention: 'Increase propulsion drive bearing inspection to quarterly intervals',
+  },
+  {
+    equipmentType: 'propulsion_drive',
+    pattern: 'Propeller cavitation damage in shallow terminal approaches',
+    occurrences: 10,
+    averageFailurePoint: { value: 14000, unit: 'hours' },
+    affectedAssets: ['M/V Chetzemoka', 'M/V Salish', 'M/V Kennewick'],
+    recommendedIntervention: 'Conduct quarterly underwater inspections and optimize approach speeds',
+  },
+  {
+    equipmentType: 'steering_system',
+    pattern: 'Hydraulic pump wear from continuous maneuvering in confined terminals',
+    occurrences: 6,
+    averageFailurePoint: { value: 18000, unit: 'hours' },
+    affectedAssets: ['M/V Puyallup', 'M/V Kaleetan', 'M/V Yakima'],
+    recommendedIntervention: 'Increase hydraulic oil analysis frequency and monitor pump pressure trends',
+  },
+  {
+    equipmentType: 'ramp_system',
+    pattern: 'Hydraulic cylinder seal degradation from high-frequency loading cycles',
     occurrences: 12,
-    averageFailurePoint: { value: 4500, unit: 'hours' },
-    affectedAssets: ['Al Mirfa', 'Arzanah', 'Kawkab', 'Ghasha'],
-    recommendedIntervention: 'Upgrade to tungsten carbide seal faces for dredge operations',
+    averageFailurePoint: { value: 10000, unit: 'hours' },
+    affectedAssets: ['M/V Puyallup', 'M/V Tacoma', 'M/V Wenatchee', 'M/V Spokane'],
+    recommendedIntervention: 'Replace cylinder seals at 8000h intervals rather than waiting for leakage',
+  },
+  {
+    equipmentType: 'ramp_system',
+    pattern: 'Hinge pin wear accelerated by saltwater exposure at vehicle deck level',
+    occurrences: 8,
+    averageFailurePoint: { value: 15000, unit: 'hours' },
+    affectedAssets: ['M/V Puyallup', 'M/V Tacoma', 'M/V Kaleetan'],
+    recommendedIntervention: 'Apply marine-grade grease and install protective boots on exposed pins',
   },
   {
     equipmentType: 'pump_system',
-    pattern: 'Impeller erosion from high-velocity sand particles',
-    occurrences: 8,
-    averageFailurePoint: { value: 6200, unit: 'hours' },
-    affectedAssets: ['Al Mirfa', 'Arzanah', 'Ghasha'],
-    recommendedIntervention: 'Install pre-strainers and monitor flow rate deviation',
+    pattern: 'Ballast pump seal failure from saltwater and sediment ingestion',
+    occurrences: 7,
+    averageFailurePoint: { value: 6500, unit: 'hours' },
+    affectedAssets: ['M/V Puyallup', 'M/V Wenatchee', 'M/V Spokane'],
+    recommendedIntervention: 'Install pre-strainers on ballast intakes and monitor seal temperatures',
   },
   {
     equipmentType: 'hydraulic_system',
-    pattern: 'Contamination ingress through worn cylinder seals',
+    pattern: 'Contamination ingress through worn cylinder seals on car deck equipment',
     occurrences: 6,
     averageFailurePoint: { value: 14000, unit: 'hours' },
-    affectedAssets: ['SEP-450', 'Al Mirfa', 'Zakher'],
+    affectedAssets: ['M/V Puyallup', 'M/V Tacoma', 'M/V Wenatchee'],
     recommendedIntervention: 'Implement ISO 4406 cleanliness monitoring program',
   },
   {
-    equipmentType: 'slew_bearing',
-    pattern: 'Raceway wear from sustained high-load operations',
-    occurrences: 4,
-    averageFailurePoint: { value: 32000, unit: 'hours' },
-    affectedAssets: ['SEP-450', 'Arzanah'],
-    recommendedIntervention: 'Reduce maximum continuous slew operations under full load',
-  },
-  {
     equipmentType: 'generator',
-    pattern: 'AVR component degradation from voltage transients',
+    pattern: 'AVR component degradation from voltage transients during ramp operations',
     occurrences: 5,
     averageFailurePoint: { value: 25000, unit: 'hours' },
-    affectedAssets: ['Al Mirfa', 'Kawkab', 'Al Sadr'],
+    affectedAssets: ['M/V Puyallup', 'M/V Kaleetan', 'M/V Yakima'],
     recommendedIntervention: 'Install surge protection and conduct quarterly AVR checks',
   },
   {
-    equipmentType: 'crane_boom',
-    pattern: 'Fatigue cracking at boom-jib connection points',
-    occurrences: 3,
-    averageFailurePoint: { value: 65000, unit: 'hours' },
-    affectedAssets: ['SEP-450', 'Arzanah'],
-    recommendedIntervention: 'Implement annual MPI inspection at critical weld joints',
+    equipmentType: 'navigation_electronics',
+    pattern: 'GPS antenna cable degradation from continuous marine environment exposure',
+    occurrences: 4,
+    averageFailurePoint: { value: 18000, unit: 'hours' },
+    affectedAssets: ['M/V Puyallup', 'M/V Tacoma'],
+    recommendedIntervention: 'Implement annual GPS antenna and cabling inspection for corrosion/damage',
+  },
+  {
+    equipmentType: 'navigation_electronics',
+    pattern: 'Radar magnetron early failure from power cycling during layovers',
+    occurrences: 5,
+    averageFailurePoint: { value: 10000, unit: 'hours' },
+    affectedAssets: ['M/V Spokane', 'M/V Wenatchee', 'M/V Kaleetan'],
+    recommendedIntervention: 'Keep radar in standby rather than full power-down during short layovers',
   },
 ]
 
@@ -234,14 +234,14 @@ export function getWorkOrderHistory(assetId: string, equipmentId: string): PMWor
   const seed = hashCode(assetId + equipmentId)
   const random = seededRandom(seed)
   
-  const equipmentType = equipmentId.includes('wire') ? 'wire_rope' :
-    equipmentId.includes('hoist') || equipmentId.includes('motor') ? 'hoist_motor' :
-    equipmentId.includes('engine') ? 'main_engine' :
+  const equipmentType = equipmentId.includes('engine') ? 'main_engine' :
     equipmentId.includes('pump') ? 'pump_system' :
     equipmentId.includes('hydraulic') ? 'hydraulic_system' :
     equipmentId.includes('generator') || equipmentId.includes('gen') ? 'generator' :
-    equipmentId.includes('boom') ? 'crane_boom' :
-    equipmentId.includes('slew') ? 'slew_bearing' : 'main_engine'
+    equipmentId.includes('propulsion') || equipmentId.includes('drive') ? 'propulsion_drive' :
+    equipmentId.includes('steering') || equipmentId.includes('rudder') ? 'steering_system' :
+    equipmentId.includes('ramp') ? 'ramp_system' :
+    equipmentId.includes('nav') || equipmentId.includes('radar') || equipmentId.includes('gps') ? 'navigation_electronics' : 'main_engine'
 
   const issues = WORK_ORDER_ISSUES[equipmentType as PMEquipmentType] || WORK_ORDER_ISSUES.main_engine
 
@@ -290,7 +290,7 @@ export function getInspectionRecords(assetId: string, equipmentId: string): PMIn
   const recordCount = Math.floor(random() * 4) + 2
 
   const conditions: Array<'good' | 'fair' | 'poor' | 'critical'> = ['good', 'fair', 'poor', 'critical']
-  const inspectors = ['Ahmed Hassan', 'Mohammed Al-Rashid', 'Khalid Omar', 'Saeed Al-Mansoori']
+  const inspectors = ['James Peterson', 'Sarah Chen', 'Mike O\'Brien', 'David Nakamura']
 
   for (let i = 0; i < recordCount; i++) {
     const daysAgo = Math.floor(random() * 90) + 14
@@ -328,7 +328,7 @@ export function getOilAnalysisRecords(assetId: string, equipmentId: string): PMO
       assetId,
       equipmentId,
       date: new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000),
-      lab: 'SGS Middle East',
+      lab: 'Puget Sound Analytical',
       results: [
         {
           parameter: 'Viscosity @ 40°C',

@@ -9,18 +9,18 @@ export type PMSourceType =
   | 'industry_standards'
 
 export type PMEquipmentType =
-  | 'wire_rope'
-  | 'hoist_motor'
   | 'main_engine'
   | 'pump_system'
   | 'hydraulic_system'
   | 'generator'
-  | 'crane_boom'
-  | 'slew_bearing'
+  | 'propulsion_drive'
+  | 'steering_system'
+  | 'ramp_system'
+  | 'navigation_electronics'
 
 export type PMPriority = 'critical' | 'high' | 'medium' | 'low'
 
-export type PMAssetType = 'crane' | 'vessel'
+export type PMAssetType = 'vessel'
 
 export interface PMDataSource {
   id: string

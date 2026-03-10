@@ -35,21 +35,10 @@ export function VesselModel({ vesselType, healthScore, isSelected = false }: Ves
   const deckColor = '#16213e';
   const accentColor = isSelected ? '#a855f7' : '#3b82f6';
 
-  // Different vessel configurations based on type
+  // Ferry vessel configuration
   const vesselConfig = useMemo(() => {
-    switch (vesselType) {
-      case 'crane_barge':
-        return { length: 4, width: 1.5, hasCrane: true, hasBridge: true, bridgePosition: -1 };
-      case 'dredger':
-        return { length: 3.5, width: 1.2, hasCrane: false, hasBridge: true, bridgePosition: 0.5, hasDredgeArm: true };
-      case 'supply_vessel':
-        return { length: 2.5, width: 0.8, hasCrane: false, hasBridge: true, bridgePosition: -0.5 };
-      case 'survey_vessel':
-        return { length: 2, width: 0.6, hasCrane: false, hasBridge: true, bridgePosition: 0, hasRadar: true };
-      case 'tugboat':
-      default:
-        return { length: 2, width: 0.7, hasCrane: false, hasBridge: true, bridgePosition: -0.3 };
-    }
+    // All vessels are ferries - use a standard passenger/vehicle ferry configuration
+    return { length: 3.5, width: 1.2, hasBridge: true, bridgePosition: -0.5, hasRadar: true, hasVehicleDeck: true, hasBowRamp: true, hasSternRamp: true };
   }, [vesselType]);
 
   return (
@@ -105,45 +94,31 @@ export function VesselModel({ vesselType, healthScore, isSelected = false }: Ves
         </group>
       )}
 
-      {/* Crane for crane barges */}
-      {vesselConfig.hasCrane && (
-        <group position={[0.8, 0.3, 0]}>
-          {/* Crane base */}
-          <Cylinder args={[0.15, 0.2, 0.3]} castShadow>
-            <meshStandardMaterial color="#fbbf24" metalness={0.5} roughness={0.5} />
-          </Cylinder>
-          
-          {/* Crane arm */}
-          <group position={[0, 0.3, 0]} rotation={[0, 0, -0.3]}>
-            <Box args={[0.1, 1.5, 0.1]} position={[0.6, 0.4, 0]} castShadow>
-              <meshStandardMaterial color="#fbbf24" />
-            </Box>
-            
-            {/* Crane jib */}
-            <Box args={[1.2, 0.08, 0.08]} position={[0.3, 1.1, 0]} rotation={[0, 0, 0.15]} castShadow>
-              <meshStandardMaterial color="#f59e0b" />
-            </Box>
-            
-            {/* Hook cable */}
-            <Cylinder args={[0.01, 0.01, 0.6]} position={[0.8, 0.7, 0]} castShadow>
-              <meshStandardMaterial color="#6b7280" />
-            </Cylinder>
-          </group>
+      {/* Vehicle loading ramp for ferries */}
+      {vesselConfig.hasVehicleDeck && (
+        <group position={[vesselConfig.length / 2 + 0.2, -0.05, 0]}>
+          {/* Bow ramp */}
+          <Box args={[0.6, 0.05, vesselConfig.width * 0.7]} rotation={[0, 0, 0.15]} castShadow>
+            <meshStandardMaterial color="#4b5563" metalness={0.6} roughness={0.5} />
+          </Box>
         </group>
       )}
 
-      {/* Dredge arm for dredgers */}
-      {vesselConfig.hasDredgeArm && (
-        <group position={[vesselConfig.length / 2, 0, 0]} rotation={[0, 0, -0.5]}>
-          <Box args={[1.5, 0.15, 0.15]} position={[0.75, -0.3, 0]} castShadow>
-            <meshStandardMaterial color="#6b7280" metalness={0.6} />
-          </Box>
-          <mesh position={[1.4, -0.6, 0]}>
-            <coneGeometry args={[0.2, 0.4, 8]} />
-            <meshStandardMaterial color="#4b5563" metalness={0.7} />
-          </mesh>
-        </group>
-      )}
+      {/* Passenger deck superstructure */}
+      <group position={[0, 0.15, 0]}>
+        <Box args={[vesselConfig.length * 0.65, 0.25, vesselConfig.width * 0.85]} castShadow>
+          <meshStandardMaterial color="#1e293b" metalness={0.3} roughness={0.7} />
+        </Box>
+        {/* Passenger windows */}
+        <mesh position={[0, 0, vesselConfig.width * 0.43]}>
+          <boxGeometry args={[vesselConfig.length * 0.6, 0.12, 0.02]} />
+          <meshStandardMaterial color="#38bdf8" emissive="#38bdf8" emissiveIntensity={0.3} transparent opacity={0.7} />
+        </mesh>
+        <mesh position={[0, 0, -vesselConfig.width * 0.43]}>
+          <boxGeometry args={[vesselConfig.length * 0.6, 0.12, 0.02]} />
+          <meshStandardMaterial color="#38bdf8" emissive="#38bdf8" emissiveIntensity={0.3} transparent opacity={0.7} />
+        </mesh>
+      </group>
 
       {/* Additional radar for survey vessels */}
       {vesselConfig.hasRadar && (
